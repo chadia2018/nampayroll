@@ -149,11 +149,7 @@ function renderLogin() {
           <div class="modern-login-grid">
             <div class="modern-login-copy">
               <div class="brand-lockup">
-                <div class="brand-logo" aria-hidden="true">
-                  <span class="brand-logo-ring"></span>
-                  <span class="brand-logo-accent"></span>
-                  <span class="brand-logo-core">NP</span>
-                </div>
+                <img class="brand-logo-image" src="/assets/nam-payroll-logo.png" alt="NamPayroll logo" />
                 <div>
                   <p class="eyebrow">NamPayroll</p>
                   <strong class="brand-lockup-title">Namibia Payroll Desk</strong>
@@ -623,7 +619,7 @@ function renderEmployeePortal() {
     <section class="app-shell employee-portal-shell">
       <header class="topbar">
         <div class="brand portal-brand">
-          <div class="brand-mark">ES</div>
+          <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
           <div>
             <strong>${employee?.fullName || "Employee Portal"}</strong>
             <div class="small">${employee?.employeeNumber || ""} · ${employee?.title || "Employee"}</div>
@@ -2031,7 +2027,7 @@ function renderApp() {
     <section class="app-shell employee-portal-shell admin-portal-shell">
       <header class="topbar">
         <div class="brand portal-brand">
-          <div class="brand-mark">NP</div>
+          <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
           <div>
             <strong>${companyName}</strong>
             <div class="small">${state.session.name} · ${state.session.role}</div>
