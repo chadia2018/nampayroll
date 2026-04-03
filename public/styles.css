@@ -1084,6 +1084,113 @@ button:hover {
   background: linear-gradient(135deg, var(--brand), var(--brand-deep));
 }
 
+.modern-payslip {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 246, 238, 0.96));
+}
+
+.modern-payslip-grid {
+  gap: 16px;
+}
+
+.payslip-hero {
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(9, 28, 54, 0.96), rgba(18, 93, 111, 0.92));
+  color: white;
+}
+
+.payslip-hero .muted,
+.payslip-hero .section-kicker {
+  color: rgba(232, 240, 248, 0.84);
+}
+
+.payslip-summary {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.payslip-summary-card,
+.payslip-total-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.payslip-summary-card span,
+.payslip-total-card span {
+  display: block;
+  font-size: 0.8rem;
+  color: rgba(232, 240, 248, 0.78);
+}
+
+.payslip-summary-card strong,
+.payslip-total-card strong {
+  display: block;
+  margin-top: 6px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 1.1rem;
+}
+
+.payslip-summary-card small {
+  display: block;
+  margin-top: 6px;
+  color: rgba(232, 240, 248, 0.72);
+}
+
+.payslip-summary-card-accent {
+  background: linear-gradient(135deg, rgba(222, 154, 40, 0.32), rgba(32, 134, 85, 0.22));
+}
+
+.modern-payslip-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.payslip-table td {
+  padding: 10px 4px;
+}
+
+.payslip-totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.payslip-total-card {
+  background: rgba(15, 108, 116, 0.08);
+  border-color: rgba(15, 108, 116, 0.12);
+}
+
+.payslip-total-card span {
+  color: var(--muted);
+}
+
+.payslip-total-card-dark {
+  background: rgba(8, 70, 76, 0.92);
+  border-color: rgba(8, 70, 76, 0.92);
+  color: white;
+}
+
+.payslip-total-card-dark span,
+.payslip-total-card-green span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.payslip-total-card-green {
+  background: rgba(26, 123, 88, 0.92);
+  border-color: rgba(26, 123, 88, 0.92);
+  color: white;
+}
+
+.payslip-compliance-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .facts {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1223,6 +1330,13 @@ button:hover {
   }
 
   .leave-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .payslip-summary,
+  .modern-payslip-columns,
+  .payslip-totals,
+  .payslip-compliance-list {
     grid-template-columns: 1fr;
   }
 

@@ -1794,55 +1794,98 @@ function payslipView(run) {
   const metrics = run.result.metrics;
   const leave = run.result.leave;
   const company = run.companySnapshot || state.company || {};
+  const totalDeductions = Number(metrics.employeeSsc || 0) + Number(metrics.paye || 0) + Number(run.input.otherDeductions || 0);
   return `
-    <article class="payslip">
-      <div class="record-grid">
+    <article class="payslip modern-payslip">
+      <div class="record-grid modern-payslip-grid">
         ${run.status === "cancelled" ? `<div class="banner danger-banner">This payroll run was cancelled${run.cancelledAt ? ` on ${new Date(run.cancelledAt).toLocaleString()}` : ""}${run.cancelledBy ? ` by ${run.cancelledBy}` : ""}.${run.cancellationReason ? ` Reason: ${run.cancellationReason}` : ""}</div>` : ""}
-        <div class="payslip-company">
-          <div class="payslip-company-main">
-            ${company.logoPath ? `<img class="company-logo" src="${company.logoPath}" alt="${company.name || "Company"} logo" />` : `<div class="company-logo company-logo-fallback">${(company.name || "NP").slice(0, 2).toUpperCase()}</div>`}
-            <div>
-              <h3>${company.name || "Company"}</h3>
-              <p class="muted">${company.physicalAddress || "No physical address saved yet."}</p>
+        <div class="payslip-hero">
+          <div class="payslip-company">
+            <div class="payslip-company-main">
+              ${company.logoPath ? `<img class="company-logo" src="${company.logoPath}" alt="${company.name || "Company"} logo" />` : `<div class="company-logo company-logo-fallback">${(company.name || "NP").slice(0, 2).toUpperCase()}</div>`}
+              <div>
+                <p class="section-kicker">Payslip</p>
+                <h3>${company.name || "Company"}</h3>
+                <p class="muted">${company.physicalAddress || "No physical address saved yet."}</p>
+              </div>
+            </div>
+            <div class="payslip-company-meta">
+              ${company.email ? `<span class="tag">${company.email}</span>` : ""}
+              ${company.cellphone ? `<span class="tag">${company.cellphone}</span>` : ""}
+              ${company.website ? `<span class="tag">${company.website}</span>` : ""}
             </div>
           </div>
-          <div class="payslip-company-meta">
-            ${company.email ? `<span class="tag">${company.email}</span>` : ""}
-            ${company.cellphone ? `<span class="tag">${company.cellphone}</span>` : ""}
-            ${company.website ? `<span class="tag">${company.website}</span>` : ""}
+          <div class="payslip-summary">
+            <article class="payslip-summary-card">
+              <span>Employee</span>
+              <strong>${run.employeeName}</strong>
+              <small>${run.employeeNumber}</small>
+            </article>
+            <article class="payslip-summary-card">
+              <span>Payroll month</span>
+              <strong>${run.payrollMonth}</strong>
+              <small>Prepared by ${run.createdBy}</small>
+            </article>
+            <article class="payslip-summary-card payslip-summary-card-accent">
+              <span>Net pay</span>
+              <strong>${money(metrics.netPay)}</strong>
+              <small>Take-home amount</small>
+            </article>
           </div>
         </div>
-        <div class="record-head">
-          <div>
-            <h3>${run.employeeName}</h3>
-            <p class="muted">${run.employeeNumber} · ${run.payrollMonth}</p>
-          </div>
-          <span class="tag">${run.createdBy}</span>
+        <div class="modern-payslip-columns">
+          <section class="compact-section">
+            <div class="compact-section-head">
+              <h3>Earnings</h3>
+            </div>
+            <table class="table payslip-table">
+              <tbody>
+                <tr><td>Basic wage</td><td>${money(run.input.basicWage)}</td></tr>
+                <tr><td>Allowances</td><td>${money(run.input.allowances)}</td></tr>
+                <tr><td>Bonus</td><td>${money(run.input.bonus)}</td></tr>
+                <tr><td>Overtime</td><td>${money(metrics.overtimePay)}</td></tr>
+                <tr><td>Sunday pay</td><td>${money(metrics.sundayPay)}</td></tr>
+                <tr><td>Public holiday pay</td><td>${money(metrics.publicHolidayPay)}</td></tr>
+                <tr><td>Night premium</td><td>${money(metrics.nightPremium)}</td></tr>
+                <tr><td>Gross remuneration</td><td>${money(metrics.taxableGross)}</td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="compact-section">
+            <div class="compact-section-head">
+              <h3>Deductions and Leave</h3>
+            </div>
+            <table class="table payslip-table">
+              <tbody>
+                <tr><td>Employee SSC</td><td>(${money(metrics.employeeSsc)})</td></tr>
+                <tr><td>PAYE</td><td>(${money(metrics.paye)})</td></tr>
+                <tr><td>Other deductions</td><td>(${money(run.input.otherDeductions)})</td></tr>
+                <tr><td>Total deductions</td><td>(${money(totalDeductions)})</td></tr>
+                <tr><td>Annual leave remaining</td><td>${number(leave.annualRemaining, 1)} days</td></tr>
+                <tr><td>Sick leave remaining</td><td>${number(leave.sickRemaining, 1)} days</td></tr>
+                <tr><td>Hourly basic</td><td>${money(metrics.hourlyBasic)}</td></tr>
+                <tr><td>Minimum hourly</td><td>${money(metrics.minimumHourly)}</td></tr>
+              </tbody>
+            </table>
+          </section>
         </div>
-        <table class="table">
-          <tbody>
-            <tr><td>Basic wage</td><td>${money(run.input.basicWage)}</td></tr>
-            <tr><td>Allowances</td><td>${money(run.input.allowances)}</td></tr>
-            <tr><td>Bonus</td><td>${money(run.input.bonus)}</td></tr>
-            <tr><td>Overtime</td><td>${money(metrics.overtimePay)}</td></tr>
-            <tr><td>Sunday pay</td><td>${money(metrics.sundayPay)}</td></tr>
-            <tr><td>Public holiday pay</td><td>${money(metrics.publicHolidayPay)}</td></tr>
-            <tr><td>Night premium</td><td>${money(metrics.nightPremium)}</td></tr>
-            <tr><td>Gross taxable remuneration</td><td>${money(metrics.taxableGross)}</td></tr>
-            <tr><td>Employee SSC</td><td>(${money(metrics.employeeSsc)})</td></tr>
-            <tr><td>PAYE</td><td>(${money(metrics.paye)})</td></tr>
-            <tr><td>Other deductions</td><td>(${money(run.input.otherDeductions)})</td></tr>
-            <tr><td>Net pay</td><td>${money(metrics.netPay)}</td></tr>
-          </tbody>
-        </table>
-        <div class="facts">
-          <div class="fact"><span class="label">Hourly basic</span><span class="value">${money(metrics.hourlyBasic)}</span></div>
-          <div class="fact"><span class="label">Minimum wage threshold</span><span class="value">${money(metrics.minimumHourly)}</span></div>
-          <div class="fact"><span class="label">Annual leave remaining</span><span class="value">${number(leave.annualRemaining, 1)} days</span></div>
-          <div class="fact"><span class="label">Sick leave remaining</span><span class="value">${number(leave.sickRemaining, 1)} days</span></div>
+        <div class="payslip-totals">
+          <article class="payslip-total-card">
+            <span>Gross</span>
+            <strong>${money(metrics.taxableGross)}</strong>
+          </article>
+          <article class="payslip-total-card payslip-total-card-dark">
+            <span>Deductions</span>
+            <strong>${money(totalDeductions)}</strong>
+          </article>
+          <article class="payslip-total-card payslip-total-card-green">
+            <span>Net Pay</span>
+            <strong>${money(metrics.netPay)}</strong>
+          </article>
         </div>
-        <div class="compliance-list">
+        <div class="compliance-list payslip-compliance-list">
           ${run.result.compliance
+            .slice(0, 4)
             .map(
               (item) => `<article class="notice ${item.pass ? "good" : "warn"}"><h3>${item.title}</h3><p class="muted">${item.body}</p></article>`,
             )

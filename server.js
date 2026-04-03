@@ -941,21 +941,13 @@ function escapePdfText(value) {
     .replace(/\)/g, "\\)");
 }
 
-function buildPdfFromLines(lines) {
-  const contentStream = [
-    "BT",
-    "/F1 12 Tf",
-    "50 790 Td",
-    "16 TL",
-    ...lines.map((line, index) => `${index === 0 ? "" : "T* "}(${escapePdfText(line)}) Tj`.trim()),
-    "ET",
-  ].join("\n");
-
+function buildPdfDocument(contentStream) {
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
     `<< /Length ${Buffer.byteLength(contentStream, "utf8")} >>\nstream\n${contentStream}\nendstream`,
   ];
 
@@ -975,31 +967,142 @@ function buildPdfFromLines(lines) {
   return Buffer.from(pdf, "utf8");
 }
 
+function buildPdfFromLines(lines) {
+  const contentStream = [
+    "BT",
+    "/F1 12 Tf",
+    "50 790 Td",
+    "16 TL",
+    ...lines.map((line, index) => `${index === 0 ? "" : "T* "}(${escapePdfText(line)}) Tj`.trim()),
+    "ET",
+  ].join("\n");
+  return buildPdfDocument(contentStream);
+}
+
+function pdfText(x, y, text, options = {}) {
+  const font = options.bold ? "/F2" : "/F1";
+  const size = options.size || 12;
+  const color = options.color || "0 0 0";
+  return `BT ${color} rg ${font} ${size} Tf 1 0 0 1 ${x} ${y} Tm (${escapePdfText(text)}) Tj ET`;
+}
+
+function pdfRect(x, y, width, height, color) {
+  return `${color} rg ${x} ${y} ${width} ${height} re f`;
+}
+
+function pdfLine(x1, y1, x2, y2, color = "0.85 0.88 0.92", width = 1) {
+  return `${color} RG ${width} w ${x1} ${y1} m ${x2} ${y2} l S`;
+}
+
+function wrapPdfText(value, maxChars = 44) {
+  const text = String(value || "").trim();
+  if (!text) return [];
+  const words = text.split(/\s+/);
+  const lines = [];
+  let current = "";
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length > maxChars && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.slice(0, 2);
+}
+
 function buildPayslipPdf(run, company) {
   const metrics = run.result.metrics;
   const pdfCompany = sanitizeCompany(company || run.companySnapshot || {});
-  const lines = [
-    pdfCompany.name || "Payslip",
-    pdfCompany.physicalAddress || "",
-    [pdfCompany.email, pdfCompany.cellphone, pdfCompany.website].filter(Boolean).join(" | "),
-    "",
-    `Employee: ${run.employeeName} (${run.employeeNumber})`,
-    `Payroll month: ${run.payrollMonth}`,
-    "",
-    `Basic wage: ${moneyValue(run.input.basicWage)}`,
-    `Allowances: ${moneyValue(run.input.allowances)}`,
-    `Bonus: ${moneyValue(run.input.bonus)}`,
-    `Overtime: ${moneyValue(metrics.overtimePay)}`,
-    `Sunday pay: ${moneyValue(metrics.sundayPay)}`,
-    `Public holiday pay: ${moneyValue(metrics.publicHolidayPay)}`,
-    `Night premium: ${moneyValue(metrics.nightPremium)}`,
-    `Gross taxable remuneration: ${moneyValue(metrics.taxableGross)}`,
-    `Employee SSC: ${moneyValue(metrics.employeeSsc)}`,
-    `PAYE: ${moneyValue(metrics.paye)}`,
-    `Other deductions: ${moneyValue(run.input.otherDeductions)}`,
-    `Net pay: ${moneyValue(metrics.netPay)}`,
-  ].filter((line, index, items) => line || (index > 0 && items[index - 1]));
-  return buildPdfFromLines(lines);
+  const totalDeductions = Number(metrics.employeeSsc || 0) + Number(metrics.paye || 0) + Number(run.input.otherDeductions || 0);
+  const complianceWarnings = (run.result.compliance || []).filter((item) => !item.pass);
+  const addressLines = wrapPdfText(pdfCompany.physicalAddress || "", 54);
+  const contactLine = [pdfCompany.email, pdfCompany.cellphone, pdfCompany.website].filter(Boolean).join("   |   ");
+  const commands = [
+    pdfRect(0, 0, 595, 842, "0.97 0.95 0.90"),
+    pdfRect(28, 720, 539, 94, "0.08 0.17 0.33"),
+    pdfRect(28, 690, 539, 30, "0.94 0.61 0.16"),
+    pdfText(44, 783, pdfCompany.name || "NamPayroll", { bold: true, size: 22, color: "1 1 1" }),
+    pdfText(44, 762, "Employee Payslip", { size: 11, color: "0.85 0.91 0.98" }),
+    pdfText(44, 700, `Payroll Month  ${run.payrollMonth}`, { bold: true, size: 12, color: "0.11 0.16 0.21" }),
+    pdfText(360, 700, `Net Pay  ${moneyValue(metrics.netPay)}`, { bold: true, size: 12, color: "0.11 0.16 0.21" }),
+    pdfRect(28, 608, 260, 72, "1 1 1"),
+    pdfRect(307, 608, 260, 72, "1 1 1"),
+    pdfText(44, 660, "Employee", { size: 9, color: "0.43 0.48 0.55" }),
+    pdfText(44, 640, run.employeeName, { bold: true, size: 15, color: "0.10 0.13 0.17" }),
+    pdfText(44, 620, `${run.employeeNumber}   |   Created by ${run.createdBy}`, { size: 10, color: "0.34 0.39 0.45" }),
+    pdfText(323, 660, "Company Contact", { size: 9, color: "0.43 0.48 0.55" }),
+    ...addressLines.map((line, index) => pdfText(323, 640 - index * 14, line, { bold: index === 0 && addressLines.length === 1, size: 10, color: "0.10 0.13 0.17" })),
+    ...(contactLine ? [pdfText(323, 612, contactLine, { size: 9, color: "0.34 0.39 0.45" })] : []),
+    pdfText(44, 575, "Earnings", { bold: true, size: 12, color: "0.08 0.17 0.33" }),
+    pdfText(323, 575, "Deductions and Leave", { bold: true, size: 12, color: "0.08 0.17 0.33" }),
+    pdfRect(28, 340, 260, 220, "1 1 1"),
+    pdfRect(307, 340, 260, 220, "1 1 1"),
+  ];
+
+  const earnings = [
+    ["Basic wage", moneyValue(run.input.basicWage)],
+    ["Allowances", moneyValue(run.input.allowances)],
+    ["Bonus", moneyValue(run.input.bonus)],
+    ["Overtime", moneyValue(metrics.overtimePay)],
+    ["Sunday pay", moneyValue(metrics.sundayPay)],
+    ["Holiday pay", moneyValue(metrics.publicHolidayPay)],
+    ["Night premium", moneyValue(metrics.nightPremium)],
+    ["Gross remuneration", moneyValue(metrics.taxableGross)],
+  ];
+  const deductions = [
+    ["Employee SSC", moneyValue(metrics.employeeSsc)],
+    ["PAYE", moneyValue(metrics.paye)],
+    ["Other deductions", moneyValue(run.input.otherDeductions)],
+    ["Total deductions", moneyValue(totalDeductions)],
+    ["Annual leave left", `${Number(run.result.leave?.annualRemaining || 0).toFixed(1)} days`],
+    ["Sick leave left", `${Number(run.result.leave?.sickRemaining || 0).toFixed(1)} days`],
+    ["Hourly basic", moneyValue(metrics.hourlyBasic)],
+    ["Minimum hourly", moneyValue(metrics.minimumHourly)],
+  ];
+
+  earnings.forEach(([label, value], index) => {
+    const y = 540 - index * 24;
+    commands.push(pdfText(44, y, label, { size: 10, color: "0.34 0.39 0.45" }));
+    commands.push(pdfText(256, y, value, { bold: true, size: 10, color: "0.10 0.13 0.17" }));
+    if (index < earnings.length - 1) commands.push(pdfLine(42, y - 8, 274, y - 8));
+  });
+
+  deductions.forEach(([label, value], index) => {
+    const y = 540 - index * 24;
+    commands.push(pdfText(323, y, label, { size: 10, color: "0.34 0.39 0.45" }));
+    commands.push(pdfText(530, y, value, { bold: true, size: 10, color: "0.10 0.13 0.17" }));
+    if (index < deductions.length - 1) commands.push(pdfLine(321, y - 8, 553, y - 8));
+  });
+
+  commands.push(
+    pdfRect(28, 256, 168, 64, "0.10 0.44 0.46"),
+    pdfRect(214, 256, 168, 64, "0.08 0.17 0.33"),
+    pdfRect(400, 256, 167, 64, "0.15 0.50 0.34"),
+    pdfText(44, 298, "Gross", { size: 10, color: "0.84 0.93 0.92" }),
+    pdfText(44, 274, moneyValue(metrics.taxableGross), { bold: true, size: 18, color: "1 1 1" }),
+    pdfText(230, 298, "Deductions", { size: 10, color: "0.84 0.89 0.97" }),
+    pdfText(230, 274, moneyValue(totalDeductions), { bold: true, size: 18, color: "1 1 1" }),
+    pdfText(416, 298, "Net Pay", { size: 10, color: "0.86 0.95 0.89" }),
+    pdfText(416, 274, moneyValue(metrics.netPay), { bold: true, size: 18, color: "1 1 1" }),
+    pdfText(28, 226, "Compliance Summary", { bold: true, size: 12, color: "0.08 0.17 0.33" }),
+    pdfRect(28, 90, 539, 120, "1 1 1"),
+    pdfText(44, 188, `Checks passed: ${(run.result.compliance || []).length - complianceWarnings.length} of ${(run.result.compliance || []).length}`, { size: 10, color: "0.10 0.13 0.17" }),
+    pdfText(44, 168, complianceWarnings.length ? `Warnings: ${complianceWarnings.map((item) => item.title).slice(0, 2).join("; ")}` : "No compliance warnings recorded for this run.", { size: 10, color: complianceWarnings.length ? "0.67 0.27 0.20" : "0.20 0.45 0.31" }),
+    pdfText(44, 132, "This payslip summarizes taxable remuneration, statutory deductions, and leave balances for the payroll month.", { size: 9, color: "0.34 0.39 0.45" }),
+    pdfText(44, 108, "Generated by NamPayroll", { size: 9, color: "0.34 0.39 0.45" }),
+  );
+
+  if (run.status === "cancelled") {
+    commands.push(
+      pdfRect(28, 816, 160, 16, "0.74 0.30 0.20"),
+      pdfText(36, 820, "CANCELLED PAYROLL RUN", { bold: true, size: 9, color: "1 1 1" }),
+    );
+  }
+
+  return buildPdfDocument(commands.join("\n"));
 }
 
 function documentTypeLabel(documentType) {
