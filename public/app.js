@@ -144,23 +144,31 @@ function renderLogin() {
   return appShell(`
     <section class="login-wrap">
       <div class="login-compact-shell">
-        <section class="login-card compact-login-card">
-          <div class="login-card-head">
-            <div>
-              <p class="eyebrow">Namibia Payroll Desk</p>
-              <h1>Sign in</h1>
-              <p class="muted">Payroll, compliance, and employee self-service in one place.</p>
+        <section class="login-card compact-login-card modern-login-card">
+          <div class="modern-login-grid">
+            <div class="modern-login-copy">
+              <div class="brand-lockup">
+                <div class="brand-logo" aria-hidden="true">
+                  <span class="brand-logo-ring"></span>
+                  <span class="brand-logo-core">NP</span>
+                </div>
+                <div>
+                  <p class="eyebrow">NamPayroll</p>
+                  <strong class="brand-lockup-title">Namibia Payroll Desk</strong>
+                </div>
+              </div>
+              <h1>Payroll access for modern teams.</h1>
+              <p class="muted">Run payroll, manage compliance, and give employees self-service access from one secure workspace.</p>
+              <div class="login-chip-group modern-login-chips">
+                <span class="tag">Admin demo: admin / admin123!</span>
+                <span class="tag">Employee: use issued portal credentials</span>
+              </div>
             </div>
-            <div class="login-chip-group">
-              <span class="tag">Admin: admin / admin123!</span>
-              <span class="tag">Employee: username + last 6 ID digits</span>
-            </div>
-          </div>
-          <div class="compact-login-grid">
-            <div class="notice compact-login-panel">
-              <p class="section-kicker">Access</p>
-              <h3>Sign in</h3>
-              <form id="login-form">
+            <div class="notice compact-login-panel modern-login-panel">
+              <p class="section-kicker">Secure Sign In</p>
+              <h3>Welcome back</h3>
+              <p class="muted">Enter your username and password to continue to the payroll workspace.</p>
+              <form id="login-form" class="modern-login-form">
                 <label>Username <input name="username" value="admin" required /></label>
                 <label>Password <input type="password" name="password" value="admin123!" required /></label>
                 <div class="actions">
@@ -168,18 +176,6 @@ function renderLogin() {
                 </div>
               </form>
               <p id="login-error" class="small danger hidden"></p>
-            </div>
-            <div class="notice compact-login-panel">
-              <p class="section-kicker">Reset</p>
-              <h3>Forgot employee password?</h3>
-              <form id="password-reset-request-form">
-                <label>Username <input name="username" placeholder="emp-001-0000" required /></label>
-                <label>ID number or last 6 digits <input name="idNumber" placeholder="90010100000" /></label>
-                <div class="actions">
-                  <button class="secondary" type="submit">Request reset</button>
-                </div>
-              </form>
-              <p id="password-reset-note" class="small hidden"></p>
             </div>
           </div>
         </section>
