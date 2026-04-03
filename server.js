@@ -7,6 +7,10 @@ const { calculatePayroll, normalizePayrollInput, SOURCE_LIST } = require("./lib/
 
 const HOST = process.env.HOST || "0.0.0.0";
 const PORT = Number(process.env.PORT || 3000);
+const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+const AFRICASTALKING_USERNAME = process.env.AFRICASTALKING_USERNAME || "";
+const AFRICASTALKING_API_KEY = process.env.AFRICASTALKING_API_KEY || "";
+const AFRICASTALKING_FROM = process.env.AFRICASTALKING_FROM || "";
 const PUBLIC_DIR = path.join(__dirname, "public");
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const LEGACY_JSON_PATH = path.join(DATA_DIR, "db.json");
@@ -40,6 +44,11 @@ function defaultCompany() {
     website: "",
     logoPath: "",
     registeredAt: "",
+    adminNotificationEmail: "",
+    adminNotificationCellphone: "",
+    notifyAdminOnLeaveRequest: true,
+    notifyAdminOnLoanRequest: true,
+    notifyAdminOnTimesheet: true,
   };
 }
 
@@ -631,6 +640,128 @@ function createNotification(db, payload) {
   };
   db.notifications.unshift(entry);
   return entry;
+}
+
+async function sendResendEmail(to, subject, text) {
+  if (!RESEND_API_KEY || !to) return { skipped: true };
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+    },
+    body: JSON.stringify({
+      from: "NamPayroll <notifications@nam-payroll.local>",
+      to: [to],
+      subject,
+      text,
+    }),
+  });
+  if (!response.ok) {
+    const payload = await response.text();
+    throw new Error(`Email delivery failed: ${payload}`);
+  }
+  return response.json();
+}
+
+async function sendAfricasTalkingSms(to, body) {
+  if (!AFRICASTALKING_USERNAME || !AFRICASTALKING_API_KEY || !to || !body) return { skipped: true };
+  const payload = new URLSearchParams({
+    username: AFRICASTALKING_USERNAME,
+    to,
+    message: body,
+  });
+  if (AFRICASTALKING_FROM) {
+    payload.set("from", AFRICASTALKING_FROM);
+  }
+  const response = await fetch("https://api.africastalking.com/version1/messaging", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      apiKey: AFRICASTALKING_API_KEY,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: payload.toString(),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`SMS delivery failed: ${text}`);
+  }
+  return response.json();
+}
+
+async function sendAdminRequestAlert(db, type, subject, message) {
+  const company = sanitizeCompany(db.company);
+  const shouldSend =
+    (type === "leave" && company.notifyAdminOnLeaveRequest) ||
+    (type === "loan" && company.notifyAdminOnLoanRequest) ||
+    (type === "timesheet" && company.notifyAdminOnTimesheet);
+  if (!shouldSend) return;
+
+  const adminUsers = (db.users || []).filter((user) => user.role === "admin");
+  db.auditLog = db.auditLog || [];
+
+  for (const admin of adminUsers) {
+    db.auditLog.push({
+      id: id("audit"),
+      action: "admin-alert-generated",
+      at: new Date().toISOString(),
+      actor: "system",
+      detail: `Prepared ${type} request alert for ${admin.username}.`,
+    });
+  }
+
+  const deliveries = [];
+  if (company.adminNotificationEmail) {
+    deliveries.push(sendResendEmail(company.adminNotificationEmail, subject, message));
+  }
+  if (company.adminNotificationCellphone) {
+    deliveries.push(sendAfricasTalkingSms(company.adminNotificationCellphone, message));
+  }
+  if (!deliveries.length) return;
+  await Promise.allSettled(deliveries);
+}
+
+function buildPayrollRunRecord(employee, body, createdBy, company) {
+  const input = normalizePayrollInput({
+    payrollMonth: body.payrollMonth,
+    employeeName: employee.fullName,
+    workerCategory: employee.workerCategory,
+    startDate: employee.startDate,
+    daysPerWeek: employee.daysPerWeek,
+    hoursPerDay: employee.hoursPerDay,
+    basicWage: employee.basicWage,
+    allowances: Number(body.allowances ?? employee.taxableAllowances),
+    bonus: Number(body.bonus ?? employee.standardBonus),
+    otherDeductions: Number(body.otherDeductions || 0),
+    overtimeHours: Number(body.overtimeHours || 0),
+    maxDailyOvertime: Number(body.maxDailyOvertime || 0),
+    maxWeeklyOvertime: Number(body.maxWeeklyOvertime || 0),
+    sundayHours: Number(body.sundayHours || 0),
+    ordinarilyWorksSunday: Boolean(body.ordinarilyWorksSunday),
+    publicHolidayHours: Number(body.publicHolidayHours || 0),
+    publicHolidayOrdinaryDay: Boolean(body.publicHolidayOrdinaryDay),
+    nightHours: Number(body.nightHours || 0),
+    annualLeaveUsed: Number(body.annualLeaveUsed ?? employee.leaveBalances.annualLeaveUsed),
+    sickLeaveUsed: Number(body.sickLeaveUsed ?? employee.leaveBalances.sickLeaveUsed),
+  });
+
+  return {
+    run: {
+      id: id("run"),
+      employeeId: employee.id,
+      employeeNumber: employee.employeeNumber,
+      employeeName: employee.fullName,
+      payrollMonth: input.payrollMonth,
+      status: "active",
+      createdAt: new Date().toISOString(),
+      createdBy,
+      companySnapshot: sanitizeCompany(company),
+      input,
+      result: calculatePayroll(input),
+    },
+    input,
+  };
 }
 
 function csvEscape(value) {
@@ -1642,6 +1773,11 @@ const routes = [
         cellphone: String(body.cellphone || "").trim(),
         physicalAddress: String(body.physicalAddress || "").trim(),
         website: String(body.website || "").trim(),
+        adminNotificationEmail: String(body.adminNotificationEmail || "").trim(),
+        adminNotificationCellphone: String(body.adminNotificationCellphone || "").trim(),
+        notifyAdminOnLeaveRequest: body.notifyAdminOnLeaveRequest !== false && body.notifyAdminOnLeaveRequest !== "false",
+        notifyAdminOnLoanRequest: body.notifyAdminOnLoanRequest !== false && body.notifyAdminOnLoanRequest !== "false",
+        notifyAdminOnTimesheet: body.notifyAdminOnTimesheet !== false && body.notifyAdminOnTimesheet !== "false",
         logoPath,
       });
 
@@ -2031,6 +2167,12 @@ const routes = [
         actor: sessionState.user.username,
         detail: `Created ${leaveRequest.leaveType} leave request for ${employee.fullName}.`,
       });
+      await sendAdminRequestAlert(
+        sessionState.db,
+        "leave",
+        `Leave request from ${employee.fullName}`,
+        `${employee.fullName} requested ${leaveRequest.leaveType} leave from ${leaveRequest.startDate} to ${leaveRequest.endDate}.`,
+      );
       await writeDb(sessionState.db);
       sendJson(res, 201, { item: sanitizeLeaveRequest(leaveRequest) });
     }),
@@ -2172,6 +2314,12 @@ const routes = [
         actor: sessionState.user.username,
         detail: `Created loan request for ${employee.fullName}.`,
       });
+      await sendAdminRequestAlert(
+        sessionState.db,
+        "loan",
+        `Loan request from ${employee.fullName}`,
+        `${employee.fullName} requested a loan of ${moneyValue(request.amount)} over ${request.repaymentMonths} month(s).`,
+      );
       await writeDb(sessionState.db);
       sendJson(res, 201, { item: sanitizeLoanRequest(request) });
     }),
@@ -2258,6 +2406,12 @@ const routes = [
         actor: sessionState.user.username,
         detail: `Submitted timesheet for ${employee.fullName}.`,
       });
+      await sendAdminRequestAlert(
+        sessionState.db,
+        "timesheet",
+        `Timesheet submitted by ${employee.fullName}`,
+        `${employee.fullName} submitted a timesheet for ${entry.weekStart} to ${entry.weekEnd}.`,
+      );
       await writeDb(sessionState.db);
       sendJson(res, 201, { item: sanitizeTimesheet(entry) });
     }),
@@ -2583,44 +2737,12 @@ const routes = [
         sendJson(res, 404, { error: "Employee not found." });
         return;
       }
-
-      const input = normalizePayrollInput({
-        payrollMonth: body.payrollMonth,
-        employeeName: employee.fullName,
-        workerCategory: employee.workerCategory,
-        startDate: employee.startDate,
-        daysPerWeek: employee.daysPerWeek,
-        hoursPerDay: employee.hoursPerDay,
-        basicWage: employee.basicWage,
-        allowances: Number(body.allowances ?? employee.taxableAllowances),
-        bonus: Number(body.bonus ?? employee.standardBonus),
-        otherDeductions: Number(body.otherDeductions || 0),
-        overtimeHours: Number(body.overtimeHours || 0),
-        maxDailyOvertime: Number(body.maxDailyOvertime || 0),
-        maxWeeklyOvertime: Number(body.maxWeeklyOvertime || 0),
-        sundayHours: Number(body.sundayHours || 0),
-        ordinarilyWorksSunday: Boolean(body.ordinarilyWorksSunday),
-        publicHolidayHours: Number(body.publicHolidayHours || 0),
-        publicHolidayOrdinaryDay: Boolean(body.publicHolidayOrdinaryDay),
-        nightHours: Number(body.nightHours || 0),
-        annualLeaveUsed: Number(body.annualLeaveUsed ?? employee.leaveBalances.annualLeaveUsed),
-        sickLeaveUsed: Number(body.sickLeaveUsed ?? employee.leaveBalances.sickLeaveUsed),
-      });
-
-      const result = calculatePayroll(input);
-      const payrollRun = {
-        id: id("run"),
-        employeeId: employee.id,
-        employeeNumber: employee.employeeNumber,
-        employeeName: employee.fullName,
-        payrollMonth: input.payrollMonth,
-        status: "active",
-        createdAt: new Date().toISOString(),
-        createdBy: sessionState.user.username,
-        companySnapshot: sanitizeCompany(sessionState.db.company),
-        input,
-        result,
-      };
+      const { run: payrollRun, input } = buildPayrollRunRecord(
+        employee,
+        body,
+        sessionState.user.username,
+        sessionState.db.company,
+      );
 
       sessionState.db.payrollRuns.push(payrollRun);
       employee.leaveBalances = {
@@ -2643,6 +2765,73 @@ const routes = [
       await writeDb(sessionState.db);
 
       sendJson(res, 201, { item: payrollRun });
+    }),
+  },
+  {
+    method: "POST",
+    path: "/api/payroll-runs/bulk",
+    handler: requireAdmin(async (req, res, params, sessionState) => {
+      const body = await parseBody(req);
+      const payrollMonth = String(body.payrollMonth || "").trim();
+      if (!payrollMonth) {
+        sendJson(res, 400, { error: "Payroll month is required." });
+        return;
+      }
+
+      const employees = (sessionState.db.employees || []).filter((item) => item.status !== "archived");
+      const created = [];
+      const skipped = [];
+
+      for (const employee of employees) {
+        const existingRun = (sessionState.db.payrollRuns || []).find(
+          (item) => item.employeeId === employee.id && item.payrollMonth === payrollMonth && item.status !== "cancelled",
+        );
+        if (existingRun) {
+          skipped.push({
+            employeeId: employee.id,
+            employeeName: employee.fullName,
+            employeeNumber: employee.employeeNumber,
+            reason: "Active payroll run already exists for this month.",
+          });
+          continue;
+        }
+
+        const { run: payrollRun, input } = buildPayrollRunRecord(
+          employee,
+          { ...body, payrollMonth },
+          sessionState.user.username,
+          sessionState.db.company,
+        );
+
+        sessionState.db.payrollRuns.push(payrollRun);
+        employee.leaveBalances = {
+          annualLeaveUsed: input.annualLeaveUsed,
+          sickLeaveUsed: input.sickLeaveUsed,
+        };
+        sessionState.db.auditLog.push({
+          id: id("audit"),
+          action: "payroll-run-created",
+          at: new Date().toISOString(),
+          actor: sessionState.user.username,
+          detail: `Created payroll run ${payrollRun.id} for ${employee.fullName}.`,
+        });
+        createNotification(sessionState.db, {
+          employeeId: employee.id,
+          type: "success",
+          title: "New payslip available",
+          body: `Your payslip for ${payrollRun.payrollMonth} is now available in the portal.`,
+        });
+        created.push(payrollRun);
+      }
+
+      await writeDb(sessionState.db);
+      sendJson(res, 201, {
+        month: payrollMonth,
+        createdCount: created.length,
+        skippedCount: skipped.length,
+        items: created,
+        skipped,
+      });
     }),
   },
   {

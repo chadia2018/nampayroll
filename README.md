@@ -44,6 +44,13 @@ Important environment values:
 - `PORT=3000`
 - `DATA_DIR=/var/data`
 
+Optional notification provider values:
+
+- `RESEND_API_KEY` for admin email alerts
+- `AFRICASTALKING_USERNAME` for admin SMS alerts
+- `AFRICASTALKING_API_KEY` for admin SMS alerts
+- `AFRICASTALKING_FROM` for your approved sender ID or shortcode
+
 ## Main files
 
 - UI entry: [`/Users/davismika/Documents/New project/public/index.html`](/Users/davismika/Documents/New%20project/public/index.html)
