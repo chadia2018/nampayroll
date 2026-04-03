@@ -237,6 +237,27 @@ function employeePortalBottomNavButton(view, label) {
   `;
 }
 
+function adminNavButton(view, label) {
+  return `<button class="${state.view === view ? "active" : "secondary"}" data-view="${view}">${label}</button>`;
+}
+
+function adminQuickAction(view, title, detail) {
+  return `
+    <button class="portal-quick-action ${state.view === view ? "portal-quick-action-active" : ""}" data-view="${view}" type="button">
+      <strong>${title}</strong>
+      <span>${detail}</span>
+    </button>
+  `;
+}
+
+function adminBottomNavButton(view, label) {
+  return `
+    <button class="portal-bottom-nav-button ${state.view === view ? "active" : ""}" data-view="${view}" type="button">
+      ${label}
+    </button>
+  `;
+}
+
 function triggerDownload(url) {
   const link = document.createElement("a");
   link.href = url;
@@ -2002,36 +2023,61 @@ function timesheetsView() {
 
 function renderApp() {
   const companyName = state.company?.name || "Namibia Payroll Desk";
+  const activeEmployees = (state.employees || []).filter((item) => item.status !== "archived").length;
+  const pendingLeave = (state.leaveRequests || []).filter((item) => item.status === "pending").length;
+  const pendingLoans = (state.loanRequests || []).filter((item) => item.status === "pending").length;
+  const pendingTimesheets = (state.timesheets || []).filter((item) => item.status === "submitted").length;
   return appShell(`
-    <section class="app-shell">
+    <section class="app-shell employee-portal-shell admin-portal-shell">
       <header class="topbar">
-        <div class="brand">
+        <div class="brand portal-brand">
           <div class="brand-mark">NP</div>
           <div>
             <strong>${companyName}</strong>
             <div class="small">${state.session.name} · ${state.session.role}</div>
           </div>
         </div>
-        <div class="topbar-actions">
+        <div class="topbar-actions portal-topbar-actions">
           <input class="workspace-search compact-search" id="global-search-topbar" placeholder="Search workspace" value="${state.globalSearch}" />
           <span class="pill">Tax ref: ${state.company?.taxReference || "n/a"}</span>
           <span class="pill">SSC: ${state.company?.sscRegistration || "n/a"}</span>
           <button class="ghost" data-action="logout">Log out</button>
         </div>
       </header>
-      <div class="layout">
-        <aside class="nav panel">
+      <section class="panel portal-summary-panel">
+        <div class="portal-summary-head">
+          <div>
+            <p class="section-kicker">Admin Workspace</p>
+            <h2>Run payroll and manage the company from one place</h2>
+            <p class="muted">Keep employees, leave, loans, timesheets, payroll, and reports within easy reach on mobile and desktop.</p>
+          </div>
+          <div class="portal-summary-stats">
+            <article class="portal-mini-stat"><span>Employees</span><strong>${activeEmployees}</strong></article>
+            <article class="portal-mini-stat"><span>Pending reviews</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
+            <article class="portal-mini-stat"><span>Reports month</span><strong>${state.reportMonth}</strong></article>
+          </div>
+        </div>
+        <div class="portal-quick-actions admin-quick-actions">
+          ${adminQuickAction("employees", "Employees", `${activeEmployees} active records`)}
+          ${adminQuickAction("leave", "Leave", pendingLeave ? `${pendingLeave} pending` : "Leave tracker")}
+          ${adminQuickAction("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly submissions")}
+          ${adminQuickAction("payroll", "Payroll", "Run and review payroll")}
+          ${adminQuickAction("reports", "Reports", "Finance and compliance")}
+        </div>
+      </section>
+      <div class="layout portal-layout admin-layout">
+        <aside class="nav panel portal-nav admin-nav">
           <p class="section-kicker">Workspace</p>
-          <button class="${state.view === "dashboard" ? "active" : "secondary"}" data-view="dashboard">Dashboard</button>
-          <button class="${state.view === "company" ? "active" : "secondary"}" data-view="company">Company</button>
-          <button class="${state.view === "employees" ? "active" : "secondary"}" data-view="employees">Employees</button>
-          <button class="${state.view === "leave" ? "active" : "secondary"}" data-view="leave">Leave Requests</button>
-          <button class="${state.view === "loans" ? "active" : "secondary"}" data-view="loans">Loans</button>
-          <button class="${state.view === "timesheets" ? "active" : "secondary"}" data-view="timesheets">Timesheets</button>
-          <button class="${state.view === "payroll" ? "active" : "secondary"}" data-view="payroll">Payroll Run</button>
-          <button class="${state.view === "documents" ? "active" : "secondary"}" data-view="documents">Documents</button>
-          <button class="${state.view === "data" ? "active" : "secondary"}" data-view="data">Data</button>
-          <button class="${state.view === "reports" ? "active" : "secondary"}" data-view="reports">Reports</button>
+          ${adminNavButton("dashboard", "Dashboard")}
+          ${adminNavButton("company", "Company")}
+          ${adminNavButton("employees", "Employees")}
+          ${adminNavButton("leave", "Leave Requests")}
+          ${adminNavButton("loans", "Loans")}
+          ${adminNavButton("timesheets", "Timesheets")}
+          ${adminNavButton("payroll", "Payroll Run")}
+          ${adminNavButton("documents", "Documents")}
+          ${adminNavButton("data", "Data")}
+          ${adminNavButton("reports", "Reports")}
         </aside>
         <main>
           ${state.view === "dashboard" ? dashboardView() : ""}
@@ -2046,6 +2092,13 @@ function renderApp() {
           ${state.view === "reports" ? reportsView() : ""}
         </main>
       </div>
+      <nav class="portal-bottom-nav admin-bottom-nav">
+        ${adminBottomNavButton("dashboard", "Home")}
+        ${adminBottomNavButton("employees", "People")}
+        ${adminBottomNavButton("leave", "Leave")}
+        ${adminBottomNavButton("payroll", "Payroll")}
+        ${adminBottomNavButton("reports", "Reports")}
+      </nav>
     </section>
   `);
 }
