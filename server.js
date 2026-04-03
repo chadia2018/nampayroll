@@ -1859,6 +1859,8 @@ const routes = [
         },
         profile: {
           ...defaultEmployeeProfile(),
+          personalEmail: String(body.personalEmail || "").trim(),
+          cellphone: String(body.cellphone || "").trim(),
         },
         portalAccess,
         status: "active",
@@ -1916,6 +1918,12 @@ const routes = [
           ...defaultLeaveBalances(),
           annualLeaveUsed: Number(body.annualLeaveUsed ?? employee.leaveBalances.annualLeaveUsed),
           sickLeaveUsed: Number(body.sickLeaveUsed ?? employee.leaveBalances.sickLeaveUsed),
+        },
+        profile: {
+          ...defaultEmployeeProfile(),
+          ...(employee.profile || {}),
+          personalEmail: String(body.personalEmail || employee.profile?.personalEmail || "").trim(),
+          cellphone: String(body.cellphone || employee.profile?.cellphone || "").trim(),
         },
       });
       if (employee.portalAccess) {

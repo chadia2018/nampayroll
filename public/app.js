@@ -1121,6 +1121,8 @@ function employeesView() {
       employee.idNumber,
       employee.department,
       employee.title,
+      employee.profile?.personalEmail,
+      employee.profile?.cellphone,
     );
     return matchesQuery && matchesDepartment && matchesStatus && matchesGlobal;
   });
@@ -1180,13 +1182,15 @@ function employeesView() {
               <input type="hidden" name="employeeId" value="${state.editingEmployeeId || ""}" />
               <div class="compact-section">
                 <div class="compact-section-head">
-                  <h3>Identity</h3>
+                  <h3>Identity and contact</h3>
                   <span class="tag">Required first</span>
                 </div>
-                <div class="compact-grid compact-grid-3">
+                <div class="compact-grid compact-grid-4">
                   <label>Full name <input name="fullName" required /></label>
                   <label>Employee number <input name="employeeNumber" placeholder="EMP-002" /></label>
                   <label>ID or passport <input name="idNumber" /></label>
+                  <label>Cellphone <input name="cellphone" placeholder="+264..." /></label>
+                  <label class="span-2">Email address <input type="email" name="personalEmail" placeholder="employee@example.com" /></label>
                 </div>
               </div>
 
@@ -1275,6 +1279,7 @@ function employeesView() {
                     <tr>
                       <th>No.</th>
                       <th>Name</th>
+                      <th>Contact</th>
                       <th>Position</th>
                       <th>Department</th>
                       <th>Basic Salary</th>
@@ -1720,6 +1725,12 @@ function employeeRow(employee) {
         <div class="employee-name-cell">
           <strong>${employee.fullName}</strong>
           <span>${employee.idNumber || "No ID saved"}</span>
+        </div>
+      </td>
+      <td>
+        <div class="employee-name-cell">
+          <strong>${employee.profile?.cellphone || "No cellphone"}</strong>
+          <span>${employee.profile?.personalEmail || "No email saved"}</span>
         </div>
       </td>
       <td>${employee.title || "Not set"}</td>
@@ -2312,6 +2323,8 @@ function bindApp() {
         employeeNumber: employee.employeeNumber,
         fullName: employee.fullName,
         idNumber: employee.idNumber,
+        cellphone: employee.profile?.cellphone,
+        personalEmail: employee.profile?.personalEmail,
         department: employee.department,
         title: employee.title,
         workerCategory: employee.workerCategory,
