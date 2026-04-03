@@ -1,0 +1,10 @@
+{
+  "name": "namibia-payroll-desk",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Namibia payroll web app with local Node server, employee records, payroll runs, and compliance checks.",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

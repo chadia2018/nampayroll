@@ -1,0 +1,1592 @@
+{
+  "company": {
+    "name": "NEW MILESTONE TECH SOLUTIONS CC",
+    "taxReference": "AC-IR-123",
+    "sscRegistration": "SSC-AC-55",
+    "email": "Info@1860bet.com",
+    "cellphone": "+264812345678",
+    "physicalAddress": "45 Independence Avenue, Windhoek",
+    "website": "https://1860bet.com",
+    "logoPath": "/uploads/company-logo-1775211398349.jpg"
+  },
+  "users": [
+    {
+      "id": "user_d800e575-2315-4e9e-b444-62ac91cd2d58",
+      "username": "admin",
+      "name": "Payroll Admin",
+      "role": "admin",
+      "passwordHash": "61230418be26dd7efb2819b753cd6f32:cbcc1d429869f69072a15bedd8297fd0fc1050005b5d30df084f310c11bb3048c516e1591caf2bad607808ecb241a33bef9252be1831afe24b4d704017369346"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "sess_ec8d60d4-b9ef-4545-a4d1-ca15d9373cb6",
+      "userId": "employee-login-emp_5552f059-7f3e-4216-b274-2c8d9138d317",
+      "role": "employee",
+      "employeeId": "emp_5552f059-7f3e-4216-b274-2c8d9138d317",
+      "tokenHash": "0650e858706fcdcdaa1d4658a5fb45c4af2b1e3ec1065144c8e1f38a184e0398",
+      "createdAt": "2026-04-03T09:26:34.586Z",
+      "expiresAt": "2026-04-03T21:26:34.586Z"
+    },
+    {
+      "id": "sess_23fc7d3c-7284-4893-872c-91c8ccaeffb2",
+      "userId": "employee-login-emp_40d3236a-f545-4084-b373-d27042fe401d",
+      "role": "employee",
+      "employeeId": "emp_40d3236a-f545-4084-b373-d27042fe401d",
+      "tokenHash": "6698d1862e60761175afd921698c81d1d73a9904302759d644e722b70751759f",
+      "createdAt": "2026-04-03T09:26:42.580Z",
+      "expiresAt": "2026-04-03T21:26:42.580Z"
+    },
+    {
+      "id": "sess_c941e8d5-13be-4e4b-8ee4-5dd25d880c39",
+      "userId": "user_d800e575-2315-4e9e-b444-62ac91cd2d58",
+      "role": "admin",
+      "employeeId": null,
+      "tokenHash": "c516ca0ad82c4ce17a9fe61b0fe1490c40311f9b72b48236c34a950e39071cce",
+      "createdAt": "2026-04-03T11:00:28.892Z",
+      "expiresAt": "2026-04-03T23:00:28.892Z"
+    }
+  ],
+  "employees": [
+    {
+      "id": "emp_5552f059-7f3e-4216-b274-2c8d9138d317",
+      "employeeNumber": "EMP-001",
+      "fullName": "Anna Nghipondoka",
+      "idNumber": "90010100000",
+      "department": "Operations",
+      "title": "Payroll Clerk",
+      "workerCategory": "general",
+      "startDate": "2025-01-06",
+      "payFrequency": "monthly",
+      "daysPerWeek": 5,
+      "hoursPerDay": 9,
+      "basicWage": 18500,
+      "taxableAllowances": 1200,
+      "standardBonus": 0,
+      "bankName": "Bank Windhoek",
+      "accountNumber": "0812345678",
+      "leaveBalances": {
+        "annualLeaveUsed": 2,
+        "sickLeaveUsed": 1
+      },
+      "status": "active",
+      "createdAt": "2026-04-01T19:23:54.618Z",
+      "portalAccess": {
+        "username": "emp-001-0000",
+        "tempPassword": "100000",
+        "passwordHash": "eef27ac425b95e7b938bbff9eb4fdc01:11d0a13c17430291c85b0c3a05c49f2e97fe25e60325e184a3c401228b3a4d9b2a3e484e63cfdb800fb6f1200a5944bbf151351c876cc40450437b15b16771f6"
+      },
+      "profile": {
+        "personalEmail": "",
+        "cellphone": "",
+        "physicalAddress": "",
+        "nextOfKinName": "",
+        "nextOfKinPhone": ""
+      }
+    },
+    {
+      "id": "emp_40d3236a-f545-4084-b373-d27042fe401d",
+      "employeeNumber": "EMP-001",
+      "fullName": "Davis Mika",
+      "idNumber": "86100300982",
+      "department": "Management",
+      "title": "GM",
+      "workerCategory": "general",
+      "startDate": "2025-01-01",
+      "payFrequency": "monthly",
+      "daysPerWeek": 6,
+      "hoursPerDay": 8,
+      "basicWage": 15000,
+      "taxableAllowances": 0,
+      "standardBonus": 0,
+      "bankName": "",
+      "accountNumber": "",
+      "leaveBalances": {
+        "annualLeaveUsed": 0,
+        "sickLeaveUsed": 0
+      },
+      "status": "active",
+      "createdAt": "2026-04-01T19:36:06.719Z",
+      "portalAccess": {
+        "username": "emp-001-0982",
+        "tempPassword": "300982",
+        "passwordHash": "3d1133b82603b7ed301ff7aba718aa97:681e5ab71653ba86292f561afa8189e0f68840d3ad50edbc587ea8fe216b74efd804196aade4ad8ca433185fa51cbc9058d416a0ccf1f6c90c30bc25396d4e95"
+      },
+      "profile": {
+        "personalEmail": "",
+        "cellphone": "",
+        "physicalAddress": "",
+        "nextOfKinName": "",
+        "nextOfKinPhone": ""
+      }
+    },
+    {
+      "id": "emp_ab44d5ca-8ed0-4dd4-907c-e466564e59d4",
+      "employeeNumber": "EMP-003",
+      "fullName": "Davis Mika",
+      "idNumber": "86100300982",
+      "department": "",
+      "title": "",
+      "workerCategory": "general",
+      "startDate": "2025-01-01",
+      "payFrequency": "monthly",
+      "daysPerWeek": 6,
+      "hoursPerDay": 8,
+      "basicWage": 0,
+      "taxableAllowances": 0,
+      "standardBonus": 0,
+      "bankName": "FNB NAMIBIA",
+      "accountNumber": "62273476492",
+      "leaveBalances": {
+        "annualLeaveUsed": 0,
+        "sickLeaveUsed": 0
+      },
+      "status": "active",
+      "createdAt": "2026-04-01T19:36:43.679Z",
+      "portalAccess": {
+        "username": "emp-003-0982",
+        "tempPassword": "300982",
+        "passwordHash": "181b79b5339e83cdbe00c6defb434770:63ecb07fc7c8edcee9091614acd5dcdb960afd3d282774967d22840413b68554614cb7eab00f56e305265f2c6a8abafe8c0f94b3efaec503e1e7240d83512970"
+      },
+      "profile": {
+        "personalEmail": "",
+        "cellphone": "",
+        "physicalAddress": "",
+        "nextOfKinName": "",
+        "nextOfKinPhone": ""
+      }
+    }
+  ],
+  "payrollRuns": [
+    {
+      "id": "run_09943531-7a1c-4baf-86d2-4eb1a4d5b3db",
+      "employeeId": "emp_40d3236a-f545-4084-b373-d27042fe401d",
+      "employeeNumber": "EMP-001",
+      "employeeName": "Davis Mika",
+      "payrollMonth": "2026-04",
+      "createdAt": "2026-04-01T19:37:20.333Z",
+      "createdBy": "admin",
+      "input": {
+        "payrollMonth": "2026-04",
+        "employeeName": "Davis Mika",
+        "workerCategory": "general",
+        "startDate": "2025-01-01",
+        "daysPerWeek": 6,
+        "hoursPerDay": 8,
+        "basicWage": 15000,
+        "allowances": 0,
+        "bonus": 0,
+        "otherDeductions": 0,
+        "overtimeHours": 0,
+        "maxDailyOvertime": 0,
+        "maxWeeklyOvertime": 0,
+        "sundayHours": 0,
+        "ordinarilyWorksSunday": false,
+        "publicHolidayHours": 0,
+        "publicHolidayOrdinaryDay": false,
+        "nightHours": 0,
+        "annualLeaveUsed": 0,
+        "sickLeaveUsed": 0
+      },
+      "result": {
+        "inputs": {
+          "payrollMonth": "2026-04",
+          "employeeName": "Davis Mika",
+          "workerCategory": "general",
+          "startDate": "2025-01-01",
+          "daysPerWeek": 6,
+          "hoursPerDay": 8,
+          "basicWage": 15000,
+          "allowances": 0,
+          "bonus": 0,
+          "otherDeductions": 0,
+          "overtimeHours": 0,
+          "maxDailyOvertime": 0,
+          "maxWeeklyOvertime": 0,
+          "sundayHours": 0,
+          "ordinarilyWorksSunday": false,
+          "publicHolidayHours": 0,
+          "publicHolidayOrdinaryDay": false,
+          "nightHours": 0,
+          "annualLeaveUsed": 0,
+          "sickLeaveUsed": 0
+        },
+        "computedAt": "2026-04-01T19:37:20.333Z",
+        "metrics": {
+          "hourlyBasic": 72.11538461538461,
+          "overtimeRate": 108.17307692307692,
+          "overtimePay": 0,
+          "sundayPay": 0,
+          "publicHolidayPay": 0,
+          "nightPremium": 0,
+          "taxableGross": 15000,
+          "annualisedTaxable": 180000,
+          "paye": 2416.6666666666665,
+          "employeeSsc": 98.99999999999999,
+          "employerSsc": 98.99999999999999,
+          "netPay": 12484.333333333334,
+          "totalEmployerCost": 15099,
+          "minimumHourly": 18,
+          "sscAssessableBasic": 11000
+        },
+        "leave": {
+          "monthsOfService": 16,
+          "annualEntitlement": 24,
+          "annualAccrued": 24,
+          "annualRemaining": 24,
+          "sickEntitlement": 36,
+          "sickRemaining": 36,
+          "compassionateLeave": 5,
+          "maternityWeeks": 12
+        },
+        "compliance": [
+          {
+            "key": "minimum-wage",
+            "pass": true,
+            "title": "Minimum wage passes",
+            "body": "Ordinary hourly wage is N$72.12 against a statutory floor of N$18.00."
+          },
+          {
+            "key": "ordinary-hours",
+            "pass": false,
+            "title": "Ordinary hours risk",
+            "body": "Ordinary hours are 48.00 per week, above the section 16 limit of 45 hours."
+          },
+          {
+            "key": "daily-hours",
+            "pass": true,
+            "title": "Daily hours pass",
+            "body": "Ordinary daily hours are 8.00, within the daily cap of 8."
+          },
+          {
+            "key": "daily-overtime",
+            "pass": true,
+            "title": "Daily overtime pass",
+            "body": "Maximum daily overtime entered is 0.00 hours, within the Labour Act limit of three hours per day."
+          },
+          {
+            "key": "weekly-overtime",
+            "pass": true,
+            "title": "Weekly overtime pass",
+            "body": "Maximum weekly overtime entered is 0.00 hours, within the Labour Act limit of 10 hours per week."
+          },
+          {
+            "key": "ssc",
+            "pass": true,
+            "title": "Statutory remittance reminder",
+            "body": "Employee SSC is N$99.00 and employer SSC is N$99.00 on an assessable basic wage of N$11000.00. SSC payment is due within 20 days after month-end."
+          }
+        ],
+        "sources": [
+          {
+            "title": "Income Tax Act, 1981",
+            "detail": "Schedule 4 rates used for annualised PAYE: 0% to N$50,000; 18% to N$100,000; 25% to N$300,000; 28% to N$500,000; 30% to N$800,000; 32% to N$1,500,000; 37% above that.",
+            "url": "https://namiblii.org/akn/na/act/1981/24/eng%402023-01-01/source.pdf"
+          },
+          {
+            "title": "Social Security Act Regulations",
+            "detail": "Employee and employer contributions are each 0.9% of basic wage, with the deemed monthly basic wage floor at N$500 and ceiling at N$11,000 from 1 March 2025.",
+            "url": "https://www.lac.org.na/laws/annoREG/Social%20Security%20Act%2034%20of%201994-Regulations%201995-198.pdf"
+          },
+          {
+            "title": "Labour Act, 2007",
+            "detail": "Used for ordinary hours, overtime, Sunday work, public holidays, night work, annual leave, sick leave, compassionate leave, and maternity leave logic.",
+            "url": "https://namiblii.org/akn/na/act/2007/11/eng%402023-03-15"
+          },
+          {
+            "title": "National Minimum Wage Order",
+            "detail": "Used for the phased hourly minimum wages effective from 1 January 2025, including domestic, agriculture, and security worker carve-outs.",
+            "url": "https://namiblii.org/akn/na/act/gn/2024/218"
+          }
+        ]
+      }
+    },
+    {
+      "id": "run_fa4aa43c-68ae-49ae-b3ca-5714ef56d639",
+      "employeeId": "emp_5552f059-7f3e-4216-b274-2c8d9138d317",
+      "employeeNumber": "EMP-001",
+      "employeeName": "Anna Nghipondoka",
+      "payrollMonth": "2026-04",
+      "createdAt": "2026-04-01T19:44:34.773Z",
+      "createdBy": "admin",
+      "companySnapshot": {
+        "name": "Acacia Commerce CC",
+        "taxReference": "AC-IR-123",
+        "sscRegistration": "SSC-AC-55",
+        "email": "payroll@acacia.na",
+        "cellphone": "+264812345678",
+        "physicalAddress": "45 Independence Avenue, Windhoek",
+        "website": "https://acacia.na",
+        "logoPath": ""
+      },
+      "input": {
+        "payrollMonth": "2026-04",
+        "employeeName": "Anna Nghipondoka",
+        "workerCategory": "general",
+        "startDate": "2025-01-06",
+        "daysPerWeek": 5,
+        "hoursPerDay": 9,
+        "basicWage": 18500,
+        "allowances": 1200,
+        "bonus": 0,
+        "otherDeductions": 0,
+        "overtimeHours": 2,
+        "maxDailyOvertime": 2,
+        "maxWeeklyOvertime": 2,
+        "sundayHours": 0,
+        "ordinarilyWorksSunday": false,
+        "publicHolidayHours": 0,
+        "publicHolidayOrdinaryDay": false,
+        "nightHours": 0,
+        "annualLeaveUsed": 2,
+        "sickLeaveUsed": 1
+      },
+      "result": {
+        "inputs": {
+          "payrollMonth": "2026-04",
+          "employeeName": "Anna Nghipondoka",
+          "workerCategory": "general",
+          "startDate": "2025-01-06",
+          "daysPerWeek": 5,
+          "hoursPerDay": 9,
+          "basicWage": 18500,
+          "allowances": 1200,
+          "bonus": 0,
+          "otherDeductions": 0,
+          "overtimeHours": 2,
+          "maxDailyOvertime": 2,
+          "maxWeeklyOvertime": 2,
+          "sundayHours": 0,
+          "ordinarilyWorksSunday": false,
+          "publicHolidayHours": 0,
+          "publicHolidayOrdinaryDay": false,
+          "nightHours": 0,
+          "annualLeaveUsed": 2,
+          "sickLeaveUsed": 1
+        },
+        "computedAt": "2026-04-01T19:44:34.773Z",
+        "metrics": {
+          "hourlyBasic": 94.87179487179488,
+          "overtimeRate": 142.30769230769232,
+          "overtimePay": 284.61538461538464,
+          "sundayPay": 0,
+          "publicHolidayPay": 0,
+          "nightPremium": 0,
+          "taxableGross": 19984.615384615383,
+          "annualisedTaxable": 239815.3846153846,
+          "paye": 3662.8205128205122,
+          "employeeSsc": 98.99999999999999,
+          "employerSsc": 98.99999999999999,
+          "netPay": 16222.794871794871,
+          "totalEmployerCost": 20083.615384615383,
+          "minimumHourly": 18,
+          "sscAssessableBasic": 11000
+        },
+        "leave": {
+          "monthsOfService": 15,
+          "annualEntitlement": 20,
+          "annualAccrued": 20,
+          "annualRemaining": 18,
+          "sickEntitlement": 30,
+          "sickRemaining": 29,
+          "compassionateLeave": 5,
+          "maternityWeeks": 12
+        },
+        "compliance": [
+          {
+            "key": "minimum-wage",
+            "pass": true,
+            "title": "Minimum wage passes",
+            "body": "Ordinary hourly wage is N$94.87 against a statutory floor of N$18.00."
+          },
+          {
+            "key": "ordinary-hours",
+            "pass": true,
+            "title": "Ordinary hours pass",
+            "body": "Ordinary hours are 45.00 per week, within the section 16 limit of 45 hours."
+          },
+          {
+            "key": "daily-hours",
+            "pass": true,
+            "title": "Daily hours pass",
+            "body": "Ordinary daily hours are 9.00, within the daily cap of 9."
+          },
+          {
+            "key": "daily-overtime",
+            "pass": true,
+            "title": "Daily overtime pass",
+            "body": "Maximum daily overtime entered is 2.00 hours, within the Labour Act limit of three hours per day."
+          },
+          {
+            "key": "weekly-overtime",
+            "pass": true,
+            "title": "Weekly overtime pass",
+            "body": "Maximum weekly overtime entered is 2.00 hours, within the Labour Act limit of 10 hours per week."
+          },
+          {
+            "key": "ssc",
+            "pass": true,
+            "title": "Statutory remittance reminder",
+            "body": "Employee SSC is N$99.00 and employer SSC is N$99.00 on an assessable basic wage of N$11000.00. SSC payment is due within 20 days after month-end."
+          }
+        ],
+        "sources": [
+          {
+            "title": "Income Tax Act, 1981",
+            "detail": "Schedule 4 rates used for annualised PAYE: 0% to N$50,000; 18% to N$100,000; 25% to N$300,000; 28% to N$500,000; 30% to N$800,000; 32% to N$1,500,000; 37% above that.",
+            "url": "https://namiblii.org/akn/na/act/1981/24/eng%402023-01-01/source.pdf"
+          },
+          {
+            "title": "Social Security Act Regulations",
+            "detail": "Employee and employer contributions are each 0.9% of basic wage, with the deemed monthly basic wage floor at N$500 and ceiling at N$11,000 from 1 March 2025.",
+            "url": "https://www.lac.org.na/laws/annoREG/Social%20Security%20Act%2034%20of%201994-Regulations%201995-198.pdf"
+          },
+          {
+            "title": "Labour Act, 2007",
+            "detail": "Used for ordinary hours, overtime, Sunday work, public holidays, night work, annual leave, sick leave, compassionate leave, and maternity leave logic.",
+            "url": "https://namiblii.org/akn/na/act/2007/11/eng%402023-03-15"
+          },
+          {
+            "title": "National Minimum Wage Order",
+            "detail": "Used for the phased hourly minimum wages effective from 1 January 2025, including domestic, agriculture, and security worker carve-outs.",
+            "url": "https://namiblii.org/akn/na/act/gn/2024/218"
+          }
+        ]
+      }
+    },
+    {
+      "id": "run_03123b91-fc17-4908-82fb-aa3636e372aa",
+      "employeeId": "emp_40d3236a-f545-4084-b373-d27042fe401d",
+      "employeeNumber": "EMP-001",
+      "employeeName": "Davis Mika",
+      "payrollMonth": "2026-04",
+      "createdAt": "2026-04-01T19:46:42.312Z",
+      "createdBy": "admin",
+      "companySnapshot": {
+        "name": "Acacia Commerce CC",
+        "taxReference": "AC-IR-123",
+        "sscRegistration": "SSC-AC-55",
+        "email": "payroll@acacia.na",
+        "cellphone": "+264812345678",
+        "physicalAddress": "45 Independence Avenue, Windhoek",
+        "website": "https://acacia.na",
+        "logoPath": ""
+      },
+      "input": {
+        "payrollMonth": "2026-04",
+        "employeeName": "Davis Mika",
+        "workerCategory": "general",
+        "startDate": "2025-01-01",
+        "daysPerWeek": 6,
+        "hoursPerDay": 8,
+        "basicWage": 15000,
+        "allowances": 0,
+        "bonus": 0,
+        "otherDeductions": 0,
+        "overtimeHours": 0,
+        "maxDailyOvertime": 0,
+        "maxWeeklyOvertime": 0,
+        "sundayHours": 0,
+        "ordinarilyWorksSunday": false,
+        "publicHolidayHours": 0,
+        "publicHolidayOrdinaryDay": false,
+        "nightHours": 0,
+        "annualLeaveUsed": 0,
+        "sickLeaveUsed": 0
+      },
+      "result": {
+        "inputs": {
+          "payrollMonth": "2026-04",
+          "employeeName": "Davis Mika",
+          "workerCategory": "general",
+          "startDate": "2025-01-01",
+          "daysPerWeek": 6,
+          "hoursPerDay": 8,
+          "basicWage": 15000,
+          "allowances": 0,
+          "bonus": 0,
+          "otherDeductions": 0,
+          "overtimeHours": 0,
+          "maxDailyOvertime": 0,
+          "maxWeeklyOvertime": 0,
+          "sundayHours": 0,
+          "ordinarilyWorksSunday": false,
+          "publicHolidayHours": 0,
+          "publicHolidayOrdinaryDay": false,
+          "nightHours": 0,
+          "annualLeaveUsed": 0,
+          "sickLeaveUsed": 0
+        },
+        "computedAt": "2026-04-01T19:46:42.312Z",
+        "metrics": {
+          "hourlyBasic": 72.11538461538461,
+          "overtimeRate": 108.17307692307692,
+          "overtimePay": 0,
+          "sundayPay": 0,
+          "publicHolidayPay": 0,
+          "nightPremium": 0,
+          "taxableGross": 15000,
+          "annualisedTaxable": 180000,
+          "paye": 2416.6666666666665,
+          "employeeSsc": 98.99999999999999,
+          "employerSsc": 98.99999999999999,
+          "netPay": 12484.333333333334,
+          "totalEmployerCost": 15099,
+          "minimumHourly": 18,
+          "sscAssessableBasic": 11000
+        },
+        "leave": {
+          "monthsOfService": 16,
+          "annualEntitlement": 24,
+          "annualAccrued": 24,
+          "annualRemaining": 24,
+          "sickEntitlement": 36,
+          "sickRemaining": 36,
+          "compassionateLeave": 5,
+          "maternityWeeks": 12
+        },
+        "compliance": [
+          {
+            "key": "minimum-wage",
+            "pass": true,
+            "title": "Minimum wage passes",
+            "body": "Ordinary hourly wage is N$72.12 against a statutory floor of N$18.00."
+          },
+          {
+            "key": "ordinary-hours",
+            "pass": false,
+            "title": "Ordinary hours risk",
+            "body": "Ordinary hours are 48.00 per week, above the section 16 limit of 45 hours."
+          },
+          {
+            "key": "daily-hours",
+            "pass": true,
+            "title": "Daily hours pass",
+            "body": "Ordinary daily hours are 8.00, within the daily cap of 8."
+          },
+          {
+            "key": "daily-overtime",
+            "pass": true,
+            "title": "Daily overtime pass",
+            "body": "Maximum daily overtime entered is 0.00 hours, within the Labour Act limit of three hours per day."
+          },
+          {
+            "key": "weekly-overtime",
+            "pass": true,
+            "title": "Weekly overtime pass",
+            "body": "Maximum weekly overtime entered is 0.00 hours, within the Labour Act limit of 10 hours per week."
+          },
+          {
+            "key": "ssc",
+            "pass": true,
+            "title": "Statutory remittance reminder",
+            "body": "Employee SSC is N$99.00 and employer SSC is N$99.00 on an assessable basic wage of N$11000.00. SSC payment is due within 20 days after month-end."
+          }
+        ],
+        "sources": [
+          {
+            "title": "Income Tax Act, 1981",
+            "detail": "Schedule 4 rates used for annualised PAYE: 0% to N$50,000; 18% to N$100,000; 25% to N$300,000; 28% to N$500,000; 30% to N$800,000; 32% to N$1,500,000; 37% above that.",
+            "url": "https://namiblii.org/akn/na/act/1981/24/eng%402023-01-01/source.pdf"
+          },
+          {
+            "title": "Social Security Act Regulations",
+            "detail": "Employee and employer contributions are each 0.9% of basic wage, with the deemed monthly basic wage floor at N$500 and ceiling at N$11,000 from 1 March 2025.",
+            "url": "https://www.lac.org.na/laws/annoREG/Social%20Security%20Act%2034%20of%201994-Regulations%201995-198.pdf"
+          },
+          {
+            "title": "Labour Act, 2007",
+            "detail": "Used for ordinary hours, overtime, Sunday work, public holidays, night work, annual leave, sick leave, compassionate leave, and maternity leave logic.",
+            "url": "https://namiblii.org/akn/na/act/2007/11/eng%402023-03-15"
+          },
+          {
+            "title": "National Minimum Wage Order",
+            "detail": "Used for the phased hourly minimum wages effective from 1 January 2025, including domestic, agriculture, and security worker carve-outs.",
+            "url": "https://namiblii.org/akn/na/act/gn/2024/218"
+          }
+        ]
+      }
+    },
+    {
+      "id": "run_4c135870-9218-4ed2-8afa-4d10afd86ffa",
+      "employeeId": "emp_40d3236a-f545-4084-b373-d27042fe401d",
+      "employeeNumber": "EMP-001",
+      "employeeName": "Davis Mika",
+      "payrollMonth": "2026-04",
+      "createdAt": "2026-04-01T19:46:47.981Z",
+      "createdBy": "admin",
+      "companySnapshot": {
+        "name": "Acacia Commerce CC",
+        "taxReference": "AC-IR-123",
+        "sscRegistration": "SSC-AC-55",
+        "email": "payroll@acacia.na",
+        "cellphone": "+264812345678",
+        "physicalAddress": "45 Independence Avenue, Windhoek",
+        "website": "https://acacia.na",
+        "logoPath": ""
+      },
+      "input": {
+        "payrollMonth": "2026-04",
+        "employeeName": "Davis Mika",
+        "workerCategory": "general",
+        "startDate": "2025-01-01",
+        "daysPerWeek": 6,
+        "hoursPerDay": 8,
+        "basicWage": 15000,
+        "allowances": 0,
+        "bonus": 0,
+        "otherDeductions": 0,
+        "overtimeHours": 0,
+        "maxDailyOvertime": 0,
+        "maxWeeklyOvertime": 0,
+        "sundayHours": 0,
+        "ordinarilyWorksSunday": false,
+        "publicHolidayHours": 0,
+        "publicHolidayOrdinaryDay": false,
+        "nightHours": 0,
+        "annualLeaveUsed": 0,
+        "sickLeaveUsed": 0
+      },
+      "result": {
+        "inputs": {
+          "payrollMonth": "2026-04",
+          "employeeName": "Davis Mika",
+          "workerCategory": "general",
+          "startDate": "2025-01-01",
+          "daysPerWeek": 6,
+          "hoursPerDay": 8,
+          "basicWage": 15000,
+          "allowances": 0,
+          "bonus": 0,
+          "otherDeductions": 0,
+          "overtimeHours": 0,
+          "maxDailyOvertime": 0,
+          "maxWeeklyOvertime": 0,
+          "sundayHours": 0,
+          "ordinarilyWorksSunday": false,
+          "publicHolidayHours": 0,
+          "publicHolidayOrdinaryDay": false,
+          "nightHours": 0,
+          "annualLeaveUsed": 0,
+          "sickLeaveUsed": 0
+        },
+        "computedAt": "2026-04-01T19:46:47.981Z",
+        "metrics": {
+          "hourlyBasic": 72.11538461538461,
+          "overtimeRate": 108.17307692307692,
+          "overtimePay": 0,
+          "sundayPay": 0,
+          "publicHolidayPay": 0,
+          "nightPremium": 0,
+          "taxableGross": 15000,
+          "annualisedTaxable": 180000,
+          "paye": 2416.6666666666665,
+          "employeeSsc": 98.99999999999999,
+          "employerSsc": 98.99999999999999,
+          "netPay": 12484.333333333334,
+          "totalEmployerCost": 15099,
+          "minimumHourly": 18,
+          "sscAssessableBasic": 11000
+        },
+        "leave": {
+          "monthsOfService": 16,
+          "annualEntitlement": 24,
+          "annualAccrued": 24,
+          "annualRemaining": 24,
+          "sickEntitlement": 36,
+          "sickRemaining": 36,
+          "compassionateLeave": 5,
+          "maternityWeeks": 12
+        },
+        "compliance": [
+          {
+            "key": "minimum-wage",
+            "pass": true,
+            "title": "Minimum wage passes",
+            "body": "Ordinary hourly wage is N$72.12 against a statutory floor of N$18.00."
+          },
+          {
+            "key": "ordinary-hours",
+            "pass": false,
+            "title": "Ordinary hours risk",
+            "body": "Ordinary hours are 48.00 per week, above the section 16 limit of 45 hours."
+          },
+          {
+            "key": "daily-hours",
+            "pass": true,
+            "title": "Daily hours pass",
+            "body": "Ordinary daily hours are 8.00, within the daily cap of 8."
+          },
+          {
+            "key": "daily-overtime",
+            "pass": true,
+            "title": "Daily overtime pass",
+            "body": "Maximum daily overtime entered is 0.00 hours, within the Labour Act limit of three hours per day."
+          },
+          {
+            "key": "weekly-overtime",
+            "pass": true,
+            "title": "Weekly overtime pass",
+            "body": "Maximum weekly overtime entered is 0.00 hours, within the Labour Act limit of 10 hours per week."
+          },
+          {
+            "key": "ssc",
+            "pass": true,
+            "title": "Statutory remittance reminder",
+            "body": "Employee SSC is N$99.00 and employer SSC is N$99.00 on an assessable basic wage of N$11000.00. SSC payment is due within 20 days after month-end."
+          }
+        ],
+        "sources": [
+          {
+            "title": "Income Tax Act, 1981",
+            "detail": "Schedule 4 rates used for annualised PAYE: 0% to N$50,000; 18% to N$100,000; 25% to N$300,000; 28% to N$500,000; 30% to N$800,000; 32% to N$1,500,000; 37% above that.",
+            "url": "https://namiblii.org/akn/na/act/1981/24/eng%402023-01-01/source.pdf"
+          },
+          {
+            "title": "Social Security Act Regulations",
+            "detail": "Employee and employer contributions are each 0.9% of basic wage, with the deemed monthly basic wage floor at N$500 and ceiling at N$11,000 from 1 March 2025.",
+            "url": "https://www.lac.org.na/laws/annoREG/Social%20Security%20Act%2034%20of%201994-Regulations%201995-198.pdf"
+          },
+          {
+            "title": "Labour Act, 2007",
+            "detail": "Used for ordinary hours, overtime, Sunday work, public holidays, night work, annual leave, sick leave, compassionate leave, and maternity leave logic.",
+            "url": "https://namiblii.org/akn/na/act/2007/11/eng%402023-03-15"
+          },
+          {
+            "title": "National Minimum Wage Order",
+            "detail": "Used for the phased hourly minimum wages effective from 1 January 2025, including domestic, agriculture, and security worker carve-outs.",
+            "url": "https://namiblii.org/akn/na/act/gn/2024/218"
+          }
+        ]
+      }
+    },
+    {
+      "id": "run_e648abe0-dd57-462f-805f-52e7563ed71b",
+      "employeeId": "emp_40d3236a-f545-4084-b373-d27042fe401d",
+      "employeeNumber": "EMP-001",
+      "employeeName": "Davis Mika",
+      "payrollMonth": "2026-04",
+      "createdAt": "2026-04-03T09:32:20.060Z",
+      "createdBy": "admin",
+      "companySnapshot": {
+        "name": "Acacia Commerce CC",
+        "taxReference": "AC-IR-123",
+        "sscRegistration": "SSC-AC-55",
+        "email": "payroll@acacia.na",
+        "cellphone": "+264812345678",
+        "physicalAddress": "45 Independence Avenue, Windhoek",
+        "website": "https://acacia.na",
+        "logoPath": ""
+      },
+      "input": {
+        "payrollMonth": "2026-04",
+        "employeeName": "Davis Mika",
+        "workerCategory": "general",
+        "startDate": "2025-01-01",
+        "daysPerWeek": 6,
+        "hoursPerDay": 8,
+        "basicWage": 15000,
+        "allowances": 0,
+        "bonus": 0,
+        "otherDeductions": 0,
+        "overtimeHours": 0,
+        "maxDailyOvertime": 0,
+        "maxWeeklyOvertime": 0,
+        "sundayHours": 0,
+        "ordinarilyWorksSunday": false,
+        "publicHolidayHours": 0,
+        "publicHolidayOrdinaryDay": false,
+        "nightHours": 0,
+        "annualLeaveUsed": 0,
+        "sickLeaveUsed": 0
+      },
+      "result": {
+        "inputs": {
+          "payrollMonth": "2026-04",
+          "employeeName": "Davis Mika",
+          "workerCategory": "general",
+          "startDate": "2025-01-01",
+          "daysPerWeek": 6,
+          "hoursPerDay": 8,
+          "basicWage": 15000,
+          "allowances": 0,
+          "bonus": 0,
+          "otherDeductions": 0,
+          "overtimeHours": 0,
+          "maxDailyOvertime": 0,
+          "maxWeeklyOvertime": 0,
+          "sundayHours": 0,
+          "ordinarilyWorksSunday": false,
+          "publicHolidayHours": 0,
+          "publicHolidayOrdinaryDay": false,
+          "nightHours": 0,
+          "annualLeaveUsed": 0,
+          "sickLeaveUsed": 0
+        },
+        "computedAt": "2026-04-03T09:32:20.060Z",
+        "metrics": {
+          "hourlyBasic": 72.11538461538461,
+          "overtimeRate": 108.17307692307692,
+          "overtimePay": 0,
+          "sundayPay": 0,
+          "publicHolidayPay": 0,
+          "nightPremium": 0,
+          "taxableGross": 15000,
+          "annualisedTaxable": 180000,
+          "paye": 2416.6666666666665,
+          "employeeSsc": 98.99999999999999,
+          "employerSsc": 98.99999999999999,
+          "netPay": 12484.333333333334,
+          "totalEmployerCost": 15099,
+          "minimumHourly": 18,
+          "sscAssessableBasic": 11000
+        },
+        "leave": {
+          "monthsOfService": 16,
+          "annualEntitlement": 24,
+          "annualAccrued": 24,
+          "annualRemaining": 24,
+          "sickEntitlement": 36,
+          "sickRemaining": 36,
+          "compassionateLeave": 5,
+          "maternityWeeks": 12
+        },
+        "compliance": [
+          {
+            "key": "minimum-wage",
+            "pass": true,
+            "title": "Minimum wage passes",
+            "body": "Ordinary hourly wage is N$72.12 against a statutory floor of N$18.00."
+          },
+          {
+            "key": "ordinary-hours",
+            "pass": false,
+            "title": "Ordinary hours risk",
+            "body": "Ordinary hours are 48.00 per week, above the section 16 limit of 45 hours."
+          },
+          {
+            "key": "daily-hours",
+            "pass": true,
+            "title": "Daily hours pass",
+            "body": "Ordinary daily hours are 8.00, within the daily cap of 8."
+          },
+          {
+            "key": "daily-overtime",
+            "pass": true,
+            "title": "Daily overtime pass",
+            "body": "Maximum daily overtime entered is 0.00 hours, within the Labour Act limit of three hours per day."
+          },
+          {
+            "key": "weekly-overtime",
+            "pass": true,
+            "title": "Weekly overtime pass",
+            "body": "Maximum weekly overtime entered is 0.00 hours, within the Labour Act limit of 10 hours per week."
+          },
+          {
+            "key": "ssc",
+            "pass": true,
+            "title": "Statutory remittance reminder",
+            "body": "Employee SSC is N$99.00 and employer SSC is N$99.00 on an assessable basic wage of N$11000.00. SSC payment is due within 20 days after month-end."
+          }
+        ],
+        "sources": [
+          {
+            "title": "Income Tax Act, 1981",
+            "detail": "Schedule 4 rates used for annualised PAYE: 0% to N$50,000; 18% to N$100,000; 25% to N$300,000; 28% to N$500,000; 30% to N$800,000; 32% to N$1,500,000; 37% above that.",
+            "url": "https://namiblii.org/akn/na/act/1981/24/eng%402023-01-01/source.pdf"
+          },
+          {
+            "title": "Social Security Act Regulations",
+            "detail": "Employee and employer contributions are each 0.9% of basic wage, with the deemed monthly basic wage floor at N$500 and ceiling at N$11,000 from 1 March 2025.",
+            "url": "https://www.lac.org.na/laws/annoREG/Social%20Security%20Act%2034%20of%201994-Regulations%201995-198.pdf"
+          },
+          {
+            "title": "Labour Act, 2007",
+            "detail": "Used for ordinary hours, overtime, Sunday work, public holidays, night work, annual leave, sick leave, compassionate leave, and maternity leave logic.",
+            "url": "https://namiblii.org/akn/na/act/2007/11/eng%402023-03-15"
+          },
+          {
+            "title": "National Minimum Wage Order",
+            "detail": "Used for the phased hourly minimum wages effective from 1 January 2025, including domestic, agriculture, and security worker carve-outs.",
+            "url": "https://namiblii.org/akn/na/act/gn/2024/218"
+          }
+        ]
+      }
+    }
+  ],
+  "auditLog": [
+    {
+      "id": "audit_8438dbb5-c2b6-47e6-aa41-c8c63bd05385",
+      "action": "seeded-db",
+      "at": "2026-04-01T19:23:54.619Z",
+      "actor": "system",
+      "detail": "Seeded local database with default admin user and one sample employee."
+    },
+    {
+      "id": "audit_d8785d1b-419b-4fd1-898e-339a8979f2a8",
+      "action": "login",
+      "at": "2026-04-01T19:24:28.126Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_257b66fd-9464-46a0-abb7-a76e2a320ed5",
+      "action": "login",
+      "at": "2026-04-01T19:29:19.178Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_0f46f35e-61be-4b68-a06b-3d136697e6b5",
+      "action": "login",
+      "at": "2026-04-01T19:31:33.693Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_05ce8dce-1387-4f8d-a0de-77d9af736c2c",
+      "action": "login",
+      "at": "2026-04-01T19:34:37.750Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_c4863151-6230-4a52-8221-7f6785d93a4c",
+      "action": "employee-created",
+      "at": "2026-04-01T19:36:06.719Z",
+      "actor": "admin",
+      "detail": "Created employee Davis Mika."
+    },
+    {
+      "id": "audit_f6bfac6b-66f8-49f2-bb80-9d81e6edceed",
+      "action": "employee-created",
+      "at": "2026-04-01T19:36:43.679Z",
+      "actor": "admin",
+      "detail": "Created employee Davis Mika."
+    },
+    {
+      "id": "audit_c5ed6050-1ad8-47e9-9b55-6d00f85ac535",
+      "action": "payroll-run-created",
+      "at": "2026-04-01T19:37:20.333Z",
+      "actor": "admin",
+      "detail": "Created payroll run run_09943531-7a1c-4baf-86d2-4eb1a4d5b3db for Davis Mika."
+    },
+    {
+      "id": "audit_4051a8b6-d4cc-46c3-b58a-ba6c415b7895",
+      "action": "login",
+      "at": "2026-04-01T19:44:08.425Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_c2362af8-c561-4336-9c89-eae43b76ca01",
+      "action": "login",
+      "at": "2026-04-01T19:44:14.332Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_dd1f1892-a9bc-4cca-81d8-ca7bdbd9747e",
+      "action": "company-updated",
+      "at": "2026-04-01T19:44:21.058Z",
+      "actor": "admin",
+      "detail": "Updated company profile."
+    },
+    {
+      "id": "audit_945ae227-6bc1-43ae-b7b3-081eabdfcc7f",
+      "action": "payroll-run-created",
+      "at": "2026-04-01T19:44:34.773Z",
+      "actor": "admin",
+      "detail": "Created payroll run run_fa4aa43c-68ae-49ae-b3ca-5714ef56d639 for Anna Nghipondoka."
+    },
+    {
+      "id": "audit_08e77cea-15ca-4080-b990-fcb6e69dd43c",
+      "action": "login",
+      "at": "2026-04-01T19:46:27.728Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_ec3f67ac-e21e-421a-b207-94717b048bbf",
+      "action": "payroll-run-created",
+      "at": "2026-04-01T19:46:42.312Z",
+      "actor": "admin",
+      "detail": "Created payroll run run_03123b91-fc17-4908-82fb-aa3636e372aa for Davis Mika."
+    },
+    {
+      "id": "audit_8876aa90-4372-47c1-8c3f-5db3fa074490",
+      "action": "payroll-run-created",
+      "at": "2026-04-01T19:46:47.981Z",
+      "actor": "admin",
+      "detail": "Created payroll run run_4c135870-9218-4ed2-8afa-4d10afd86ffa for Davis Mika."
+    },
+    {
+      "id": "audit_4fbfd2e4-c4a7-4457-92f0-ea6c85e80e5a",
+      "action": "login",
+      "at": "2026-04-01T20:14:07.078Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_f997cc88-9eb8-4a9b-a8db-980ec3b88702",
+      "action": "login",
+      "at": "2026-04-01T20:14:08.620Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_4f2fa730-f8b2-4661-9334-18b39d1a090a",
+      "action": "login",
+      "at": "2026-04-01T20:15:33.947Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_9b62416a-7ee8-44a9-9568-cfc758fb3ead",
+      "action": "leave-request-created",
+      "at": "2026-04-01T20:16:04.406Z",
+      "actor": "admin",
+      "detail": "Created annual leave request for Anna Nghipondoka."
+    },
+    {
+      "id": "audit_e1e25f17-c0a4-4f04-bfbc-e87fffaf44c4",
+      "action": "login",
+      "at": "2026-04-01T20:17:08.656Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_426875e8-5375-46f6-9775-d1601bb8c1a9",
+      "action": "leave-request-created",
+      "at": "2026-04-01T20:17:17.136Z",
+      "actor": "admin",
+      "detail": "Created annual leave request for Davis Mika."
+    },
+    {
+      "id": "audit_7b8fedb1-e0cb-4e52-a394-2267e986f76e",
+      "action": "leave-request-reviewed",
+      "at": "2026-04-01T20:17:26.341Z",
+      "actor": "admin",
+      "detail": "approved leave request leave_ada3a7a2-45d6-45ef-9856-f6238f95af35 for Davis Mika."
+    },
+    {
+      "id": "audit_954bc46f-e305-42c7-984c-d5eda1e57be3",
+      "action": "login",
+      "at": "2026-04-01T20:18:15.927Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_4eca96a9-32ee-4766-a898-d82c5c9c0135",
+      "action": "login",
+      "at": "2026-04-01T20:23:57.249Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_40c7ecd4-7dbf-4be6-9404-1f510e68a2da",
+      "action": "leave-request-reviewed",
+      "at": "2026-04-01T20:24:46.463Z",
+      "actor": "admin",
+      "detail": "declined leave request leave_b63edaef-ab69-4df3-a851-ec67abd7f275 for Anna Nghipondoka."
+    },
+    {
+      "id": "audit_d733ba04-0a91-4e38-a757-549fc2467a39",
+      "action": "login",
+      "at": "2026-04-01T20:32:57.720Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_db68e0e4-4e1b-41f8-9e22-279aa2940468",
+      "action": "login",
+      "at": "2026-04-01T20:33:11.547Z",
+      "actor": "emp-001-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_56cf6617-c01f-430b-9b9a-22b3e3fdd725",
+      "action": "login",
+      "at": "2026-04-01T20:33:37.077Z",
+      "actor": "emp-001-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_fbce571a-a4c2-44b6-8899-df22f8050dd8",
+      "action": "leave-request-created",
+      "at": "2026-04-01T20:34:20.421Z",
+      "actor": "emp-001-0982",
+      "detail": "Created annual leave request for Davis Mika."
+    },
+    {
+      "id": "audit_d1455fd3-fc6e-4b2e-b01b-424f3b5f3794",
+      "action": "timesheet-submitted",
+      "at": "2026-04-01T20:34:20.439Z",
+      "actor": "emp-001-0982",
+      "detail": "Submitted timesheet for Davis Mika."
+    },
+    {
+      "id": "audit_965f6404-1ba8-41b4-9956-bbc96018bbc5",
+      "action": "login",
+      "at": "2026-04-02T06:58:51.482Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_8100968b-3df8-4510-a924-66d38c2bd6c3",
+      "action": "login",
+      "at": "2026-04-03T09:15:12.977Z",
+      "actor": "emp-003-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_a0d34935-1bcb-46ff-bb66-ab7ca553423a",
+      "action": "employee-password-changed",
+      "at": "2026-04-03T09:15:23.521Z",
+      "actor": "emp-003-0982",
+      "detail": "Employee portal password changed for Davis Mika."
+    },
+    {
+      "id": "audit_1407a535-9b22-41e8-9aa4-7646e1741953",
+      "action": "timesheet-submitted",
+      "at": "2026-04-03T09:15:23.695Z",
+      "actor": "emp-003-0982",
+      "detail": "Submitted timesheet for Davis Mika."
+    },
+    {
+      "id": "audit_cb4d01b9-3bde-487b-a975-5da2cb54f82a",
+      "action": "login",
+      "at": "2026-04-03T09:15:36.254Z",
+      "actor": "emp-003-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_9bb2522c-8f6f-480a-8e78-b517b86c97e0",
+      "action": "login",
+      "at": "2026-04-03T09:15:41.094Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_331b9ece-10bb-4c47-ae01-f1b5204b1091",
+      "action": "login",
+      "at": "2026-04-03T09:16:39.627Z",
+      "actor": "emp-003-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_5c6812e5-bd05-428a-b9ac-13b7592cf7cd",
+      "action": "login",
+      "at": "2026-04-03T09:16:39.666Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_c1cf70a9-e31d-486b-9807-ec4d7fa81af3",
+      "action": "loan-request-created",
+      "at": "2026-04-03T09:16:45.653Z",
+      "actor": "emp-003-0982",
+      "detail": "Created loan request for Davis Mika."
+    },
+    {
+      "id": "audit_1f463db4-ba0a-472f-b563-ac09ed183fb9",
+      "action": "timesheet-submitted",
+      "at": "2026-04-03T09:16:49.184Z",
+      "actor": "emp-003-0982",
+      "detail": "Submitted timesheet for Davis Mika."
+    },
+    {
+      "id": "audit_d07a18ee-fad8-4a6d-a5e4-1d10cf8eec98",
+      "action": "loan-request-reviewed",
+      "at": "2026-04-03T09:26:16.239Z",
+      "actor": "admin",
+      "detail": "approved loan request loan_6ca720a6-6b02-40aa-9848-5669fc0985cc for Davis Mika."
+    },
+    {
+      "id": "audit_425dd3bc-caec-41db-862b-577d37ffe2ae",
+      "action": "timesheet-reviewed",
+      "at": "2026-04-03T09:26:20.520Z",
+      "actor": "admin",
+      "detail": "approved timesheet timesheet_8cec9e51-fc95-4e7c-b16b-1c53919c5ef3 for Davis Mika."
+    },
+    {
+      "id": "audit_a227c0f0-3c59-4be9-82d7-3850de5842b1",
+      "action": "login",
+      "at": "2026-04-03T09:26:34.586Z",
+      "actor": "emp-001-0000",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_99ac77a5-2a32-4e55-957f-9b369588287d",
+      "action": "login",
+      "at": "2026-04-03T09:26:42.580Z",
+      "actor": "emp-001-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_41a033db-3499-428c-914f-3048f3ebac6f",
+      "action": "login",
+      "at": "2026-04-03T09:28:51.467Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_f1d74ee9-a210-42be-ad71-a7309a748289",
+      "action": "login",
+      "at": "2026-04-03T09:30:41.991Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_bf94e551-61fd-4e77-80ed-3665139a4d0f",
+      "action": "login",
+      "at": "2026-04-03T09:30:53.704Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_09fb5b0d-5246-4e30-99de-3126f68b2f91",
+      "action": "login",
+      "at": "2026-04-03T09:30:55.183Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_e5a9de6e-62f0-42ff-9a6c-f256d0529d53",
+      "action": "leave-request-reviewed",
+      "at": "2026-04-03T09:32:06.304Z",
+      "actor": "admin",
+      "detail": "declined leave request leave_bea7ce58-13c9-4665-8156-25ea62d7d6ae for Davis Mika."
+    },
+    {
+      "id": "audit_e378ea32-390f-4d4d-858a-65a8c88c9ec2",
+      "action": "payroll-run-created",
+      "at": "2026-04-03T09:32:20.060Z",
+      "actor": "admin",
+      "detail": "Created payroll run run_e648abe0-dd57-462f-805f-52e7563ed71b for Davis Mika."
+    },
+    {
+      "id": "audit_1e92cb5f-c62d-494a-b1d6-33e1760a39f1",
+      "action": "login",
+      "at": "2026-04-03T09:36:20.754Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_1ee25324-fba9-47c8-b416-78fe3f49e9d4",
+      "action": "login",
+      "at": "2026-04-03T09:37:25.603Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_28c30319-14ec-485f-9181-bf83efbaabf9",
+      "action": "login",
+      "at": "2026-04-03T09:42:00.771Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_4ad1fa5a-3e91-4502-8eac-b125c43ea91c",
+      "action": "login",
+      "at": "2026-04-03T09:42:10.899Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_0328bd41-247c-4a0c-a11c-d88204364b3f",
+      "action": "login",
+      "at": "2026-04-03T09:50:55.062Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_bbb40b40-f0e3-4f3a-a472-8a563b751280",
+      "action": "login",
+      "at": "2026-04-03T09:52:47.461Z",
+      "actor": "emp-003-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_8bbe9e18-43ec-4013-a60d-81502ea57230",
+      "action": "login",
+      "at": "2026-04-03T09:54:07.412Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_03da734d-6ea2-4774-81df-abf980619b99",
+      "action": "login",
+      "at": "2026-04-03T09:58:56.093Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_8f952abc-b212-40ca-9066-94e53e1459f3",
+      "action": "login",
+      "at": "2026-04-03T10:13:44.602Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_666d3f57-75cd-47cf-89b5-84fec94311b4",
+      "action": "login",
+      "at": "2026-04-03T10:14:14.336Z",
+      "actor": "emp-003-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_d81f2391-2877-4a19-a9ae-7b979a2c8b9a",
+      "action": "login",
+      "at": "2026-04-03T10:15:35.221Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_b0d9e641-9d1b-400f-9ff6-d2a561861325",
+      "action": "login",
+      "at": "2026-04-03T10:15:40.967Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_1b93e78d-7c2f-4db9-ac06-c13571d6b044",
+      "action": "company-updated",
+      "at": "2026-04-03T10:16:38.350Z",
+      "actor": "admin",
+      "detail": "Updated company profile."
+    },
+    {
+      "id": "audit_ef037317-c7dd-4a65-b188-939092462130",
+      "action": "login",
+      "at": "2026-04-03T10:21:04.442Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_ae39f483-2dfd-4167-9c25-c002023b06f2",
+      "action": "login",
+      "at": "2026-04-03T10:27:33.126Z",
+      "actor": "emp-003-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_3d4ae242-cd0f-468f-9dd0-46f87d5266ca",
+      "action": "login",
+      "at": "2026-04-03T10:28:07.491Z",
+      "actor": "emp-003-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_21ba6aa8-5fdb-4778-89e3-dde2c5f1cfbc",
+      "action": "login",
+      "at": "2026-04-03T10:28:18.470Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_c8a8a8fd-f529-40f7-bba6-05c34fd0775a",
+      "action": "login",
+      "at": "2026-04-03T10:36:55.724Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_850c3942-0a47-4ca5-a426-eb3db443c17d",
+      "action": "login",
+      "at": "2026-04-03T10:37:00.837Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_daedb0ff-71fd-4d2f-b73d-24920d90cda2",
+      "action": "login",
+      "at": "2026-04-03T10:37:01.772Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_55576673-6d60-418d-8985-ed0927bb6cb7",
+      "action": "login",
+      "at": "2026-04-03T10:38:51.908Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_700cb8d0-2552-4747-a115-b0542002f36a",
+      "action": "login",
+      "at": "2026-04-03T10:42:43.140Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_a1445387-bc2f-40e1-a2b3-826aa179db29",
+      "action": "login",
+      "at": "2026-04-03T10:42:44.522Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_c1e62242-37f5-48e1-a536-97743de95915",
+      "action": "login",
+      "at": "2026-04-03T10:43:19.155Z",
+      "actor": "emp-003-0982",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_2b384fc0-9d73-4838-9250-8355eebbae80",
+      "action": "login",
+      "at": "2026-04-03T10:46:38.042Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_08ae34a9-5e36-4b63-add4-999873f45b43",
+      "action": "login",
+      "at": "2026-04-03T10:54:58.097Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    },
+    {
+      "id": "audit_c16dcfde-6e9f-4e8c-b58b-7aab7a08d749",
+      "action": "login",
+      "at": "2026-04-03T11:00:28.892Z",
+      "actor": "admin",
+      "detail": "User logged in."
+    }
+  ],
+  "leaveRequests": [
+    {
+      "id": "leave_b63edaef-ab69-4df3-a851-ec67abd7f275",
+      "employeeId": "emp_5552f059-7f3e-4216-b274-2c8d9138d317",
+      "employeeNumber": "EMP-001",
+      "employeeName": "Anna Nghipondoka",
+      "leaveType": "annual",
+      "startDate": "2026-04-18",
+      "endDate": "2026-04-20",
+      "daysRequested": 1,
+      "calendarDaysRequested": 3,
+      "reason": "Overlap test",
+      "status": "declined",
+      "appliedToBalance": false,
+      "appliedDays": 0,
+      "requestedAt": "2026-04-01T20:16:04.406Z",
+      "requestedBy": "admin",
+      "reviewedAt": "2026-04-01T20:24:46.463Z",
+      "reviewedBy": "admin",
+      "reviewNote": ""
+    },
+    {
+      "id": "leave_ada3a7a2-45d6-45ef-9856-f6238f95af35",
+      "employeeId": "emp_40d3236a-f545-4084-b373-d27042fe401d",
+      "employeeNumber": "EMP-001",
+      "employeeName": "Davis Mika",
+      "leaveType": "annual",
+      "startDate": "2026-04-13",
+      "endDate": "2026-04-19",
+      "daysRequested": 6,
+      "calendarDaysRequested": 7,
+      "reason": "Sequential smoke test annual leave",
+      "status": "approved",
+      "appliedToBalance": true,
+      "appliedDays": 6,
+      "requestedAt": "2026-04-01T20:17:17.136Z",
+      "requestedBy": "admin",
+      "reviewedAt": "2026-04-01T20:17:26.340Z",
+      "reviewedBy": "admin",
+      "reviewNote": ""
+    },
+    {
+      "id": "leave_bea7ce58-13c9-4665-8156-25ea62d7d6ae",
+      "employeeId": "emp_40d3236a-f545-4084-b373-d27042fe401d",
+      "employeeNumber": "EMP-001",
+      "employeeName": "Davis Mika",
+      "leaveType": "annual",
+      "startDate": "2026-05-04",
+      "endDate": "2026-05-06",
+      "daysRequested": 2,
+      "calendarDaysRequested": 3,
+      "reason": "Employee portal leave test",
+      "status": "declined",
+      "appliedToBalance": false,
+      "appliedDays": 0,
+      "requestedAt": "2026-04-01T20:34:20.421Z",
+      "requestedBy": "emp-001-0982",
+      "reviewedAt": "2026-04-03T09:32:06.304Z",
+      "reviewedBy": "admin",
+      "reviewNote": ""
+    }
+  ],
+  "loanRequests": [
+    {
+      "id": "loan_6ca720a6-6b02-40aa-9848-5669fc0985cc",
+      "employeeId": "emp_ab44d5ca-8ed0-4dd4-907c-e466564e59d4",
+      "employeeNumber": "EMP-003",
+      "employeeName": "Davis Mika",
+      "amount": 1800,
+      "reason": "Medical support",
+      "repaymentMonths": 3,
+      "status": "approved",
+      "requestedAt": "2026-04-03T09:16:45.653Z",
+      "requestedBy": "emp-003-0982",
+      "reviewedAt": "2026-04-03T09:26:16.239Z",
+      "reviewedBy": "admin",
+      "reviewNote": ""
+    }
+  ],
+  "timesheets": [
+    {
+      "id": "timesheet_2067590e-d1f5-4d60-a590-7116a57a95b0",
+      "employeeId": "emp_40d3236a-f545-4084-b373-d27042fe401d",
+      "employeeNumber": "EMP-001",
+      "employeeName": "Davis Mika",
+      "weekStart": "2026-03-30",
+      "weekEnd": "2026-04-05",
+      "regularHours": 45,
+      "overtimeHours": 2,
+      "sundayHours": 0,
+      "publicHolidayHours": 0,
+      "notes": "Employee portal timesheet test",
+      "status": "submitted",
+      "submittedAt": "2026-04-01T20:34:20.439Z",
+      "submittedBy": "emp-001-0982"
+    },
+    {
+      "id": "timesheet_1e87e2f6-0151-44aa-9b7e-80f22210fbeb",
+      "employeeId": "emp_ab44d5ca-8ed0-4dd4-907c-e466564e59d4",
+      "employeeNumber": "EMP-003",
+      "employeeName": "Davis Mika",
+      "weekStart": "2026-03-30",
+      "weekEnd": "2026-04-05",
+      "regularHours": 45,
+      "overtimeHours": 4,
+      "sundayHours": 0,
+      "publicHolidayHours": 0,
+      "notes": "Month end close support",
+      "status": "submitted",
+      "submittedAt": "2026-04-03T09:15:23.695Z",
+      "submittedBy": "emp-003-0982"
+    },
+    {
+      "id": "timesheet_8cec9e51-fc95-4e7c-b16b-1c53919c5ef3",
+      "employeeId": "emp_ab44d5ca-8ed0-4dd4-907c-e466564e59d4",
+      "employeeNumber": "EMP-003",
+      "employeeName": "Davis Mika",
+      "weekStart": "2026-04-06",
+      "weekEnd": "2026-04-12",
+      "regularHours": 45,
+      "overtimeHours": 1.5,
+      "sundayHours": 0,
+      "publicHolidayHours": 0,
+      "notes": "Support week",
+      "status": "approved",
+      "submittedAt": "2026-04-03T09:16:49.184Z",
+      "submittedBy": "emp-003-0982",
+      "reviewedAt": "2026-04-03T09:26:20.520Z",
+      "reviewedBy": "admin",
+      "reviewNote": ""
+    }
+  ],
+  "notifications": [],
+  "passwordResetRequests": []
+}
