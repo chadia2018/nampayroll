@@ -106,6 +106,21 @@ function sectionToggle(name, current, label, dataAction, dataValueKey = "section
   return `<button class="${current === name ? "primary" : "secondary"}" data-action="${dataAction}" data-${dataValueKey}="${name}" type="button">${label}</button>`;
 }
 
+async function logoutUser() {
+  try {
+    await api("/api/logout", { method: "POST" });
+  } catch (error) {
+    // Clear the local session even if the remote session is already gone.
+  }
+  state.session = null;
+  state.company = null;
+  state.portalData = null;
+  state.activeRun = null;
+  state.employeePortalError = "";
+  state.employeePortalNotice = "";
+  render();
+}
+
 function render() {
   const root = document.querySelector("#app");
 
@@ -2064,12 +2079,7 @@ function bindApp() {
   });
 
   document.querySelectorAll("[data-action='logout']").forEach((button) => {
-    button.addEventListener("click", async () => {
-      await api("/api/logout", { method: "POST" });
-      state.session = null;
-      state.company = null;
-      render();
-    });
+    button.addEventListener("click", logoutUser);
   });
 
   document.querySelectorAll("[data-action='remove-logo']").forEach((button) => {
@@ -2578,14 +2588,7 @@ function bindApp() {
 
 function bindEmployeePortal() {
   document.querySelectorAll("[data-action='logout']").forEach((button) => {
-    button.addEventListener("click", async () => {
-      await api("/api/logout", { method: "POST" });
-      state.session = null;
-      state.company = null;
-      state.portalData = null;
-      state.activeRun = null;
-      render();
-    });
+    button.addEventListener("click", logoutUser);
   });
 
   document.querySelectorAll("[data-employee-view]").forEach((button) => {
