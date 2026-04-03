@@ -1883,14 +1883,6 @@ function payslipView(run) {
             <strong>${money(metrics.netPay)}</strong>
           </article>
         </div>
-        <div class="compliance-list payslip-compliance-list">
-          ${run.result.compliance
-            .slice(0, 4)
-            .map(
-              (item) => `<article class="notice ${item.pass ? "good" : "warn"}"><h3>${item.title}</h3><p class="muted">${item.body}</p></article>`,
-            )
-            .join("")}
-        </div>
       </div>
     </article>
   `;

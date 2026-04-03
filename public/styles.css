@@ -1551,6 +1551,7 @@ button:hover {
 @media print {
   body {
     background: white;
+    color: black;
   }
 
   .topbar,
@@ -1572,5 +1573,39 @@ button:hover {
   .printable {
     box-shadow: none;
     border: 1px solid #ddd;
+    background: white !important;
+    color: black !important;
+  }
+
+  .modern-payslip,
+  .payslip-hero,
+  .compact-section,
+  .payslip-total-card,
+  .payslip-summary-card {
+    background: white !important;
+    color: black !important;
+    border-color: #d0d0d0 !important;
+    box-shadow: none !important;
+  }
+
+  .payslip-hero .muted,
+  .payslip-hero .section-kicker,
+  .payslip-summary-card span,
+  .payslip-summary-card small,
+  .payslip-total-card span,
+  .muted,
+  .small {
+    color: #444 !important;
+  }
+
+  .tag,
+  .pill {
+    background: white !important;
+    color: black !important;
+    border: 1px solid #cfcfcf !important;
+  }
+
+  .company-logo {
+    border-color: #cfcfcf !important;
   }
 }
