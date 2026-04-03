@@ -192,6 +192,23 @@ function employeePortalNavButton(view, label) {
   return `<button class="${state.employeePortalView === view ? "active" : "secondary"}" data-employee-view="${view}">${label}</button>`;
 }
 
+function employeePortalQuickAction(view, title, detail) {
+  return `
+    <button class="portal-quick-action ${state.employeePortalView === view ? "portal-quick-action-active" : ""}" data-employee-view="${view}" type="button">
+      <strong>${title}</strong>
+      <span>${detail}</span>
+    </button>
+  `;
+}
+
+function employeePortalBottomNavButton(view, label) {
+  return `
+    <button class="portal-bottom-nav-button ${state.employeePortalView === view ? "active" : ""}" data-employee-view="${view}" type="button">
+      ${label}
+    </button>
+  `;
+}
+
 function triggerDownload(url) {
   const link = document.createElement("a");
   link.href = url;
@@ -547,22 +564,49 @@ function employeeAccountView() {
 
 function renderEmployeePortal() {
   const employee = state.portalData?.employee;
+  const annualAllowance = (employee?.daysPerWeek || 5) * 4;
+  const annualRemaining = Math.max(annualAllowance - Number(employee?.leaveBalances?.annualLeaveUsed || 0), 0);
+  const pendingLeave = (state.portalData?.leaveRequests || []).filter((item) => item.status === "pending").length;
+  const pendingLoans = (state.portalData?.loanRequests || []).filter((item) => item.status === "pending").length;
+  const pendingTimesheets = (state.portalData?.timesheets || []).filter((item) => item.status === "submitted").length;
+  const payslipCount = (state.portalData?.payslips || []).length;
   return appShell(`
-    <section class="app-shell">
+    <section class="app-shell employee-portal-shell">
       <header class="topbar">
-        <div class="brand">
+        <div class="brand portal-brand">
           <div class="brand-mark">ES</div>
           <div>
             <strong>${employee?.fullName || "Employee Portal"}</strong>
             <div class="small">${employee?.employeeNumber || ""} · ${employee?.title || "Employee"}</div>
           </div>
         </div>
-        <div class="topbar-actions">
+        <div class="topbar-actions portal-topbar-actions">
           <input class="workspace-search compact-search" id="employee-portal-search-global" placeholder="Search portal" value="${state.employeePortalSearch}" />
           <span class="pill">${state.company?.name || "Company"}</span>
           <button class="ghost" data-action="logout">Log out</button>
         </div>
       </header>
+      <section class="panel portal-summary-panel">
+        <div class="portal-summary-head">
+          <div>
+            <p class="section-kicker">Self Service</p>
+            <h2>Everything employees need in one place</h2>
+            <p class="muted">Request leave, submit timesheets, ask for loans, download payslips, and keep account details current.</p>
+          </div>
+          <div class="portal-summary-stats">
+            <article class="portal-mini-stat"><span>Leave left</span><strong>${number(annualRemaining, 0)} days</strong></article>
+            <article class="portal-mini-stat"><span>Payslips</span><strong>${payslipCount}</strong></article>
+            <article class="portal-mini-stat"><span>Open items</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
+          </div>
+        </div>
+        <div class="portal-quick-actions">
+          ${employeePortalQuickAction("leave", "Request Leave", pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days available`)}
+          ${employeePortalQuickAction("timesheets", "Submit Time", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly timesheets")}
+          ${employeePortalQuickAction("loans", "Request Loan", pendingLoans ? `${pendingLoans} pending` : "Track balances")}
+          ${employeePortalQuickAction("payslips", "Payslips", payslipCount ? `${payslipCount} ready to view` : "No payslips yet")}
+          ${employeePortalQuickAction("account", "Update Account", "Profile and password")}
+        </div>
+      </section>
       <div class="layout portal-layout">
         <aside class="nav panel portal-nav">
           <p class="section-kicker">Self Service</p>
@@ -582,6 +626,13 @@ function renderEmployeePortal() {
           ${state.employeePortalView === "account" ? employeeAccountView() : ""}
         </main>
       </div>
+      <nav class="portal-bottom-nav">
+        ${employeePortalBottomNavButton("leave", "Leave")}
+        ${employeePortalBottomNavButton("timesheets", "Time")}
+        ${employeePortalBottomNavButton("loans", "Loans")}
+        ${employeePortalBottomNavButton("payslips", "Payslips")}
+        ${employeePortalBottomNavButton("account", "Account")}
+      </nav>
     </section>
   `);
 }
