@@ -1100,7 +1100,7 @@ function matchRoute(method, pathname, routeMethod, routePath) {
 }
 
 function monthlySummary(payrollRuns, month) {
-  const runs = payrollRuns.filter((item) => item.payrollMonth === month);
+  const runs = activePayrollRuns(payrollRuns).filter((item) => item.payrollMonth === month);
   return {
     month,
     runCount: runs.length,
@@ -1131,6 +1131,14 @@ function isIsoInMonth(isoValue, month) {
   const { start, end } = monthWindow(month);
   const value = new Date(isoValue);
   return value >= start && value < end;
+}
+
+function isCancelledPayrollRun(run) {
+  return String(run?.status || "").toLowerCase() === "cancelled";
+}
+
+function activePayrollRuns(runs) {
+  return (runs || []).filter((run) => !isCancelledPayrollRun(run));
 }
 
 function buildDepartmentPayrollCost(runs, employees) {
@@ -1166,7 +1174,7 @@ function buildOvertimeTrend(payrollRuns, month) {
   for (let offset = 5; offset >= 0; offset -= 1) {
     const current = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() - offset, 1));
     const label = `${current.getUTCFullYear()}-${String(current.getUTCMonth() + 1).padStart(2, "0")}`;
-    const runs = payrollRuns.filter((run) => run.payrollMonth === label);
+    const runs = activePayrollRuns(payrollRuns).filter((run) => run.payrollMonth === label);
     points.push({
       month: label,
       overtimeHours: runs.reduce((sum, run) => sum + Number(run.input?.overtimeHours || 0), 0),
@@ -2288,7 +2296,7 @@ const routes = [
         .reverse()
         .map(sanitizeTimesheet);
       const payslips = (sessionState.db.payrollRuns || [])
-        .filter((item) => item.employeeId === employee.id)
+        .filter((item) => item.employeeId === employee.id && !isCancelledPayrollRun(item))
         .slice()
         .reverse();
       const notifications = (sessionState.db.notifications || [])
@@ -2317,7 +2325,7 @@ const routes = [
         return;
       }
       const run = (sessionState.db.payrollRuns || []).find(
-        (item) => item.id === params.runId && item.employeeId === employee.id,
+        (item) => item.id === params.runId && item.employeeId === employee.id && !isCancelledPayrollRun(item),
       );
       if (!run) {
         sendJson(res, 404, { error: "Payslip not found." });
@@ -2499,6 +2507,7 @@ const routes = [
         employeeNumber: employee.employeeNumber,
         employeeName: employee.fullName,
         payrollMonth: input.payrollMonth,
+        status: "active",
         createdAt: new Date().toISOString(),
         createdBy: sessionState.user.username,
         companySnapshot: sanitizeCompany(sessionState.db.company),
@@ -2549,6 +2558,35 @@ const routes = [
     }),
   },
   {
+    method: "PATCH",
+    path: "/api/payroll-runs/:runId/cancel",
+    handler: requireAdmin(async (req, res, params, sessionState) => {
+      const run = sessionState.db.payrollRuns.find((item) => item.id === params.runId);
+      if (!run) {
+        sendJson(res, 404, { error: "Payroll run not found." });
+        return;
+      }
+      if (isCancelledPayrollRun(run)) {
+        sendJson(res, 400, { error: "Payroll run has already been cancelled." });
+        return;
+      }
+      const body = await parseBody(req);
+      run.status = "cancelled";
+      run.cancelledAt = new Date().toISOString();
+      run.cancelledBy = sessionState.user.username;
+      run.cancellationReason = String(body.reason || "").trim();
+      sessionState.db.auditLog.push({
+        id: id("audit"),
+        action: "payroll-run-cancelled",
+        at: run.cancelledAt,
+        actor: sessionState.user.username,
+        detail: `Cancelled payroll run ${run.id} for ${run.employeeName}.`,
+      });
+      await writeDb(sessionState.db);
+      sendJson(res, 200, { item: run });
+    }),
+  },
+  {
     method: "GET",
     path: "/api/payroll-runs/:runId/pdf",
     handler: requireAdmin(async (req, res, params, sessionState) => {
@@ -2571,7 +2609,7 @@ const routes = [
       const url = new URL(req.url, `http://${req.headers.host}`);
       const month = url.searchParams.get("month") || new Date().toISOString().slice(0, 7);
       const summary = monthlySummary(sessionState.db.payrollRuns, month);
-      const runs = sessionState.db.payrollRuns.filter((item) => item.payrollMonth === month);
+      const runs = activePayrollRuns(sessionState.db.payrollRuns).filter((item) => item.payrollMonth === month);
       const analytics = {
         headcount: buildHeadcount(sessionState.db.employees),
         departmentPayrollCost: buildDepartmentPayrollCost(runs, sessionState.db.employees),

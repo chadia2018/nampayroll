@@ -1356,6 +1356,7 @@ function payrollView() {
               ? `
                 <div class="employee-row-actions">
                   <button class="secondary" data-action="download-run-pdf" data-id="${state.activeRun.id}">Download PDF</button>
+                  ${state.activeRun.status === "cancelled" ? `<span class="status-badge status-declined">Cancelled</span>` : `<button class="danger-button" data-action="cancel-run" data-id="${state.activeRun.id}" data-name="${state.activeRun.employeeName}" data-month="${state.activeRun.payrollMonth}">Cancel run</button>`}
                   <button class="secondary" data-action="print">Print</button>
                 </div>
               `
@@ -1737,6 +1738,7 @@ function employeeRow(employee) {
 }
 
 function runCard(run) {
+  const isCancelled = run.status === "cancelled";
   return `
     <article class="run-card">
       <div class="run-head">
@@ -1747,6 +1749,7 @@ function runCard(run) {
         <div class="employee-row-actions">
           <button class="secondary" data-action="open-run" data-id="${run.id}">Open</button>
           <button class="secondary" data-action="download-run-pdf" data-id="${run.id}">PDF</button>
+          ${isCancelled ? `<span class="status-badge status-declined">Cancelled</span>` : `<button class="danger-button" data-action="cancel-run" data-id="${run.id}" data-name="${run.employeeName}" data-month="${run.payrollMonth}">Cancel</button>`}
         </div>
       </div>
       <div class="facts">
@@ -1794,6 +1797,7 @@ function payslipView(run) {
   return `
     <article class="payslip">
       <div class="record-grid">
+        ${run.status === "cancelled" ? `<div class="banner danger-banner">This payroll run was cancelled${run.cancelledAt ? ` on ${new Date(run.cancelledAt).toLocaleString()}` : ""}${run.cancelledBy ? ` by ${run.cancelledBy}` : ""}.${run.cancellationReason ? ` Reason: ${run.cancellationReason}` : ""}</div>` : ""}
         <div class="payslip-company">
           <div class="payslip-company-main">
             ${company.logoPath ? `<img class="company-logo" src="${company.logoPath}" alt="${company.name || "Company"} logo" />` : `<div class="company-logo company-logo-fallback">${(company.name || "NP").slice(0, 2).toUpperCase()}</div>`}
@@ -2384,6 +2388,26 @@ function bindApp() {
     });
   });
 
+  document.querySelectorAll("[data-action='cancel-run']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const confirmed = window.confirm(`Cancel payroll run for ${button.dataset.name} (${button.dataset.month})?`);
+      if (!confirmed) return;
+      try {
+        const response = await api(`/api/payroll-runs/${button.dataset.id}/cancel`, {
+          method: "PATCH",
+          body: JSON.stringify({}),
+        });
+        state.activeRun = response.item;
+        await loadRuns();
+        await loadDashboard();
+        await loadReport(state.reportMonth);
+      } catch (error) {
+        window.alert(error.message);
+      }
+      render();
+    });
+  });
+
   document.querySelectorAll("[data-action='approve-leave']").forEach((button) => {
     button.addEventListener("click", async () => {
       try {
@@ -2900,8 +2924,12 @@ async function loadEmployees() {
 async function loadRuns() {
   const response = await api("/api/payroll-runs");
   state.runs = response.items;
-  if (!state.activeRun && response.items.length) {
-    state.activeRun = response.items[0];
+  const preferredRun = response.items.find((item) => item.status !== "cancelled") || response.items[0] || null;
+  if (!state.activeRun && preferredRun) {
+    state.activeRun = preferredRun;
+  }
+  if (state.activeRun) {
+    state.activeRun = response.items.find((item) => item.id === state.activeRun.id) || preferredRun;
   }
 }
 
@@ -2963,7 +2991,7 @@ async function bootstrapApp() {
   state.timesheets = timesheets.items;
   state.passwordResetRequests = passwordResetRequests.items;
   state.dataStatus = dataStatus;
-  state.activeRun = runs.items[0] || null;
+  state.activeRun = runs.items.find((item) => item.status !== "cancelled") || runs.items[0] || null;
   await loadReport(state.reportMonth);
   render();
 }
