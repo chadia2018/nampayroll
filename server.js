@@ -39,6 +39,7 @@ function defaultCompany() {
     physicalAddress: "",
     website: "",
     logoPath: "",
+    registeredAt: "",
   };
 }
 
@@ -1364,6 +1365,111 @@ const routes = [
       }
 
       sendJson(res, 200, { ok: true, detail: "If the employee details matched, a password reset request has been recorded." });
+    },
+  },
+  {
+    method: "POST",
+    path: "/api/register-company",
+    handler: async (req, res) => {
+      const db = await readDb();
+      const body = await parseBody(req);
+
+      if (db.company?.registeredAt) {
+        sendJson(res, 400, { error: "Company registration has already been completed. Sign in to manage the account." });
+        return;
+      }
+
+      const companyName = String(body.companyName || "").trim();
+      const email = String(body.email || "").trim();
+      const cellphone = String(body.cellphone || "").trim();
+      const physicalAddress = String(body.physicalAddress || "").trim();
+      const website = String(body.website || "").trim();
+      const adminName = String(body.adminName || "").trim();
+      const username = String(body.username || "").trim();
+      const password = String(body.password || "");
+      const confirmPassword = String(body.confirmPassword || "");
+
+      if (!companyName || !adminName || !username || !password) {
+        sendJson(res, 400, { error: "Company name, admin name, username, and password are required." });
+        return;
+      }
+
+      if (password.length < 8) {
+        sendJson(res, 400, { error: "Password must be at least 8 characters long." });
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        sendJson(res, 400, { error: "Password confirmation does not match." });
+        return;
+      }
+
+      const usernameTaken =
+        (db.users || []).some((item) => item.username === username) ||
+        (db.employees || []).some((item) => item.portalAccess?.username === username);
+      if (usernameTaken) {
+        sendJson(res, 400, { error: "That username is already in use." });
+        return;
+      }
+
+      const passwordHash = await hashPassword(password);
+      const adminUser = {
+        id: id("user"),
+        username,
+        name: adminName,
+        role: "admin",
+        passwordHash,
+      };
+
+      db.company = sanitizeCompany({
+        ...db.company,
+        name: companyName,
+        email,
+        cellphone,
+        physicalAddress,
+        website,
+        registeredAt: new Date().toISOString(),
+      });
+      db.users = [adminUser];
+      db.sessions = [];
+      db.employees = [];
+      db.leaveRequests = [];
+      db.loanRequests = [];
+      db.timesheets = [];
+      db.notifications = [];
+      db.passwordResetRequests = [];
+      db.payrollRuns = [];
+      db.auditLog.push({
+        id: id("audit"),
+        action: "company-registered",
+        at: new Date().toISOString(),
+        actor: username,
+        detail: `Registered ${companyName} and created the first admin account.`,
+      });
+
+      const rawToken = crypto.randomBytes(24).toString("hex");
+      db.sessions.push({
+        id: id("sess"),
+        userId: adminUser.id,
+        role: adminUser.role,
+        employeeId: null,
+        tokenHash: sha(rawToken),
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
+      });
+
+      await writeDb(db);
+      sendJson(
+        res,
+        200,
+        {
+          user: sanitizeUser(adminUser),
+          company: sanitizeCompany(db.company),
+        },
+        {
+          "Set-Cookie": `session=${rawToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=43200`,
+        },
+      );
     },
   },
   {

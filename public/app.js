@@ -51,6 +51,7 @@ const state = {
   portalTimesheetMonth: "",
   employeePortalError: "",
   employeePortalNotice: "",
+  loginView: "signin",
 };
 
 async function api(path, options = {}) {
@@ -150,6 +151,7 @@ function renderLogin() {
               <div class="brand-lockup">
                 <div class="brand-logo" aria-hidden="true">
                   <span class="brand-logo-ring"></span>
+                  <span class="brand-logo-accent"></span>
                   <span class="brand-logo-core">NP</span>
                 </div>
                 <div>
@@ -159,23 +161,53 @@ function renderLogin() {
               </div>
               <h1>Payroll access for modern teams.</h1>
               <p class="muted">Run payroll, manage compliance, and give employees self-service access from one secure workspace.</p>
-              <div class="login-chip-group modern-login-chips">
-                <span class="tag">Admin demo: admin / admin123!</span>
-                <span class="tag">Employee: use issued portal credentials</span>
+              <div class="login-feature-list">
+                <span class="tag">Payroll and compliance</span>
+                <span class="tag">Employee self-service</span>
+                <span class="tag">Payslips, leave, loans, and time</span>
               </div>
             </div>
             <div class="notice compact-login-panel modern-login-panel">
-              <p class="section-kicker">Secure Sign In</p>
-              <h3>Welcome back</h3>
-              <p class="muted">Enter your username and password to continue to the payroll workspace.</p>
-              <form id="login-form" class="modern-login-form">
-                <label>Username <input name="username" value="admin" required /></label>
-                <label>Password <input type="password" name="password" value="admin123!" required /></label>
-                <div class="actions">
-                  <button class="primary" type="submit">Sign in</button>
-                </div>
-              </form>
-              <p id="login-error" class="small danger hidden"></p>
+              <div class="modern-login-switcher">
+                <button class="${state.loginView === "signin" ? "primary" : "secondary"}" data-action="set-login-view" data-login-view="signin" type="button">Sign in</button>
+                <button class="${state.loginView === "register" ? "primary" : "secondary"}" data-action="set-login-view" data-login-view="register" type="button">Register company</button>
+              </div>
+              ${
+                state.loginView === "signin"
+                  ? `
+                    <p class="section-kicker">Secure Sign In</p>
+                    <h3>Welcome back</h3>
+                    <p class="muted">Enter your username and password to continue to the payroll workspace.</p>
+                    <form id="login-form" class="modern-login-form">
+                      <label>Username <input name="username" autocomplete="username" required /></label>
+                      <label>Password <input type="password" name="password" autocomplete="current-password" required /></label>
+                      <div class="actions">
+                        <button class="primary" type="submit">Sign in</button>
+                      </div>
+                    </form>
+                    <p id="login-error" class="small danger hidden"></p>
+                  `
+                  : `
+                    <p class="section-kicker">Company Setup</p>
+                    <h3>Create your payroll workspace</h3>
+                    <p class="muted">Register your company and create the first admin account.</p>
+                    <form id="register-company-form" class="modern-login-form">
+                      <label>Company name <input name="companyName" required /></label>
+                      <label>Company email <input type="email" name="email" /></label>
+                      <label>Cellphone <input name="cellphone" /></label>
+                      <label>Website <input name="website" placeholder="https://example.com" /></label>
+                      <label class="span-2">Physical address <textarea name="physicalAddress"></textarea></label>
+                      <label>Admin full name <input name="adminName" required /></label>
+                      <label>Admin username <input name="username" required /></label>
+                      <label>Password <input type="password" name="password" minlength="8" required /></label>
+                      <label>Confirm password <input type="password" name="confirmPassword" minlength="8" required /></label>
+                      <div class="span-2 actions">
+                        <button class="primary" type="submit">Register company</button>
+                      </div>
+                    </form>
+                    <p id="register-error" class="small danger hidden"></p>
+                  `
+              }
             </div>
           </div>
         </section>
@@ -2019,49 +2051,57 @@ function renderApp() {
 }
 
 function bindLogin() {
-  const form = document.querySelector("#login-form");
-  const error = document.querySelector("#login-error");
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    error.classList.add("hidden");
-    const data = new FormData(form);
-    try {
-      const response = await api("/api/login", {
-        method: "POST",
-        body: JSON.stringify(Object.fromEntries(data.entries())),
-      });
-      state.session = response.user;
-      state.company = response.company;
-      if (state.session.role === "employee") {
-        await loadEmployeePortal();
-        render();
-        return;
-      }
-      await bootstrapApp();
-    } catch (err) {
-      error.textContent = err.message;
-      error.classList.remove("hidden");
-    }
+  document.querySelectorAll("[data-action='set-login-view']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.loginView = button.dataset.loginView;
+      render();
+    });
   });
 
-  const resetForm = document.querySelector("#password-reset-request-form");
-  const resetNote = document.querySelector("#password-reset-note");
-  if (resetForm && resetNote) {
-    resetForm.addEventListener("submit", async (event) => {
+  const form = document.querySelector("#login-form");
+  const error = document.querySelector("#login-error");
+  if (form && error) {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
+      error.classList.add("hidden");
+      const data = new FormData(form);
       try {
-        const data = Object.fromEntries(new FormData(resetForm).entries());
-        const response = await api("/api/password-reset-requests", {
+        const response = await api("/api/login", {
           method: "POST",
-          body: JSON.stringify(data),
+          body: JSON.stringify(Object.fromEntries(data.entries())),
         });
-        resetNote.textContent = response.detail || "Reset request recorded.";
-        resetNote.classList.remove("hidden", "danger");
-        resetForm.reset();
+        state.session = response.user;
+        state.company = response.company;
+        if (state.session.role === "employee") {
+          await loadEmployeePortal();
+          render();
+          return;
+        }
+        await bootstrapApp();
       } catch (err) {
-        resetNote.textContent = err.message;
-        resetNote.classList.remove("hidden");
-        resetNote.classList.add("danger");
+        error.textContent = err.message;
+        error.classList.remove("hidden");
+      }
+    });
+  }
+
+  const registerForm = document.querySelector("#register-company-form");
+  const registerError = document.querySelector("#register-error");
+  if (registerForm && registerError) {
+    registerForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      registerError.classList.add("hidden");
+      try {
+        const response = await api("/api/register-company", {
+          method: "POST",
+          body: JSON.stringify(Object.fromEntries(new FormData(registerForm).entries())),
+        });
+        state.session = response.user;
+        state.company = response.company;
+        await bootstrapApp();
+      } catch (err) {
+        registerError.textContent = err.message;
+        registerError.classList.remove("hidden");
       }
     });
   }

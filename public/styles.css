@@ -178,6 +178,17 @@ h2 {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.brand-logo-accent {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  right: -6px;
+  top: -4px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(222, 154, 40, 0.96), rgba(255, 211, 130, 0.64));
+  transform: rotate(14deg);
+}
+
 .brand-logo-core {
   position: relative;
   z-index: 1;
@@ -188,8 +199,10 @@ h2 {
   font-size: 1.2rem;
 }
 
-.modern-login-chips {
-  justify-items: start;
+.login-feature-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .modern-login-panel {
@@ -204,6 +217,13 @@ h2 {
 
 .modern-login-form {
   gap: 16px;
+}
+
+.modern-login-switcher {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 4px;
 }
 
 .login-card-head {
