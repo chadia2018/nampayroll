@@ -1372,6 +1372,7 @@ function payrollView() {
 function reportsView() {
   const summary = state.report?.summary;
   const rows = (state.report?.items || []).filter((item) =>
+    item.status !== "cancelled" &&
     matchesSearch(state.globalSearch, item.employeeName, item.employeeNumber, item.payrollMonth, item.createdBy),
   );
   const analytics = state.report?.analytics || {};
