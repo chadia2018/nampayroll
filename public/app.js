@@ -11,6 +11,8 @@ const number = (value, digits = 2) =>
     maximumFractionDigits: digits,
   }).format(Number.isFinite(value) ? value : 0);
 
+const percent = (value, digits = 2) => `${number(value, digits)}%`;
+
 const state = {
   session: null,
   company: null,
@@ -84,6 +86,21 @@ function matchesSearch(query, ...values) {
   const needle = String(query || "").trim().toLowerCase();
   if (!needle) return true;
   return values.some((value) => String(value || "").toLowerCase().includes(needle));
+}
+
+function loanProgress(request) {
+  const progress = Math.max(0, Math.min(Number(request.progressPercent || 0), 100));
+  return `
+    <div class="loan-progress">
+      <div class="loan-progress-meta">
+        <span>${request.paidMonthsEstimate || 0} of ${request.repaymentMonths || 0} installments</span>
+        <strong>${number(progress, 0)}%</strong>
+      </div>
+      <div class="leave-progress-track">
+        <span class="loan-progress-fill" style="width:${progress}%"></span>
+      </div>
+    </div>
+  `;
 }
 
 function buildBarChart(items, valueKey, labelKey, formatter) {
@@ -384,12 +401,18 @@ function loanRequestCard(request) {
       <div class="record-head">
         <div>
           <h3>${money(request.amount)}</h3>
-          <p class="muted">${request.repaymentMonths} month repayment · ${request.requestedAt.slice(0, 10)}</p>
+          <p class="muted">${request.repaymentMonths} month repayment · requested ${request.requestedAt.slice(0, 10)}</p>
         </div>
         <span class="status-badge status-${request.status}">${request.status}</span>
       </div>
       <p class="muted">${request.reason || "No reason provided."}</p>
-      <p class="muted">Installment ${money(request.monthlyInstallment || 0)} · Estimated balance ${money(request.estimatedOutstandingBalance || 0)}</p>
+      <div class="loan-metrics-grid">
+        <div><span class="muted">Interest</span><strong>${percent(request.interestRate || 0)}</strong></div>
+        <div><span class="muted">Total repayable</span><strong>${money(request.totalRepayable || request.amount || 0)}</strong></div>
+        <div><span class="muted">Monthly installment</span><strong>${money(request.monthlyInstallment || 0)}</strong></div>
+        <div><span class="muted">Outstanding</span><strong>${money(request.estimatedOutstandingBalance || 0)}</strong></div>
+      </div>
+      ${request.status === "approved" ? loanProgress(request) : `<p class="muted">Interest and repayment schedule are finalized when the loan is approved.</p>`}
     </article>
   `;
 }
@@ -444,6 +467,7 @@ function employeeLoansView() {
           <label>Amount (N$) <input type="number" min="0" step="0.01" name="amount" required /></label>
           <label>Repayment months <input type="number" min="1" step="1" name="repaymentMonths" value="1" required /></label>
           <label class="span-2">Reason <textarea name="reason"></textarea></label>
+          <p class="span-2 muted">Interest is set during admin approval, then repayment progress appears here automatically.</p>
           <div class="actions"><button class="primary" type="submit">Submit loan request</button></div>
         </form>
       </section>
@@ -1947,17 +1971,30 @@ function adminLoanRequestRow(request) {
   return `
     <tr>
       <td>${request.employeeName}</td>
-      <td>${money(request.amount)}</td>
-      <td>${request.repaymentMonths} mo</td>
+      <td>
+        <strong>${money(request.amount)}</strong>
+        <div class="mini-meta">${money(request.totalRepayable || request.amount)} total repayable</div>
+      </td>
+      <td>
+        <strong>${request.repaymentMonths} mo</strong>
+        <div class="mini-meta">${percent(request.interestRate || 0)} interest</div>
+      </td>
+      <td>
+        <strong>${money(request.monthlyInstallment || 0)}</strong>
+        <div class="mini-meta">${money(request.estimatedOutstandingBalance || 0)} outstanding</div>
+      </td>
       <td>${request.requestedAt.slice(0, 10)}</td>
       <td><span class="status-badge status-${request.status}">${request.status}</span></td>
+      <td>
+        ${request.status === "approved" ? loanProgress(request) : `<span class="muted">Not started</span>`}
+      </td>
       <td>${request.reason || "-"}</td>
       <td>
         <div class="employee-row-actions">
           ${
             request.status === "pending"
               ? `
-                <button class="secondary table-action" data-action="approve-loan" data-id="${request.id}">Approve</button>
+                <button class="secondary table-action" data-action="approve-loan" data-id="${request.id}" data-interest="${request.interestRate || 0}">Approve</button>
                 <button class="danger-button table-action" data-action="decline-loan" data-id="${request.id}">Decline</button>
               `
               : `<span class="tag">${request.reviewedBy || "Reviewed"}</span>`
@@ -1970,7 +2007,7 @@ function adminLoanRequestRow(request) {
 
 function loansView() {
   const requests = state.loanRequests.filter((request) =>
-    matchesSearch(state.globalSearch, request.employeeName, request.employeeNumber, request.reason, request.status, request.amount),
+    matchesSearch(state.globalSearch, request.employeeName, request.employeeNumber, request.reason, request.status, request.amount, request.interestRate),
   );
   return `
     <section class="panel-grid">
@@ -1993,10 +2030,12 @@ function loansView() {
                   <thead>
                     <tr>
                       <th>Employee</th>
-                      <th>Amount</th>
-                      <th>Repayment</th>
+                      <th>Loan</th>
+                      <th>Terms</th>
+                      <th>Installment</th>
                       <th>Requested</th>
                       <th>Status</th>
+                      <th>Progress</th>
                       <th>Reason</th>
                       <th>Actions</th>
                     </tr>
@@ -2571,12 +2610,20 @@ function bindApp() {
   document.querySelectorAll("[data-action='approve-loan']").forEach((button) => {
     button.addEventListener("click", async () => {
       try {
+        const initialRate = Number(button.dataset.interest || 0);
+        const rawRate = window.prompt("Enter annual interest rate (%) for this loan.", String(initialRate));
+        if (rawRate === null) return;
+        const interestRate = Number(rawRate);
+        if (!Number.isFinite(interestRate) || interestRate < 0) {
+          throw new Error("Interest rate must be zero or greater.");
+        }
         await api(`/api/loan-requests/${button.dataset.id}`, {
           method: "PATCH",
-          body: JSON.stringify({ status: "approved" }),
+          body: JSON.stringify({ status: "approved", interestRate }),
         });
         state.reviewError = "";
         await loadLoanRequests();
+        await loadDashboard();
       } catch (error) {
         state.reviewError = error.message;
       }

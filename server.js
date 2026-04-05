@@ -592,26 +592,50 @@ function findRunForEmployee(db, employeeId, runId) {
   return (db.payrollRuns || []).find((item) => item.id === runId && item.employeeId === employeeId);
 }
 
-function sanitizeLoanRequest(request) {
-  const amount = Number(request.amount || 0);
+function getLoanMetrics(request, referenceDate = new Date()) {
+  const principal = Math.max(Number(request.amount || 0), 0);
   const repaymentMonths = Math.max(Number(request.repaymentMonths || 1), 1);
-  const monthlyInstallment = amount / repaymentMonths;
-  const approvedAt = request.reviewedAt || request.requestedAt;
-  const now = new Date();
+  const annualInterestRate = Math.max(Number(request.interestRate || 0), 0);
+  const totalInterest = principal * (annualInterestRate / 100) * (repaymentMonths / 12);
+  const totalRepayable = principal + totalInterest;
+  const monthlyInstallment = totalRepayable / repaymentMonths;
+  const approvedAt = request.approvedAt || request.reviewedAt || request.requestedAt;
   const approvedDate = new Date(approvedAt);
   const elapsedMonths =
     request.status === "approved" && !Number.isNaN(approvedDate.getTime())
-      ? Math.max(0, (now.getUTCFullYear() - approvedDate.getUTCFullYear()) * 12 + (now.getUTCMonth() - approvedDate.getUTCMonth()))
+      ? Math.max(0, (referenceDate.getUTCFullYear() - approvedDate.getUTCFullYear()) * 12 + (referenceDate.getUTCMonth() - approvedDate.getUTCMonth()))
       : 0;
-  const paidMonthsEstimate = Math.min(elapsedMonths, repaymentMonths);
+  const installmentsPaidEstimate = Math.min(elapsedMonths, repaymentMonths);
+  const amountPaidEstimate = Math.min(monthlyInstallment * installmentsPaidEstimate, totalRepayable);
+  const outstandingBalance = Math.max(totalRepayable - amountPaidEstimate, 0);
+  const progressPercent = repaymentMonths ? Math.min((installmentsPaidEstimate / repaymentMonths) * 100, 100) : 0;
+  return {
+    principal,
+    annualInterestRate,
+    totalInterest,
+    totalRepayable,
+    monthlyInstallment,
+    installmentsPaidEstimate,
+    amountPaidEstimate,
+    outstandingBalance,
+    progressPercent,
+  };
+}
+
+function sanitizeLoanRequest(request) {
+  const repaymentMonths = Math.max(Number(request.repaymentMonths || 1), 1);
+  const metrics = getLoanMetrics(request);
   return {
     ...request,
-    monthlyInstallment,
-    estimatedOutstandingBalance:
-      request.status === "approved"
-        ? Math.max(amount - monthlyInstallment * paidMonthsEstimate, 0)
-        : amount,
-    paidMonthsEstimate,
+    repaymentMonths,
+    monthlyInstallment: metrics.monthlyInstallment,
+    estimatedOutstandingBalance: request.status === "approved" ? metrics.outstandingBalance : metrics.totalRepayable,
+    paidMonthsEstimate: metrics.installmentsPaidEstimate,
+    interestRate: metrics.annualInterestRate,
+    totalInterest: metrics.totalInterest,
+    totalRepayable: metrics.totalRepayable,
+    amountPaidEstimate: metrics.amountPaidEstimate,
+    progressPercent: metrics.progressPercent,
   };
 }
 
@@ -1065,6 +1089,10 @@ function moneyValue(value) {
   return `N$${Number(value || 0).toFixed(2)}`;
 }
 
+function percentValue(value) {
+  return `${Number(value || 0).toFixed(2)}%`;
+}
+
 function escapePdfText(value) {
   return String(value || "")
     .replace(/\\/g, "\\\\")
@@ -1441,21 +1469,27 @@ function buildLeaveLiability(employees) {
 function buildLoanExposure(loanRequests, month) {
   const items = (loanRequests || [])
     .filter((request) => request.status === "approved")
-    .map((request) => ({
-      id: request.id,
-      employeeName: request.employeeName,
-      employeeNumber: request.employeeNumber,
-      amount: Number(request.amount || 0),
-      repaymentMonths: Number(request.repaymentMonths || 0),
-      requestedAt: request.requestedAt,
-      reviewedAt: request.reviewedAt || null,
-    }))
-    .sort((left, right) => right.amount - left.amount);
+    .map((request) => {
+      const metrics = getLoanMetrics(request);
+      return {
+        id: request.id,
+        employeeName: request.employeeName,
+        employeeNumber: request.employeeNumber,
+        amount: Number(request.amount || 0),
+        repaymentMonths: Number(request.repaymentMonths || 0),
+        interestRate: metrics.annualInterestRate,
+        totalRepayable: metrics.totalRepayable,
+        outstandingBalance: metrics.outstandingBalance,
+        requestedAt: request.requestedAt,
+        reviewedAt: request.reviewedAt || null,
+      };
+    })
+    .sort((left, right) => right.outstandingBalance - left.outstandingBalance);
 
   return {
     approvedCount: items.length,
     approvedThisMonth: items.filter((item) => isIsoInMonth(item.reviewedAt || item.requestedAt, month)).length,
-    totalOutstandingEstimate: items.reduce((sum, item) => sum + item.amount, 0),
+    totalOutstandingEstimate: items.reduce((sum, item) => sum + item.outstandingBalance, 0),
     averageLoanSize: items.length ? items.reduce((sum, item) => sum + item.amount, 0) / items.length : 0,
     largestLoans: items.slice(0, 5),
   };
@@ -2269,15 +2303,24 @@ const routes = [
         return;
       }
 
+      const interestRate = Math.max(Number(body.interestRate ?? request.interestRate ?? 0), 0);
       request.status = nextStatus;
       request.reviewedAt = new Date().toISOString();
       request.reviewedBy = sessionState.user.username;
       request.reviewNote = String(body.reviewNote || "").trim();
+      request.interestRate = interestRate;
+      if (nextStatus === "approved") {
+        request.approvedAt = request.approvedAt || request.reviewedAt;
+      }
+      const metrics = getLoanMetrics(request);
       createNotification(sessionState.db, {
         employeeId: request.employeeId,
         type: nextStatus === "approved" ? "success" : "info",
         title: `Loan request ${nextStatus}`,
-        body: `Your loan request for ${moneyValue(request.amount)} was ${nextStatus}.`,
+        body:
+          nextStatus === "approved"
+            ? `Your loan request for ${moneyValue(request.amount)} was approved at ${percentValue(interestRate)} interest. Monthly repayment: ${moneyValue(metrics.monthlyInstallment)}.`
+            : `Your loan request for ${moneyValue(request.amount)} was ${nextStatus}.`,
       });
 
       sessionState.db.auditLog.push({
@@ -2285,7 +2328,10 @@ const routes = [
         action: "loan-request-reviewed",
         at: new Date().toISOString(),
         actor: sessionState.user.username,
-        detail: `${nextStatus} loan request ${request.id} for ${request.employeeName}.`,
+        detail:
+          nextStatus === "approved"
+            ? `Approved loan request ${request.id} for ${request.employeeName} at ${percentValue(interestRate)} interest.`
+            : `${nextStatus} loan request ${request.id} for ${request.employeeName}.`,
       });
       await writeDb(sessionState.db);
       sendJson(res, 200, { item: sanitizeLoanRequest(request) });
@@ -2302,15 +2348,22 @@ const routes = [
         sendJson(res, 404, { error: "Employee not found." });
         return;
       }
+      const amount = Math.max(Number(body.amount || 0), 0);
+      const repaymentMonths = Math.max(Number(body.repaymentMonths || 1), 1);
+      if (!amount) {
+        sendJson(res, 400, { error: "Loan amount must be greater than zero." });
+        return;
+      }
 
       const request = {
         id: id("loan"),
         employeeId: employee.id,
         employeeNumber: employee.employeeNumber,
         employeeName: employee.fullName,
-        amount: Number(body.amount || 0),
+        amount,
         reason: String(body.reason || "").trim(),
-        repaymentMonths: Number(body.repaymentMonths || 1),
+        repaymentMonths,
+        interestRate: 0,
         status: "pending",
         requestedAt: new Date().toISOString(),
         requestedBy: sessionState.user.username,

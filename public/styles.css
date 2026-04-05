@@ -680,6 +680,57 @@ button:hover {
   background: #3d7e4f;
 }
 
+.loan-progress-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0f6c74, #1a7b58);
+}
+
+.loan-progress {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.loan-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.loan-progress-meta strong {
+  color: var(--ink);
+}
+
+.loan-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.loan-metrics-grid div {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+}
+
+.loan-metrics-grid span,
+.mini-meta {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.loan-metrics-grid strong {
+  display: block;
+  margin-top: 4px;
+}
+
 .leave-toolbar {
   display: grid;
   grid-template-columns: minmax(220px, 1.35fr) repeat(3, minmax(0, 220px));
