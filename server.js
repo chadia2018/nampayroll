@@ -49,6 +49,10 @@ function defaultCompany() {
     notifyAdminOnLeaveRequest: true,
     notifyAdminOnLoanRequest: true,
     notifyAdminOnTimesheet: true,
+    notifyEmployeeOnLeaveUpdate: true,
+    notifyEmployeeOnLoanUpdate: true,
+    notifyEmployeeOnTimesheetUpdate: true,
+    notifyEmployeeOnPayslipReady: true,
   };
 }
 
@@ -744,6 +748,51 @@ async function sendAdminRequestAlert(db, type, subject, message) {
   }
   if (!deliveries.length) return;
   await Promise.allSettled(deliveries);
+}
+
+async function sendEmployeeUpdateAlert(db, employee, type, subject, message) {
+  if (!employee) return;
+  const company = sanitizeCompany(db.company);
+  const shouldSend =
+    (type === "leave" && company.notifyEmployeeOnLeaveUpdate) ||
+    (type === "loan" && company.notifyEmployeeOnLoanUpdate) ||
+    (type === "timesheet" && company.notifyEmployeeOnTimesheetUpdate) ||
+    (type === "payslip" && company.notifyEmployeeOnPayslipReady);
+  if (!shouldSend) return;
+
+  const deliveries = [];
+  if (employee.profile?.personalEmail) {
+    deliveries.push(
+      sendResendEmail(employee.profile.personalEmail, subject, message).then(
+        () => ({ channel: "email", status: "sent" }),
+        (error) => ({ channel: "email", status: "failed", detail: error.message }),
+      ),
+    );
+  }
+  if (employee.profile?.cellphone) {
+    deliveries.push(
+      sendAfricasTalkingSms(employee.profile.cellphone, message).then(
+        () => ({ channel: "sms", status: "sent" }),
+        (error) => ({ channel: "sms", status: "failed", detail: error.message }),
+      ),
+    );
+  }
+  if (!deliveries.length) return;
+
+  const results = await Promise.all(deliveries);
+  db.auditLog = db.auditLog || [];
+  results.forEach((result) => {
+    db.auditLog.push({
+      id: id("audit"),
+      action: "employee-alert-delivery",
+      at: new Date().toISOString(),
+      actor: "system",
+      detail:
+        result.status === "sent"
+          ? `Sent ${type} ${result.channel} alert to ${employee.fullName}.`
+          : `Failed ${type} ${result.channel} alert for ${employee.fullName}: ${result.detail}`,
+    });
+  });
 }
 
 function buildPayrollRunRecord(employee, body, createdBy, company) {
@@ -1792,6 +1841,10 @@ const routes = [
       const notifyAdminOnLeaveRequest = body.notifyAdminOnLeaveRequest !== false && body.notifyAdminOnLeaveRequest !== "false";
       const notifyAdminOnLoanRequest = body.notifyAdminOnLoanRequest !== false && body.notifyAdminOnLoanRequest !== "false";
       const notifyAdminOnTimesheet = body.notifyAdminOnTimesheet !== false && body.notifyAdminOnTimesheet !== "false";
+      const notifyEmployeeOnLeaveUpdate = body.notifyEmployeeOnLeaveUpdate !== false && body.notifyEmployeeOnLeaveUpdate !== "false";
+      const notifyEmployeeOnLoanUpdate = body.notifyEmployeeOnLoanUpdate !== false && body.notifyEmployeeOnLoanUpdate !== "false";
+      const notifyEmployeeOnTimesheetUpdate = body.notifyEmployeeOnTimesheetUpdate !== false && body.notifyEmployeeOnTimesheetUpdate !== "false";
+      const notifyEmployeeOnPayslipReady = body.notifyEmployeeOnPayslipReady !== false && body.notifyEmployeeOnPayslipReady !== "false";
       const adminNotificationCellphone = String(body.adminNotificationCellphone || "").trim();
 
       if (body.removeLogo) {
@@ -1821,6 +1874,10 @@ const routes = [
         notifyAdminOnLeaveRequest,
         notifyAdminOnLoanRequest,
         notifyAdminOnTimesheet,
+        notifyEmployeeOnLeaveUpdate,
+        notifyEmployeeOnLoanUpdate,
+        notifyEmployeeOnTimesheetUpdate,
+        notifyEmployeeOnPayslipReady,
         logoPath,
       });
 
@@ -2267,6 +2324,13 @@ const routes = [
         title: `Leave request ${nextStatus}`,
         body: `${request.leaveType} leave from ${request.startDate} to ${request.endDate} was ${nextStatus}.`,
       });
+      await sendEmployeeUpdateAlert(
+        sessionState.db,
+        employee,
+        "leave",
+        `Leave request ${nextStatus}`,
+        `${request.leaveType} leave from ${request.startDate} to ${request.endDate} was ${nextStatus}.`,
+      );
 
       sessionState.db.auditLog.push({
         id: id("audit"),
@@ -2322,6 +2386,16 @@ const routes = [
             ? `Your loan request for ${moneyValue(request.amount)} was approved at ${percentValue(interestRate)} interest. Monthly repayment: ${moneyValue(metrics.monthlyInstallment)}.`
             : `Your loan request for ${moneyValue(request.amount)} was ${nextStatus}.`,
       });
+      const employee = sessionState.db.employees.find((item) => item.id === request.employeeId);
+      await sendEmployeeUpdateAlert(
+        sessionState.db,
+        employee,
+        "loan",
+        `Loan request ${nextStatus}`,
+        nextStatus === "approved"
+          ? `Your loan request for ${moneyValue(request.amount)} was approved at ${percentValue(interestRate)} interest. Monthly repayment: ${moneyValue(metrics.monthlyInstallment)}.`
+          : `Your loan request for ${moneyValue(request.amount)} was ${nextStatus}.`,
+      );
 
       sessionState.db.auditLog.push({
         id: id("audit"),
@@ -2414,12 +2488,20 @@ const routes = [
       entry.reviewedAt = new Date().toISOString();
       entry.reviewedBy = sessionState.user.username;
       entry.reviewNote = String(body.reviewNote || "").trim();
+      const employee = sessionState.db.employees.find((item) => item.id === entry.employeeId);
       createNotification(sessionState.db, {
         employeeId: entry.employeeId,
         type: nextStatus === "approved" ? "success" : "info",
         title: `Timesheet ${nextStatus}`,
         body: `Your timesheet for ${entry.weekStart} to ${entry.weekEnd} was ${nextStatus}.`,
       });
+      await sendEmployeeUpdateAlert(
+        sessionState.db,
+        employee,
+        "timesheet",
+        `Timesheet ${nextStatus}`,
+        `Your timesheet for ${entry.weekStart} to ${entry.weekEnd} was ${nextStatus}.`,
+      );
 
       sessionState.db.auditLog.push({
         id: id("audit"),
@@ -2824,6 +2906,13 @@ const routes = [
         title: "New payslip available",
         body: `Your payslip for ${payrollRun.payrollMonth} is now available in the portal.`,
       });
+      await sendEmployeeUpdateAlert(
+        sessionState.db,
+        employee,
+        "payslip",
+        `Payslip ready for ${payrollRun.payrollMonth}`,
+        `Your payslip for ${payrollRun.payrollMonth} is now available in the portal.`,
+      );
       await writeDb(sessionState.db);
 
       sendJson(res, 201, { item: payrollRun });
@@ -2883,6 +2972,13 @@ const routes = [
           title: "New payslip available",
           body: `Your payslip for ${payrollRun.payrollMonth} is now available in the portal.`,
         });
+        await sendEmployeeUpdateAlert(
+          sessionState.db,
+          employee,
+          "payslip",
+          `Payslip ready for ${payrollRun.payrollMonth}`,
+          `Your payslip for ${payrollRun.payrollMonth} is now available in the portal.`,
+        );
         created.push(payrollRun);
       }
 

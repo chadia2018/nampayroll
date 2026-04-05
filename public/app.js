@@ -1123,6 +1123,21 @@ function companyView() {
               <label class="span-2 settings-check"><input type="checkbox" name="notifyAdminOnTimesheet" ${state.company?.notifyAdminOnTimesheet !== false ? "checked" : ""} /> Notify on timesheet submissions</label>
             </div>
           </section>
+          <section class="span-2 settings-card">
+            <div class="settings-card-head">
+              <div>
+                <p class="section-kicker">Employee delivery</p>
+                <h3>Email and SMS notifications</h3>
+              </div>
+              <span class="tag">Uses employee contact details</span>
+            </div>
+            <div class="grid-2 settings-grid">
+              <label class="settings-check"><input type="checkbox" name="notifyEmployeeOnLeaveUpdate" ${state.company?.notifyEmployeeOnLeaveUpdate !== false ? "checked" : ""} /> Send leave status updates</label>
+              <label class="settings-check"><input type="checkbox" name="notifyEmployeeOnLoanUpdate" ${state.company?.notifyEmployeeOnLoanUpdate !== false ? "checked" : ""} /> Send loan status updates</label>
+              <label class="settings-check"><input type="checkbox" name="notifyEmployeeOnTimesheetUpdate" ${state.company?.notifyEmployeeOnTimesheetUpdate !== false ? "checked" : ""} /> Send timesheet review updates</label>
+              <label class="settings-check"><input type="checkbox" name="notifyEmployeeOnPayslipReady" ${state.company?.notifyEmployeeOnPayslipReady !== false ? "checked" : ""} /> Send payslip-ready alerts</label>
+            </div>
+          </section>
           <label class="span-2">Company logo
             <input type="file" id="company-logo" name="logoFile" accept="image/png,image/jpeg,image/jpg,image/webp" />
           </label>
@@ -2733,6 +2748,10 @@ function bindApp() {
             notifyAdminOnLeaveRequest: notifyLeave,
             notifyAdminOnLoanRequest: notifyLoan,
             notifyAdminOnTimesheet: notifyTimesheet,
+            notifyEmployeeOnLeaveUpdate: companyForm.elements.namedItem("notifyEmployeeOnLeaveUpdate")?.checked ?? false,
+            notifyEmployeeOnLoanUpdate: companyForm.elements.namedItem("notifyEmployeeOnLoanUpdate")?.checked ?? false,
+            notifyEmployeeOnTimesheetUpdate: companyForm.elements.namedItem("notifyEmployeeOnTimesheetUpdate")?.checked ?? false,
+            notifyEmployeeOnPayslipReady: companyForm.elements.namedItem("notifyEmployeeOnPayslipReady")?.checked ?? false,
           }),
         });
 

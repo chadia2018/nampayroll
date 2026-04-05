@@ -46,9 +46,9 @@ Important environment values:
 
 Optional notification provider values:
 
-- `RESEND_API_KEY` for admin email alerts
-- `AFRICASTALKING_USERNAME` for admin SMS alerts
-- `AFRICASTALKING_API_KEY` for admin SMS alerts
+- `RESEND_API_KEY` for admin and employee email alerts
+- `AFRICASTALKING_USERNAME` for admin and employee SMS alerts
+- `AFRICASTALKING_API_KEY` for admin and employee SMS alerts
 - `AFRICASTALKING_FROM` for your approved sender ID or shortcode
 
 ## Main files
