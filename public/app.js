@@ -45,6 +45,8 @@ const state = {
   leaveViewMode: "list",
   showLeaveForm: false,
   reviewError: "",
+  companyError: "",
+  companyNotice: "",
   employeePortalView: "overview",
   employeePortalSearch: "",
   portalTimesheetStatus: "all",
@@ -1069,6 +1071,8 @@ function companyView() {
             <h2>Register company details</h2>
           </div>
         </div>
+        ${state.companyError ? `<div class="banner danger-banner">${state.companyError}</div>` : ""}
+        ${state.companyNotice ? `<div class="banner success-banner">${state.companyNotice}</div>` : ""}
         <form id="company-form" class="grid-2">
           <label>Company name <input name="name" value="${state.company?.name || ""}" required /></label>
           <label>Email <input type="email" name="email" value="${state.company?.email || ""}" /></label>
@@ -1079,6 +1083,22 @@ function companyView() {
           <label class="span-2">Physical address
             <textarea name="physicalAddress" placeholder="Street, suburb, town, region">${state.company?.physicalAddress || ""}</textarea>
           </label>
+          <section class="span-2 settings-card">
+            <div class="settings-card-head">
+              <div>
+                <p class="section-kicker">Admin alerts</p>
+                <h3>Employee request notifications</h3>
+              </div>
+              <span class="tag">SMS required when enabled</span>
+            </div>
+            <div class="grid-2 settings-grid">
+              <label>Admin alert email <input type="email" name="adminNotificationEmail" value="${state.company?.adminNotificationEmail || ""}" placeholder="admin@company.com" /></label>
+              <label>Admin alert SMS <input name="adminNotificationCellphone" value="${state.company?.adminNotificationCellphone || ""}" placeholder="+264811234567" /></label>
+              <label class="settings-check"><input type="checkbox" name="notifyAdminOnLeaveRequest" ${state.company?.notifyAdminOnLeaveRequest !== false ? "checked" : ""} /> Notify on leave requests</label>
+              <label class="settings-check"><input type="checkbox" name="notifyAdminOnLoanRequest" ${state.company?.notifyAdminOnLoanRequest !== false ? "checked" : ""} /> Notify on loan requests</label>
+              <label class="span-2 settings-check"><input type="checkbox" name="notifyAdminOnTimesheet" ${state.company?.notifyAdminOnTimesheet !== false ? "checked" : ""} /> Notify on timesheet submissions</label>
+            </div>
+          </section>
           <label class="span-2">Company logo
             <input type="file" id="company-logo" name="logoFile" accept="image/png,image/jpeg,image/jpg,image/webp" />
           </label>
@@ -1347,6 +1367,7 @@ function payrollView() {
           <label>Sick leave used <input type="number" min="0" step="0.5" name="sickLeaveUsed" value="0" /></label>
           <div class="actions">
             <button class="primary" type="submit">Create payroll run</button>
+            <button class="secondary" type="button" data-action="bulk-payroll-run">Bulk create for month</button>
           </div>
         </form>
       </section>
@@ -2634,9 +2655,20 @@ function bindApp() {
   if (companyForm) {
     companyForm.addEventListener("submit", async (event) => {
       event.preventDefault();
+      state.companyError = "";
+      state.companyNotice = "";
       const data = Object.fromEntries(new FormData(companyForm).entries());
       const fileInput = document.querySelector("#company-logo");
       const file = fileInput?.files?.[0];
+      const notifyLeave = companyForm.elements.namedItem("notifyAdminOnLeaveRequest")?.checked ?? false;
+      const notifyLoan = companyForm.elements.namedItem("notifyAdminOnLoanRequest")?.checked ?? false;
+      const notifyTimesheet = companyForm.elements.namedItem("notifyAdminOnTimesheet")?.checked ?? false;
+      const alertSms = String(companyForm.elements.namedItem("adminNotificationCellphone")?.value || "").trim();
+      if ((notifyLeave || notifyLoan || notifyTimesheet) && !alertSms) {
+        state.companyError = "Admin alert SMS must be filled in before enabling request notifications.";
+        render();
+        return;
+      }
       const payload = {
         ...data,
         removeLogo: state.removeLogo,
@@ -2646,15 +2678,26 @@ function bindApp() {
         payload.logoDataUrl = await fileToDataUrl(file);
       }
 
-      const response = await api("/api/company", {
-        method: "PUT",
-        body: JSON.stringify(payload),
-      });
+      try {
+        const response = await api("/api/company", {
+          method: "PUT",
+          body: JSON.stringify({
+            ...payload,
+            notifyAdminOnLeaveRequest: notifyLeave,
+            notifyAdminOnLoanRequest: notifyLoan,
+            notifyAdminOnTimesheet: notifyTimesheet,
+          }),
+        });
 
-      state.company = response.item;
-      state.removeLogo = false;
-      await loadDashboard();
-      render();
+        state.company = response.item;
+        state.removeLogo = false;
+        state.companyNotice = "Company alert settings saved.";
+        await loadDashboard();
+        render();
+      } catch (error) {
+        state.companyError = error.message;
+        render();
+      }
     });
   }
 
@@ -2677,6 +2720,29 @@ function bindApp() {
       render();
     });
   }
+
+  document.querySelectorAll("[data-action='bulk-payroll-run']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const form = document.querySelector("#payroll-form");
+      if (!form) return;
+      const data = Object.fromEntries(new FormData(form).entries());
+      data.ordinarilyWorksSunday = data.ordinarilyWorksSunday === "true";
+      data.publicHolidayOrdinaryDay = data.publicHolidayOrdinaryDay === "true";
+      delete data.employeeId;
+      const confirmed = window.confirm(`Create payroll runs for all active employees for ${data.payrollMonth}?`);
+      if (!confirmed) return;
+      const response = await api("/api/payroll-runs/bulk", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      state.reportMonth = response.month;
+      await loadDashboard();
+      await loadRuns();
+      await loadReport(state.reportMonth);
+      window.alert(`Created ${response.createdCount} payroll run(s). Skipped ${response.skippedCount}.`);
+      render();
+    });
+  });
 
   const reportForm = document.querySelector("#report-form");
   if (reportForm) {

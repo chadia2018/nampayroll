@@ -1755,6 +1755,10 @@ const routes = [
     handler: requireAdmin(async (req, res, params, sessionState) => {
       const body = await parseBody(req);
       let logoPath = sessionState.db.company.logoPath || "";
+      const notifyAdminOnLeaveRequest = body.notifyAdminOnLeaveRequest !== false && body.notifyAdminOnLeaveRequest !== "false";
+      const notifyAdminOnLoanRequest = body.notifyAdminOnLoanRequest !== false && body.notifyAdminOnLoanRequest !== "false";
+      const notifyAdminOnTimesheet = body.notifyAdminOnTimesheet !== false && body.notifyAdminOnTimesheet !== "false";
+      const adminNotificationCellphone = String(body.adminNotificationCellphone || "").trim();
 
       if (body.removeLogo) {
         logoPath = "";
@@ -1762,6 +1766,11 @@ const routes = [
 
       if (body.logoDataUrl) {
         logoPath = await persistLogo(body.logoDataUrl);
+      }
+
+      if ((notifyAdminOnLeaveRequest || notifyAdminOnLoanRequest || notifyAdminOnTimesheet) && !adminNotificationCellphone) {
+        sendJson(res, 400, { error: "Admin alert SMS must be filled in before enabling request notifications." });
+        return;
       }
 
       sessionState.db.company = sanitizeCompany({
@@ -1774,10 +1783,10 @@ const routes = [
         physicalAddress: String(body.physicalAddress || "").trim(),
         website: String(body.website || "").trim(),
         adminNotificationEmail: String(body.adminNotificationEmail || "").trim(),
-        adminNotificationCellphone: String(body.adminNotificationCellphone || "").trim(),
-        notifyAdminOnLeaveRequest: body.notifyAdminOnLeaveRequest !== false && body.notifyAdminOnLeaveRequest !== "false",
-        notifyAdminOnLoanRequest: body.notifyAdminOnLoanRequest !== false && body.notifyAdminOnLoanRequest !== "false",
-        notifyAdminOnTimesheet: body.notifyAdminOnTimesheet !== false && body.notifyAdminOnTimesheet !== "false",
+        adminNotificationCellphone,
+        notifyAdminOnLeaveRequest,
+        notifyAdminOnLoanRequest,
+        notifyAdminOnTimesheet,
         logoPath,
       });
 

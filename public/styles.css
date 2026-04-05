@@ -420,6 +420,42 @@ h2 {
   display: none;
 }
 
+.settings-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.settings-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.settings-grid {
+  gap: 14px;
+}
+
+.settings-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+}
+
+.settings-check input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
 .portal-bottom-nav-button {
   background: transparent;
   color: var(--muted);
