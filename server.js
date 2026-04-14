@@ -342,11 +342,25 @@ function buildUniqueWorkspaceSlug(rootDb, desiredSlug) {
   return candidate;
 }
 
+function needsWorkspaceMigration(rootDb) {
+  if (!rootDb || typeof rootDb !== "object") return true;
+  if (!("workspaces" in rootDb)) return true;
+  if (!rootDb.workspaces || Array.isArray(rootDb.workspaces) || typeof rootDb.workspaces !== "object") return true;
+  if (Object.keys(rootDb.workspaces).length > 0) return false;
+  return Boolean(
+    rootDb.company ||
+      (Array.isArray(rootDb.users) && rootDb.users.length) ||
+      (Array.isArray(rootDb.employees) && rootDb.employees.length) ||
+      (Array.isArray(rootDb.payrollRuns) && rootDb.payrollRuns.length),
+  );
+}
+
 async function readDb() {
   await ensureDb();
   const row = sqliteDb.prepare("SELECT payload FROM app_state WHERE id = 1").get();
   let rootDb = JSON.parse(row.payload);
-  if (!rootDb.workspaces) {
+  const migratedFromLegacy = needsWorkspaceMigration(rootDb);
+  if (migratedFromLegacy) {
     rootDb = buildRootDbFromLegacy(rootDb);
   }
   rootDb.version = 2;
@@ -391,7 +405,11 @@ async function readDb() {
     normalizedWorkspaces[workspaceId] = normalized;
   }
   rootDb.workspaces = normalizedWorkspaces;
-  return attachWorkspaceMetadata(rootDb);
+  const attached = attachWorkspaceMetadata(rootDb);
+  if (migratedFromLegacy) {
+    await writeDb(attached);
+  }
+  return attached;
 }
 
 async function writeDb(db) {
