@@ -38,12 +38,19 @@ const MIME_TYPES = {
 function defaultCompany() {
   return {
     name: "Desert Bloom Trading",
+    workspaceId: "",
+    workspaceSlug: "",
     taxReference: "NAM-IRP-001",
     sscRegistration: "SSC-001",
     email: "",
     cellphone: "",
     physicalAddress: "",
     website: "",
+    billingEmail: "",
+    billingPlan: "starter",
+    billingStatus: "trial",
+    billingCycle: "monthly",
+    nextBillingDate: "",
     logoPath: "",
     registeredAt: "",
     adminNotificationEmail: "",
@@ -56,6 +63,29 @@ function defaultCompany() {
     notifyEmployeeOnTimesheetUpdate: true,
     notifyEmployeeOnPayslipReady: true,
   };
+}
+
+function defaultWorkspace(overrides = {}) {
+  return {
+    company: sanitizeCompany(overrides.company || {}),
+    users: overrides.users || [],
+    employees: overrides.employees || [],
+    leaveRequests: overrides.leaveRequests || [],
+    loanRequests: overrides.loanRequests || [],
+    timesheets: overrides.timesheets || [],
+    notifications: overrides.notifications || [],
+    passwordResetRequests: overrides.passwordResetRequests || [],
+    payrollRuns: overrides.payrollRuns || [],
+    auditLog: overrides.auditLog || [],
+  };
+}
+
+function slugify(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
 }
 
 function defaultLeaveBalances() {
@@ -139,71 +169,72 @@ async function ensureDb() {
   } catch {
     const adminPassword = "admin123!";
     const adminPasswordHash = await hashPassword(adminPassword);
-    seed = {
-      company: {
-        ...defaultCompany(),
+    const workspaceId = id("ws");
+    const workspaceSlug = "main";
+    const seedEmployee = {
+      id: id("emp"),
+      employeeNumber: "EMP-001",
+      fullName: "Anna Nghipondoka",
+      idNumber: "90010100000",
+      department: "Operations",
+      title: "Payroll Clerk",
+      workerCategory: "general",
+      startDate: "2025-01-06",
+      payFrequency: "monthly",
+      daysPerWeek: 5,
+      hoursPerDay: 9,
+      basicWage: 18500,
+      taxableAllowances: 1200,
+      standardBonus: 0,
+      bankName: "Bank Windhoek",
+      accountNumber: "0812345678",
+      leaveBalances: {
+        ...defaultLeaveBalances(),
+        annualLeaveUsed: 2,
+        sickLeaveUsed: 1,
       },
-      users: [
-        {
-          id: id("user"),
-          username: "admin",
-          name: "Payroll Admin",
-          role: "admin",
-          passwordHash: adminPasswordHash,
-        },
-      ],
-      sessions: [],
-      employees: [
-        {
-          id: id("emp"),
-          employeeNumber: "EMP-001",
-          fullName: "Anna Nghipondoka",
-          idNumber: "90010100000",
-          department: "Operations",
-          title: "Payroll Clerk",
-          workerCategory: "general",
-          startDate: "2025-01-06",
-          payFrequency: "monthly",
-          daysPerWeek: 5,
-          hoursPerDay: 9,
-          basicWage: 18500,
-          taxableAllowances: 1200,
-          standardBonus: 0,
-          bankName: "Bank Windhoek",
-          accountNumber: "0812345678",
-          leaveBalances: {
-            ...defaultLeaveBalances(),
-            annualLeaveUsed: 2,
-            sickLeaveUsed: 1,
-          },
-          profile: {
-            ...defaultEmployeeProfile(),
-          },
-          portalAccess: {
-            ...buildEmployeePortal("EMP-001", "90010100000"),
-          },
-          status: "active",
-          createdAt: new Date().toISOString(),
-        },
-      ],
-      leaveRequests: [],
-      loanRequests: [],
-      timesheets: [],
-      notifications: [],
-      passwordResetRequests: [],
-      payrollRuns: [],
-      auditLog: [
-        {
-          id: id("audit"),
-          action: "seeded-db",
-          at: new Date().toISOString(),
-          actor: "system",
-          detail: "Seeded local database with default admin user and one sample employee.",
-        },
-      ],
+      profile: {
+        ...defaultEmployeeProfile(),
+      },
+      portalAccess: {
+        ...buildEmployeePortal("EMP-001", "90010100000"),
+      },
+      status: "active",
+      createdAt: new Date().toISOString(),
     };
-
-    seed.employees[0].portalAccess.passwordHash = await hashPassword(seed.employees[0].portalAccess.tempPassword);
+    seedEmployee.portalAccess.passwordHash = await hashPassword(seedEmployee.portalAccess.tempPassword);
+    seed = {
+      version: 2,
+      sessions: [],
+      workspaces: {
+        [workspaceId]: defaultWorkspace({
+          company: {
+            ...defaultCompany(),
+            workspaceId,
+            workspaceSlug,
+          },
+          users: [
+            {
+              id: id("user"),
+              username: "admin",
+              name: "Payroll Admin",
+              role: "admin",
+              passwordHash: adminPasswordHash,
+            },
+          ],
+          employees: [seedEmployee],
+          auditLog: [
+            {
+              id: id("audit"),
+              action: "seeded-db",
+              at: new Date().toISOString(),
+              actor: "system",
+              detail: "Seeded local database with default admin user and one sample employee.",
+            },
+          ],
+        }),
+      },
+    };
   }
 
   sqliteDb
@@ -211,58 +242,161 @@ async function ensureDb() {
     .run(JSON.stringify(seed), new Date().toISOString());
 }
 
+function attachWorkspaceMetadata(rootDb) {
+  Object.entries(rootDb.workspaces || {}).forEach(([workspaceId, workspace]) => {
+    if (!workspace || typeof workspace !== "object") return;
+    Object.defineProperty(workspace, "__rootDb", {
+      value: rootDb,
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(workspace, "__workspaceId", {
+      value: workspaceId,
+      enumerable: false,
+      configurable: true,
+      writable: true,
+    });
+  });
+  return rootDb;
+}
+
+function buildRootDbFromLegacy(legacyDb) {
+  const workspaceId = id("ws");
+  const workspaceSlug = slugify(legacyDb.company?.workspaceSlug || legacyDb.company?.name || "main") || "main";
+  const workspace = defaultWorkspace({
+    company: {
+      ...legacyDb.company,
+      workspaceId,
+      workspaceSlug,
+    },
+    users: legacyDb.users || [],
+    employees: legacyDb.employees || [],
+    leaveRequests: legacyDb.leaveRequests || [],
+    loanRequests: legacyDb.loanRequests || [],
+    timesheets: legacyDb.timesheets || [],
+    notifications: legacyDb.notifications || [],
+    passwordResetRequests: legacyDb.passwordResetRequests || [],
+    payrollRuns: legacyDb.payrollRuns || [],
+    auditLog: legacyDb.auditLog || [],
+  });
+  return {
+    version: 2,
+    sessions: (legacyDb.sessions || []).map((session) => ({
+      ...session,
+      workspaceId,
+    })),
+    workspaces: {
+      [workspaceId]: workspace,
+    },
+  };
+}
+
+function normalizeWorkspace(rootDb, workspaceId, workspace) {
+  const normalized = defaultWorkspace(workspace || {});
+  const workspaceSlug = slugify(normalized.company.workspaceSlug || workspaceId) || workspaceId;
+  normalized.company = sanitizeCompany({
+    ...normalized.company,
+    workspaceId,
+    workspaceSlug,
+  });
+  return normalized;
+}
+
+function getWorkspaceEntries(rootDb) {
+  return Object.entries(rootDb.workspaces || {});
+}
+
+function resolveWorkspace(rootDb, identifier = "") {
+  const entries = getWorkspaceEntries(rootDb);
+  if (!entries.length) return { workspaceId: null, workspace: null };
+  const needle = String(identifier || "").trim().toLowerCase();
+  if (!needle && entries.length === 1) {
+    const [workspaceId, workspace] = entries[0];
+    return { workspaceId, workspace };
+  }
+  for (const [workspaceId, workspace] of entries) {
+    const company = sanitizeCompany(workspace.company);
+    if (
+      workspaceId.toLowerCase() === needle ||
+      String(company.workspaceSlug || "").toLowerCase() === needle ||
+      String(company.name || "").toLowerCase() === needle
+    ) {
+      return { workspaceId, workspace };
+    }
+  }
+  return { workspaceId: null, workspace: null };
+}
+
+function buildUniqueWorkspaceSlug(rootDb, desiredSlug) {
+  const base = slugify(desiredSlug) || `workspace-${getWorkspaceEntries(rootDb).length + 1}`;
+  const used = new Set(
+    getWorkspaceEntries(rootDb).map(([, workspace]) => String(workspace.company?.workspaceSlug || "").toLowerCase()),
+  );
+  let candidate = base;
+  let suffix = 2;
+  while (used.has(candidate.toLowerCase())) {
+    candidate = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  return candidate;
+}
+
 async function readDb() {
   await ensureDb();
   const row = sqliteDb.prepare("SELECT payload FROM app_state WHERE id = 1").get();
-  const db = JSON.parse(row.payload);
-  db.company = {
-    ...defaultCompany(),
-    ...(db.company || {}),
-  };
-  db.leaveRequests = db.leaveRequests || [];
-  db.loanRequests = db.loanRequests || [];
-  db.timesheets = db.timesheets || [];
-  db.notifications = db.notifications || [];
-  db.passwordResetRequests = db.passwordResetRequests || [];
-  const seenUsernames = new Set();
-  const migratedEmployees = [];
-  for (const employee of db.employees || []) {
-    const basePortal = employee.portalAccess || buildEmployeePortal(employee.employeeNumber, employee.idNumber);
-    let username = basePortal.username || buildEmployeePortal(employee.employeeNumber, employee.idNumber).username;
-    let suffix = 2;
-    while (seenUsernames.has(username)) {
-      username = `${basePortal.username}-${suffix}`;
-      suffix += 1;
-    }
-    seenUsernames.add(username);
-    const portalAccess = {
-      ...basePortal,
-      username,
-      tempPassword: basePortal.tempPassword || buildEmployeePortal(employee.employeeNumber, employee.idNumber).tempPassword,
-      passwordHash: basePortal.passwordHash || "",
-    };
-    if (!portalAccess.passwordHash) {
-      portalAccess.passwordHash = await hashPassword(portalAccess.tempPassword);
-    }
-    migratedEmployees.push({
-      ...employee,
-      leaveBalances: {
-        ...defaultLeaveBalances(),
-        ...(employee.leaveBalances || {}),
-      },
-      profile: {
-        ...defaultEmployeeProfile(),
-        ...(employee.profile || {}),
-      },
-      portalAccess,
-    });
+  let rootDb = JSON.parse(row.payload);
+  if (!rootDb.workspaces) {
+    rootDb = buildRootDbFromLegacy(rootDb);
   }
-  db.employees = migratedEmployees;
-  return db;
+  rootDb.version = 2;
+  rootDb.sessions = rootDb.sessions || [];
+  const normalizedWorkspaces = {};
+  for (const [workspaceId, workspace] of Object.entries(rootDb.workspaces || {})) {
+    const normalized = normalizeWorkspace(rootDb, workspaceId, workspace);
+    const seenUsernames = new Set();
+    const migratedEmployees = [];
+    for (const employee of normalized.employees || []) {
+      const basePortal = employee.portalAccess || buildEmployeePortal(employee.employeeNumber, employee.idNumber);
+      let username = basePortal.username || buildEmployeePortal(employee.employeeNumber, employee.idNumber).username;
+      let suffix = 2;
+      while (seenUsernames.has(username)) {
+        username = `${basePortal.username}-${suffix}`;
+        suffix += 1;
+      }
+      seenUsernames.add(username);
+      const portalAccess = {
+        ...basePortal,
+        username,
+        tempPassword: basePortal.tempPassword || buildEmployeePortal(employee.employeeNumber, employee.idNumber).tempPassword,
+        passwordHash: basePortal.passwordHash || "",
+      };
+      if (!portalAccess.passwordHash) {
+        portalAccess.passwordHash = await hashPassword(portalAccess.tempPassword);
+      }
+      migratedEmployees.push({
+        ...employee,
+        leaveBalances: {
+          ...defaultLeaveBalances(),
+          ...(employee.leaveBalances || {}),
+        },
+        profile: {
+          ...defaultEmployeeProfile(),
+          ...(employee.profile || {}),
+        },
+        portalAccess,
+      });
+    }
+    normalized.employees = migratedEmployees;
+    normalizedWorkspaces[workspaceId] = normalized;
+  }
+  rootDb.workspaces = normalizedWorkspaces;
+  return attachWorkspaceMetadata(rootDb);
 }
 
 async function writeDb(db) {
-  const payload = JSON.stringify(db, null, 2);
+  const source = db && db.__rootDb ? db.__rootDb : db;
+  const payload = JSON.stringify(source, null, 2);
   writeQueue = writeQueue.then(() =>
     Promise.resolve(
       sqliteDb
@@ -537,16 +671,18 @@ async function persistLogo(dataUrl) {
 }
 
 async function getSession(req) {
-  const db = await readDb();
+  const rootDb = await readDb();
   const cookies = parseCookies(req);
   const token = cookies.session;
-  if (!token) return { db, session: null, user: null };
+  if (!token) return { rootDb, db: null, session: null, user: null, workspaceId: null };
   const tokenHash = sha(token);
-  const session = db.sessions.find((item) => item.tokenHash === tokenHash && item.expiresAt > new Date().toISOString());
-  if (!session) return { db, session: null, user: null };
-  let user = db.users.find((item) => item.id === session.userId) || null;
+  const session = rootDb.sessions.find((item) => item.tokenHash === tokenHash && item.expiresAt > new Date().toISOString());
+  if (!session) return { rootDb, db: null, session: null, user: null, workspaceId: null };
+  const workspace = rootDb.workspaces?.[session.workspaceId];
+  if (!workspace) return { rootDb, db: null, session: null, user: null, workspaceId: null };
+  let user = workspace.users.find((item) => item.id === session.userId) || null;
   if (!user && session.role === "employee" && session.employeeId) {
-    const employee = db.employees.find((item) => item.id === session.employeeId && item.status !== "archived");
+    const employee = workspace.employees.find((item) => item.id === session.employeeId && item.status !== "archived");
     if (employee) {
       user = {
         id: `employee-login-${employee.id}`,
@@ -557,7 +693,7 @@ async function getSession(req) {
       };
     }
   }
-  return { db, session, user };
+  return { rootDb, db: workspace, session, user, workspaceId: session.workspaceId };
 }
 
 function requireAuth(handler) {
@@ -1583,14 +1719,20 @@ const routes = [
     method: "POST",
     path: "/api/login",
     handler: async (req, res) => {
-      const db = await readDb();
+      const rootDb = await readDb();
       const body = await parseBody(req);
+      const workspaceInput = String(body.workspace || "").trim();
+      const { workspaceId, workspace } = resolveWorkspace(rootDb, workspaceInput);
+      if (!workspace) {
+        sendJson(res, 404, { error: "Workspace not found. Enter your workspace slug to continue." });
+        return;
+      }
       const username = String(body.username || "").trim();
       const password = String(body.password || "");
-      let user = db.users.find((item) => item.username === username);
+      let user = workspace.users.find((item) => item.username === username);
 
       if (!user) {
-        const employee = db.employees.find(
+        const employee = workspace.employees.find(
           (item) => item.portalAccess?.username === username && item.status !== "archived",
         );
         if (employee && employee.portalAccess?.passwordHash && (await verifyPassword(password, employee.portalAccess.passwordHash))) {
@@ -1613,31 +1755,32 @@ const routes = [
 
       const rawToken = crypto.randomBytes(24).toString("hex");
       const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString();
-      db.sessions = db.sessions.filter((item) => item.userId !== user.id);
-      db.sessions.push({
+      rootDb.sessions = rootDb.sessions.filter((item) => !(item.userId === user.id && item.workspaceId === workspaceId));
+      rootDb.sessions.push({
         id: id("sess"),
         userId: user.id,
+        workspaceId,
         role: user.role,
         employeeId: user.employeeId || null,
         tokenHash: sha(rawToken),
         createdAt: new Date().toISOString(),
         expiresAt,
       });
-      db.auditLog.push({
+      workspace.auditLog.push({
         id: id("audit"),
         action: "login",
         at: new Date().toISOString(),
         actor: user.username,
         detail: "User logged in.",
       });
-      await writeDb(db);
+      await writeDb(rootDb);
 
       sendJson(
         res,
         200,
         {
           user: sanitizeUser(user),
-          company: sanitizeCompany(db.company),
+          company: sanitizeCompany(workspace.company),
           bootstrapPasswordWarning: username === "admin" && password === "admin123!",
         },
         {
@@ -1650,16 +1793,27 @@ const routes = [
     method: "POST",
     path: "/api/password-reset-requests",
     handler: async (req, res) => {
-      const db = await readDb();
+      const rootDb = await readDb();
       const body = await parseBody(req);
+      const workspaceInput = String(body.workspace || "").trim();
       const username = String(body.username || "").trim();
       const idNumber = String(body.idNumber || "").replace(/\D/g, "");
-      const employee = (db.employees || []).find(
-        (item) =>
-          item.status !== "archived" &&
-          item.portalAccess?.username === username &&
-          (!idNumber || String(item.idNumber || "").replace(/\D/g, "").endsWith(idNumber.slice(-6))),
-      );
+      const workspacesToSearch = workspaceInput ? [resolveWorkspace(rootDb, workspaceInput)] : getWorkspaceEntries(rootDb).map(([workspaceId, workspace]) => ({ workspaceId, workspace }));
+      let employee = null;
+      let workspace = null;
+      for (const entry of workspacesToSearch) {
+        if (!entry?.workspace) continue;
+        employee = (entry.workspace.employees || []).find(
+          (item) =>
+            item.status !== "archived" &&
+            item.portalAccess?.username === username &&
+            (!idNumber || String(item.idNumber || "").replace(/\D/g, "").endsWith(idNumber.slice(-6))),
+        );
+        if (employee) {
+          workspace = entry.workspace;
+          break;
+        }
+      }
 
       if (employee) {
         const request = {
@@ -1670,21 +1824,21 @@ const routes = [
           requestedAt: new Date().toISOString(),
           status: "pending",
         };
-        db.passwordResetRequests.push(request);
-        db.auditLog.push({
+        workspace.passwordResetRequests.push(request);
+        workspace.auditLog.push({
           id: id("audit"),
           action: "password-reset-requested",
           at: new Date().toISOString(),
           actor: username || "anonymous",
           detail: `Password reset requested for ${employee.fullName}.`,
         });
-        createNotification(db, {
+        createNotification(workspace, {
           employeeId: employee.id,
           type: "info",
           title: "Password reset request received",
           body: "Your password reset request has been recorded and is awaiting admin action.",
         });
-        await writeDb(db);
+        await writeDb(rootDb);
       }
 
       sendJson(res, 200, { ok: true, detail: "If the employee details matched, a password reset request has been recorded." });
@@ -1694,15 +1848,11 @@ const routes = [
     method: "POST",
     path: "/api/register-company",
     handler: async (req, res) => {
-      const db = await readDb();
+      const rootDb = await readDb();
       const body = await parseBody(req);
 
-      if (db.company?.registeredAt) {
-        sendJson(res, 400, { error: "Company registration has already been completed. Sign in to manage the account." });
-        return;
-      }
-
       const companyName = String(body.companyName || "").trim();
+      const requestedWorkspaceSlug = String(body.workspaceSlug || "").trim();
       const email = String(body.email || "").trim();
       const cellphone = String(body.cellphone || "").trim();
       const physicalAddress = String(body.physicalAddress || "").trim();
@@ -1727,14 +1877,20 @@ const routes = [
         return;
       }
 
-      const usernameTaken =
-        (db.users || []).some((item) => item.username === username) ||
-        (db.employees || []).some((item) => item.portalAccess?.username === username);
-      if (usernameTaken) {
-        sendJson(res, 400, { error: "That username is already in use." });
+      const workspaceSlug = requestedWorkspaceSlug
+        ? slugify(requestedWorkspaceSlug)
+        : buildUniqueWorkspaceSlug(rootDb, companyName);
+      if (!workspaceSlug) {
+        sendJson(res, 400, { error: "Workspace slug is required." });
+        return;
+      }
+      const existingWorkspace = resolveWorkspace(rootDb, workspaceSlug);
+      if (requestedWorkspaceSlug && existingWorkspace.workspace) {
+        sendJson(res, 400, { error: "That workspace slug is already in use." });
         return;
       }
 
+      const workspaceId = id("ws");
       const passwordHash = await hashPassword(password);
       const adminUser = {
         id: id("user"),
@@ -1743,37 +1899,36 @@ const routes = [
         role: "admin",
         passwordHash,
       };
-
-      db.company = sanitizeCompany({
-        ...db.company,
-        name: companyName,
-        email,
-        cellphone,
-        physicalAddress,
-        website,
-        registeredAt: new Date().toISOString(),
+      const workspace = defaultWorkspace({
+        company: {
+          name: companyName,
+          workspaceId,
+          workspaceSlug,
+          email,
+          billingEmail: email,
+          cellphone,
+          physicalAddress,
+          website,
+          registeredAt: new Date().toISOString(),
+        },
+        users: [adminUser],
+        auditLog: [
+          {
+            id: id("audit"),
+            action: "company-registered",
+            at: new Date().toISOString(),
+            actor: username,
+            detail: `Registered ${companyName} and created the first admin account.`,
+          },
+        ],
       });
-      db.users = [adminUser];
-      db.sessions = [];
-      db.employees = [];
-      db.leaveRequests = [];
-      db.loanRequests = [];
-      db.timesheets = [];
-      db.notifications = [];
-      db.passwordResetRequests = [];
-      db.payrollRuns = [];
-      db.auditLog.push({
-        id: id("audit"),
-        action: "company-registered",
-        at: new Date().toISOString(),
-        actor: username,
-        detail: `Registered ${companyName} and created the first admin account.`,
-      });
+      rootDb.workspaces[workspaceId] = workspace;
 
       const rawToken = crypto.randomBytes(24).toString("hex");
-      db.sessions.push({
+      rootDb.sessions.push({
         id: id("sess"),
         userId: adminUser.id,
+        workspaceId,
         role: adminUser.role,
         employeeId: null,
         tokenHash: sha(rawToken),
@@ -1781,13 +1936,13 @@ const routes = [
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 12).toISOString(),
       });
 
-      await writeDb(db);
+      await writeDb(rootDb);
       sendJson(
         res,
         200,
         {
           user: sanitizeUser(adminUser),
-          company: sanitizeCompany(db.company),
+          company: sanitizeCompany(workspace.company),
         },
         {
           "Set-Cookie": `session=${rawToken}; HttpOnly; Path=/; SameSite=Lax; Max-Age=43200`,
@@ -1799,8 +1954,8 @@ const routes = [
     method: "POST",
     path: "/api/logout",
     handler: requireAuth(async (req, res, params, sessionState) => {
-      sessionState.db.sessions = sessionState.db.sessions.filter((item) => item.id !== sessionState.session.id);
-      await writeDb(sessionState.db);
+      sessionState.rootDb.sessions = sessionState.rootDb.sessions.filter((item) => item.id !== sessionState.session.id);
+      await writeDb(sessionState.rootDb);
       sendJson(
         res,
         200,
@@ -1865,6 +2020,8 @@ const routes = [
 
       sessionState.db.company = sanitizeCompany({
         ...sessionState.db.company,
+        workspaceId: sessionState.db.company.workspaceId,
+        workspaceSlug: sessionState.db.company.workspaceSlug,
         name: String(body.name || sessionState.db.company.name || "").trim(),
         taxReference: String(body.taxReference || "").trim(),
         sscRegistration: String(body.sscRegistration || "").trim(),
@@ -1872,6 +2029,11 @@ const routes = [
         cellphone: String(body.cellphone || "").trim(),
         physicalAddress: String(body.physicalAddress || "").trim(),
         website: String(body.website || "").trim(),
+        billingEmail: String(body.billingEmail || "").trim(),
+        billingPlan: String(body.billingPlan || sessionState.db.company.billingPlan || "starter"),
+        billingStatus: String(body.billingStatus || sessionState.db.company.billingStatus || "trial"),
+        billingCycle: String(body.billingCycle || sessionState.db.company.billingCycle || "monthly"),
+        nextBillingDate: String(body.nextBillingDate || sessionState.db.company.nextBillingDate || ""),
         adminNotificationEmail,
         adminNotificationCellphone,
         notifyAdminOnLeaveRequest,
