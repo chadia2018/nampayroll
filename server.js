@@ -7,6 +7,8 @@ const { calculatePayroll, normalizePayrollInput, SOURCE_LIST } = require("./lib/
 
 const HOST = process.env.HOST || "0.0.0.0";
 const PORT = Number(process.env.PORT || 3000);
+const SUPERADMIN_USERNAME = process.env.SUPERADMIN_USERNAME || "superadmin";
+const SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD || "SuperAdmin123!";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 const RESEND_FROM_NAME = process.env.RESEND_FROM_NAME || "NamPayroll";
@@ -77,6 +79,16 @@ function defaultWorkspace(overrides = {}) {
     passwordResetRequests: overrides.passwordResetRequests || [],
     payrollRuns: overrides.payrollRuns || [],
     auditLog: overrides.auditLog || [],
+  };
+}
+
+function defaultSuperAdmin(name = "Platform Super Admin", username = SUPERADMIN_USERNAME, passwordHash = "") {
+  return {
+    id: id("super"),
+    username,
+    name,
+    role: "super_admin",
+    passwordHash,
   };
 }
 
@@ -169,6 +181,7 @@ async function ensureDb() {
   } catch {
     const adminPassword = "admin123!";
     const adminPasswordHash = await hashPassword(adminPassword);
+    const superAdminPasswordHash = await hashPassword(SUPERADMIN_PASSWORD);
     const workspaceId = id("ws");
     const workspaceSlug = "main";
     const seedEmployee = {
@@ -206,6 +219,7 @@ async function ensureDb() {
     seed = {
       version: 2,
       sessions: [],
+      superAdmins: [defaultSuperAdmin("Platform Super Admin", SUPERADMIN_USERNAME, superAdminPasswordHash)],
       workspaces: {
         [workspaceId]: defaultWorkspace({
           company: {
@@ -286,6 +300,7 @@ function buildRootDbFromLegacy(legacyDb) {
       ...session,
       workspaceId,
     })),
+    superAdmins: legacyDb.superAdmins || [],
     workspaces: {
       [workspaceId]: workspace,
     },
@@ -343,6 +358,16 @@ function buildUniqueWorkspaceSlug(rootDb, desiredSlug) {
 }
 
 async function findUserByUsernameAndPassword(rootDb, username, password) {
+  const superAdmin = (rootDb.superAdmins || []).find((item) => item.username === username);
+  if (superAdmin && (await verifyPassword(password, superAdmin.passwordHash))) {
+    const [workspaceId, workspace] = getWorkspaceEntries(rootDb)[0] || [];
+    return {
+      workspaceId: workspaceId || null,
+      workspace: workspace || null,
+      user: superAdmin,
+    };
+  }
+
   for (const [workspaceId, workspace] of getWorkspaceEntries(rootDb)) {
     const adminUser = (workspace.users || []).find((item) => item.username === username);
     if (adminUser && (await verifyPassword(password, adminUser.passwordHash))) {
@@ -399,6 +424,10 @@ async function readDb() {
   }
   rootDb.version = 2;
   rootDb.sessions = rootDb.sessions || [];
+  rootDb.superAdmins = rootDb.superAdmins || [];
+  if (!rootDb.superAdmins.length) {
+    rootDb.superAdmins.push(defaultSuperAdmin("Platform Super Admin", SUPERADMIN_USERNAME, await hashPassword(SUPERADMIN_PASSWORD)));
+  }
   const normalizedWorkspaces = {};
   for (const [workspaceId, workspace] of Object.entries(rootDb.workspaces || {})) {
     const normalized = normalizeWorkspace(rootDb, workspaceId, workspace);
@@ -525,6 +554,20 @@ function sanitizeUser(user) {
     name: user.name,
     role: user.role,
     employeeId: user.employeeId || null,
+  };
+}
+
+function sanitizeWorkspaceSummary(workspace) {
+  const company = sanitizeCompany(workspace.company);
+  return {
+    id: company.workspaceId,
+    name: company.name,
+    slug: company.workspaceSlug,
+    billingPlan: company.billingPlan,
+    billingStatus: company.billingStatus,
+    registeredAt: company.registeredAt,
+    employees: (workspace.employees || []).filter((item) => item.status !== "archived").length,
+    admins: (workspace.users || []).filter((item) => item.role === "admin").length,
   };
 }
 
@@ -730,11 +773,10 @@ async function getSession(req) {
   const tokenHash = sha(token);
   const session = rootDb.sessions.find((item) => item.tokenHash === tokenHash && item.expiresAt > new Date().toISOString());
   if (!session) return { rootDb, db: null, session: null, user: null, workspaceId: null };
-  const workspace = rootDb.workspaces?.[session.workspaceId];
-  if (!workspace) return { rootDb, db: null, session: null, user: null, workspaceId: null };
-  let user = workspace.users.find((item) => item.id === session.userId) || null;
+  const workspace = session.workspaceId ? rootDb.workspaces?.[session.workspaceId] : getWorkspaceEntries(rootDb)[0]?.[1] || null;
+  let user = session.role === "super_admin" ? (rootDb.superAdmins || []).find((item) => item.id === session.userId) || null : workspace ? workspace.users.find((item) => item.id === session.userId) || null : null;
   if (!user && session.role === "employee" && session.employeeId) {
-    const employee = workspace.employees.find((item) => item.id === session.employeeId && item.status !== "archived");
+    const employee = workspace?.employees.find((item) => item.id === session.employeeId && item.status !== "archived");
     if (employee) {
       user = {
         id: `employee-login-${employee.id}`,
@@ -745,6 +787,7 @@ async function getSession(req) {
       };
     }
   }
+  if (!user) return { rootDb, db: null, session: null, user: null, workspaceId: null };
   return { rootDb, db: workspace, session, user, workspaceId: session.workspaceId };
 }
 
@@ -761,7 +804,7 @@ function requireAuth(handler) {
 
 function requireAdmin(handler) {
   return requireAuth(async (req, res, params, sessionState) => {
-    if (sessionState.user.role !== "admin") {
+    if (!["admin", "super_admin"].includes(sessionState.user.role)) {
       sendJson(res, 403, { error: "Admin access required." });
       return;
     }
@@ -2008,6 +2051,41 @@ const routes = [
         company: sanitizeCompany(sessionState.db.company),
       });
     },
+  },
+  {
+    method: "GET",
+    path: "/api/super-admin/workspaces",
+    handler: requireAuth(async (req, res, params, sessionState) => {
+      if (sessionState.user.role !== "super_admin") {
+        sendJson(res, 403, { error: "Super admin access required." });
+        return;
+      }
+      sendJson(res, 200, {
+        items: getWorkspaceEntries(sessionState.rootDb).map(([, workspace]) => sanitizeWorkspaceSummary(workspace)),
+        selectedWorkspaceId: sessionState.workspaceId || null,
+      });
+    }),
+  },
+  {
+    method: "POST",
+    path: "/api/super-admin/workspaces/:workspaceId/select",
+    handler: requireAuth(async (req, res, params, sessionState) => {
+      if (sessionState.user.role !== "super_admin") {
+        sendJson(res, 403, { error: "Super admin access required." });
+        return;
+      }
+      const workspace = sessionState.rootDb.workspaces?.[params.workspaceId];
+      if (!workspace) {
+        sendJson(res, 404, { error: "Workspace not found." });
+        return;
+      }
+      sessionState.session.workspaceId = params.workspaceId;
+      await writeDb(sessionState.rootDb);
+      sendJson(res, 200, {
+        item: sanitizeWorkspaceSummary(workspace),
+        company: sanitizeCompany(workspace.company),
+      });
+    }),
   },
   {
     method: "GET",

@@ -26,6 +26,7 @@ const state = {
   loanRequests: [],
   timesheets: [],
   passwordResetRequests: [],
+  superAdminWorkspaces: [],
   sources: [],
   activeRun: null,
   reportMonth: new Date().toISOString().slice(0, 7),
@@ -2195,6 +2196,17 @@ function renderApp() {
         </div>
         <div class="topbar-actions portal-topbar-actions">
           <input class="workspace-search compact-search" id="global-search-topbar" placeholder="Search workspace" value="${state.globalSearch}" />
+          ${
+            state.session?.role === "super_admin"
+              ? `
+                <select id="super-admin-workspace-switch" class="workspace-search compact-search">
+                  ${(state.superAdminWorkspaces || []).map((workspace) => `
+                    <option value="${workspace.id}" ${workspace.id === state.company?.workspaceId ? "selected" : ""}>${workspace.name}</option>
+                  `).join("")}
+                </select>
+              `
+              : ""
+          }
           <span class="pill">Billing: ${state.company?.billingStatus || "trial"}</span>
           <span class="pill">Tax ref: ${state.company?.taxReference || "n/a"}</span>
           <span class="pill">SSC: ${state.company?.sscRegistration || "n/a"}</span>
@@ -2612,6 +2624,14 @@ function bindApp() {
       triggerDownload(`/api/payroll-runs/${button.dataset.id}/pdf`);
     });
   });
+
+  const superAdminWorkspaceSwitch = document.querySelector("#super-admin-workspace-switch");
+  if (superAdminWorkspaceSwitch) {
+    superAdminWorkspaceSwitch.addEventListener("change", async (event) => {
+      await api(`/api/super-admin/workspaces/${event.target.value}/select`, { method: "POST" });
+      await bootstrapApp();
+    });
+  }
 
   document.querySelectorAll("[data-action='export-finance']").forEach((button) => {
     button.addEventListener("click", () => {
@@ -3174,6 +3194,15 @@ async function loadDataStatus() {
   state.dataStatus = await api("/api/data/status");
 }
 
+async function loadSuperAdminWorkspaces() {
+  if (state.session?.role !== "super_admin") {
+    state.superAdminWorkspaces = [];
+    return;
+  }
+  const response = await api("/api/super-admin/workspaces");
+  state.superAdminWorkspaces = response.items;
+}
+
 async function loadReport(month) {
   state.report = await api(`/api/reports/monthly?month=${encodeURIComponent(month)}`);
 }
@@ -3209,6 +3238,7 @@ async function bootstrapApp() {
   state.passwordResetRequests = passwordResetRequests.items;
   state.dataStatus = dataStatus;
   state.activeRun = runs.items.find((item) => item.status !== "cancelled") || runs.items[0] || null;
+  await loadSuperAdminWorkspaces();
   await loadReport(state.reportMonth);
   render();
 }
