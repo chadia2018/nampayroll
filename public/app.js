@@ -1113,7 +1113,7 @@ function companyView() {
                 <p class="section-kicker">Admin alerts</p>
                 <h3>Employee request notifications</h3>
               </div>
-              <span class="tag">SMS required when enabled</span>
+              <span class="tag">Email or SMS required</span>
             </div>
             <div class="grid-2 settings-grid">
               <label>Admin alert email <input type="email" name="adminNotificationEmail" value="${state.company?.adminNotificationEmail || ""}" placeholder="admin@company.com" /></label>
@@ -2725,9 +2725,10 @@ function bindApp() {
       const notifyLeave = companyForm.elements.namedItem("notifyAdminOnLeaveRequest")?.checked ?? false;
       const notifyLoan = companyForm.elements.namedItem("notifyAdminOnLoanRequest")?.checked ?? false;
       const notifyTimesheet = companyForm.elements.namedItem("notifyAdminOnTimesheet")?.checked ?? false;
+      const alertEmail = String(companyForm.elements.namedItem("adminNotificationEmail")?.value || "").trim();
       const alertSms = String(companyForm.elements.namedItem("adminNotificationCellphone")?.value || "").trim();
-      if ((notifyLeave || notifyLoan || notifyTimesheet) && !alertSms) {
-        state.companyError = "Admin alert SMS must be filled in before enabling request notifications.";
+      if ((notifyLeave || notifyLoan || notifyTimesheet) && !alertEmail && !alertSms) {
+        state.companyError = "Add an admin alert email or SMS number before enabling request notifications.";
         render();
         return;
       }

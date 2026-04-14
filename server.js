@@ -1845,6 +1845,7 @@ const routes = [
       const notifyEmployeeOnLoanUpdate = body.notifyEmployeeOnLoanUpdate !== false && body.notifyEmployeeOnLoanUpdate !== "false";
       const notifyEmployeeOnTimesheetUpdate = body.notifyEmployeeOnTimesheetUpdate !== false && body.notifyEmployeeOnTimesheetUpdate !== "false";
       const notifyEmployeeOnPayslipReady = body.notifyEmployeeOnPayslipReady !== false && body.notifyEmployeeOnPayslipReady !== "false";
+      const adminNotificationEmail = String(body.adminNotificationEmail || "").trim();
       const adminNotificationCellphone = String(body.adminNotificationCellphone || "").trim();
 
       if (body.removeLogo) {
@@ -1855,8 +1856,8 @@ const routes = [
         logoPath = await persistLogo(body.logoDataUrl);
       }
 
-      if ((notifyAdminOnLeaveRequest || notifyAdminOnLoanRequest || notifyAdminOnTimesheet) && !adminNotificationCellphone) {
-        sendJson(res, 400, { error: "Admin alert SMS must be filled in before enabling request notifications." });
+      if ((notifyAdminOnLeaveRequest || notifyAdminOnLoanRequest || notifyAdminOnTimesheet) && !adminNotificationEmail && !adminNotificationCellphone) {
+        sendJson(res, 400, { error: "Add an admin alert email or SMS number before enabling request notifications." });
         return;
       }
 
@@ -1869,7 +1870,7 @@ const routes = [
         cellphone: String(body.cellphone || "").trim(),
         physicalAddress: String(body.physicalAddress || "").trim(),
         website: String(body.website || "").trim(),
-        adminNotificationEmail: String(body.adminNotificationEmail || "").trim(),
+        adminNotificationEmail,
         adminNotificationCellphone,
         notifyAdminOnLeaveRequest,
         notifyAdminOnLoanRequest,
