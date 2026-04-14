@@ -8,6 +8,8 @@ const { calculatePayroll, normalizePayrollInput, SOURCE_LIST } = require("./lib/
 const HOST = process.env.HOST || "0.0.0.0";
 const PORT = Number(process.env.PORT || 3000);
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
+const RESEND_FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+const RESEND_FROM_NAME = process.env.RESEND_FROM_NAME || "NamPayroll";
 const AFRICASTALKING_USERNAME = process.env.AFRICASTALKING_USERNAME || "";
 const AFRICASTALKING_API_KEY = process.env.AFRICASTALKING_API_KEY || "";
 const AFRICASTALKING_FROM = process.env.AFRICASTALKING_FROM || "";
@@ -679,7 +681,7 @@ async function sendResendEmail(to, subject, text) {
       Authorization: `Bearer ${RESEND_API_KEY}`,
     },
     body: JSON.stringify({
-      from: "NamPayroll <notifications@nam-payroll.local>",
+      from: `${RESEND_FROM_NAME} <${RESEND_FROM_EMAIL}>`,
       to: [to],
       subject,
       text,
