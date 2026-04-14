@@ -342,6 +342,40 @@ function buildUniqueWorkspaceSlug(rootDb, desiredSlug) {
   return candidate;
 }
 
+async function findUserByUsernameAndPassword(rootDb, username, password) {
+  for (const [workspaceId, workspace] of getWorkspaceEntries(rootDb)) {
+    const adminUser = (workspace.users || []).find((item) => item.username === username);
+    if (adminUser && (await verifyPassword(password, adminUser.passwordHash))) {
+      return {
+        workspaceId,
+        workspace,
+        user: adminUser,
+      };
+    }
+
+    const employee = (workspace.employees || []).find(
+      (item) =>
+        item.status !== "archived" &&
+        item.portalAccess?.username === username &&
+        item.portalAccess?.passwordHash,
+    );
+    if (employee && (await verifyPassword(password, employee.portalAccess.passwordHash))) {
+      return {
+        workspaceId,
+        workspace,
+        user: {
+          id: `employee-login-${employee.id}`,
+          username: employee.portalAccess.username,
+          name: employee.fullName,
+          role: "employee",
+          employeeId: employee.id,
+        },
+      };
+    }
+  }
+  return null;
+}
+
 function needsWorkspaceMigration(rootDb) {
   if (!rootDb || typeof rootDb !== "object") return true;
   if (!("workspaces" in rootDb)) return true;
@@ -1739,32 +1773,12 @@ const routes = [
     handler: async (req, res) => {
       const rootDb = await readDb();
       const body = await parseBody(req);
-      const workspaceInput = String(body.workspace || "").trim();
-      const { workspaceId, workspace } = resolveWorkspace(rootDb, workspaceInput);
-      if (!workspace) {
-        sendJson(res, 404, { error: "Workspace not found. Enter your workspace slug to continue." });
-        return;
-      }
       const username = String(body.username || "").trim();
       const password = String(body.password || "");
-      let user = workspace.users.find((item) => item.username === username);
-
-      if (!user) {
-        const employee = workspace.employees.find(
-          (item) => item.portalAccess?.username === username && item.status !== "archived",
-        );
-        if (employee && employee.portalAccess?.passwordHash && (await verifyPassword(password, employee.portalAccess.passwordHash))) {
-          user = {
-            id: `employee-login-${employee.id}`,
-            username: employee.portalAccess.username,
-            name: employee.fullName,
-            role: "employee",
-            employeeId: employee.id,
-          };
-        }
-      } else if (!(await verifyPassword(password, user.passwordHash))) {
-        user = null;
-      }
+      const match = await findUserByUsernameAndPassword(rootDb, username, password);
+      const workspaceId = match?.workspaceId || null;
+      const workspace = match?.workspace || null;
+      const user = match?.user || null;
 
       if (!user) {
         sendJson(res, 401, { error: "Invalid username or password." });
@@ -1813,10 +1827,9 @@ const routes = [
     handler: async (req, res) => {
       const rootDb = await readDb();
       const body = await parseBody(req);
-      const workspaceInput = String(body.workspace || "").trim();
       const username = String(body.username || "").trim();
       const idNumber = String(body.idNumber || "").replace(/\D/g, "");
-      const workspacesToSearch = workspaceInput ? [resolveWorkspace(rootDb, workspaceInput)] : getWorkspaceEntries(rootDb).map(([workspaceId, workspace]) => ({ workspaceId, workspace }));
+      const workspacesToSearch = getWorkspaceEntries(rootDb).map(([workspaceId, workspace]) => ({ workspaceId, workspace }));
       let employee = null;
       let workspace = null;
       for (const entry of workspacesToSearch) {
@@ -1870,7 +1883,6 @@ const routes = [
       const body = await parseBody(req);
 
       const companyName = String(body.companyName || "").trim();
-      const requestedWorkspaceSlug = String(body.workspaceSlug || "").trim();
       const email = String(body.email || "").trim();
       const cellphone = String(body.cellphone || "").trim();
       const physicalAddress = String(body.physicalAddress || "").trim();
@@ -1895,20 +1907,17 @@ const routes = [
         return;
       }
 
-      const workspaceSlug = requestedWorkspaceSlug
-        ? slugify(requestedWorkspaceSlug)
-        : buildUniqueWorkspaceSlug(rootDb, companyName);
-      if (!workspaceSlug) {
-        sendJson(res, 400, { error: "Workspace slug is required." });
-        return;
-      }
-      const existingWorkspace = resolveWorkspace(rootDb, workspaceSlug);
-      if (requestedWorkspaceSlug && existingWorkspace.workspace) {
-        sendJson(res, 400, { error: "That workspace slug is already in use." });
+      const usernameTaken = getWorkspaceEntries(rootDb).some(([, workspace]) =>
+        (workspace.users || []).some((item) => item.username === username) ||
+        (workspace.employees || []).some((item) => item.portalAccess?.username === username),
+      );
+      if (usernameTaken) {
+        sendJson(res, 400, { error: "That username is already in use." });
         return;
       }
 
       const workspaceId = id("ws");
+      const workspaceSlug = buildUniqueWorkspaceSlug(rootDb, companyName);
       const passwordHash = await hashPassword(password);
       const adminUser = {
         id: id("user"),

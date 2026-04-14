@@ -175,7 +175,7 @@ function renderLogin() {
                 </div>
               </div>
               <h1>Payroll access for modern teams.</h1>
-              <p class="muted">Run payroll, manage compliance, and give employees self-service access from one secure workspace.</p>
+              <p class="muted">Run payroll, manage compliance, and give employees self-service access from one secure app.</p>
               <div class="login-feature-list">
                 <span class="tag">Payroll and compliance</span>
                 <span class="tag">Employee self-service</span>
@@ -192,9 +192,8 @@ function renderLogin() {
                   ? `
                     <p class="section-kicker">Secure Sign In</p>
                     <h3>Welcome back</h3>
-                    <p class="muted">Enter your workspace slug, username, and password to continue.</p>
+                    <p class="muted">Enter your username and password to continue.</p>
                     <form id="login-form" class="modern-login-form">
-                      <label>Workspace <input name="workspace" autocomplete="organization" placeholder="your-company" required /></label>
                       <label>Username <input name="username" autocomplete="username" required /></label>
                       <label>Password <input type="password" name="password" autocomplete="current-password" required /></label>
                       <div class="actions">
@@ -205,11 +204,10 @@ function renderLogin() {
                   `
                   : `
                     <p class="section-kicker">Company Setup</p>
-                    <h3>Create your payroll workspace</h3>
-                    <p class="muted">Register your company, claim a workspace slug, and create the first admin account.</p>
+                    <h3>Create your payroll account</h3>
+                    <p class="muted">Register your company and create the first admin account.</p>
                     <form id="register-company-form" class="modern-login-form">
                       <label>Company name <input name="companyName" required /></label>
-                      <label>Workspace slug <input name="workspaceSlug" placeholder="your-company" required /></label>
                       <label>Company email <input type="email" name="email" /></label>
                       <label>Cellphone <input name="cellphone" /></label>
                       <label>Website <input name="website" placeholder="https://example.com" /></label>
@@ -1104,7 +1102,6 @@ function companyView() {
           <label>Email <input type="email" name="email" value="${state.company?.email || ""}" /></label>
           <label>Cellphone <input name="cellphone" value="${state.company?.cellphone || ""}" /></label>
           <label>Website <input name="website" placeholder="https://example.com" value="${state.company?.website || ""}" /></label>
-          <label>Workspace slug <input value="${state.company?.workspaceSlug || ""}" readonly /></label>
           <label>Billing email <input type="email" name="billingEmail" value="${state.company?.billingEmail || ""}" placeholder="billing@company.com" /></label>
           <label>Tax reference <input name="taxReference" value="${state.company?.taxReference || ""}" /></label>
           <label>SSC registration <input name="sscRegistration" value="${state.company?.sscRegistration || ""}" /></label>
@@ -2198,7 +2195,6 @@ function renderApp() {
         </div>
         <div class="topbar-actions portal-topbar-actions">
           <input class="workspace-search compact-search" id="global-search-topbar" placeholder="Search workspace" value="${state.globalSearch}" />
-          <span class="pill">Workspace: ${state.company?.workspaceSlug || "n/a"}</span>
           <span class="pill">Billing: ${state.company?.billingStatus || "trial"}</span>
           <span class="pill">Tax ref: ${state.company?.taxReference || "n/a"}</span>
           <span class="pill">SSC: ${state.company?.sscRegistration || "n/a"}</span>
