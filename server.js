@@ -64,6 +64,7 @@ function defaultCompany() {
     notifyEmployeeOnLoanUpdate: true,
     notifyEmployeeOnTimesheetUpdate: true,
     notifyEmployeeOnPayslipReady: true,
+    notifyEmployeeOnShiftAssigned: true,
   };
 }
 
@@ -886,6 +887,7 @@ function getShiftTimestamp(shiftDate, timeValue) {
 
 function getShiftAttendanceStatus(shift, now = new Date()) {
   if (!shift) return "scheduled";
+  if (shift.shiftType === "off_day") return "off_day";
   if (shift.status === "cancelled") return "cancelled";
   if (shift.clockOutAt) return "completed";
   if (shift.clockInAt) return "clocked_in";
@@ -1031,7 +1033,8 @@ async function sendEmployeeUpdateAlert(db, employee, type, subject, message) {
     (type === "leave" && company.notifyEmployeeOnLeaveUpdate) ||
     (type === "loan" && company.notifyEmployeeOnLoanUpdate) ||
     (type === "timesheet" && company.notifyEmployeeOnTimesheetUpdate) ||
-    (type === "payslip" && company.notifyEmployeeOnPayslipReady);
+    (type === "payslip" && company.notifyEmployeeOnPayslipReady) ||
+    (type === "shift" && company.notifyEmployeeOnShiftAssigned);
   if (!shouldSend) return;
 
   const deliveries = [];
@@ -2805,11 +2808,16 @@ const routes = [
         return;
       }
       const shiftDate = String(body.shiftDate || "");
+      const shiftType = String(body.shiftType || "work").trim() === "off_day" ? "off_day" : "work";
       const startTime = String(body.startTime || "");
       const endTime = String(body.endTime || "");
       const startAt = getShiftTimestamp(shiftDate, startTime);
       const endAt = getShiftTimestamp(shiftDate, endTime);
-      if (!startAt || !endAt || endAt <= startAt) {
+      if (!shiftDate) {
+        sendJson(res, 400, { error: "Enter a valid shift date." });
+        return;
+      }
+      if (shiftType !== "off_day" && (!startAt || !endAt || endAt <= startAt)) {
         sendJson(res, 400, { error: "Enter a valid shift date, start time, and end time." });
         return;
       }
@@ -2822,9 +2830,10 @@ const routes = [
         employeeName: employee.fullName,
         department: employee.department || "",
         title: employee.title || "",
+        shiftType,
         shiftDate,
-        startTime,
-        endTime,
+        startTime: shiftType === "off_day" ? "" : startTime,
+        endTime: shiftType === "off_day" ? "" : endTime,
         location: String(body.location || "").trim(),
         notes: String(body.notes || "").trim(),
         status: "scheduled",
@@ -2838,15 +2847,30 @@ const routes = [
       createNotification(sessionState.db, {
         employeeId: employee.id,
         type: "info",
-        title: "New shift assigned",
-        body: `You have been assigned a shift on ${shift.shiftDate} from ${shift.startTime} to ${shift.endTime}.${shift.notes ? ` Notes: ${shift.notes}` : ""}`,
+        title: shiftType === "off_day" ? "Off day scheduled" : "New shift assigned",
+        body:
+          shiftType === "off_day"
+            ? `You have been marked off on ${shift.shiftDate}.${shift.notes ? ` Notes: ${shift.notes}` : ""}`
+            : `You have been assigned a shift on ${shift.shiftDate} from ${shift.startTime} to ${shift.endTime}.${shift.notes ? ` Notes: ${shift.notes}` : ""}`,
       });
+      await sendEmployeeUpdateAlert(
+        sessionState.db,
+        employee,
+        "shift",
+        shiftType === "off_day" ? "Off day scheduled" : "Shift assigned",
+        shiftType === "off_day"
+          ? `You have been marked off on ${shift.shiftDate}.${shift.notes ? ` Notes: ${shift.notes}` : ""}`
+          : `You have been assigned a shift on ${shift.shiftDate} from ${shift.startTime} to ${shift.endTime}.${shift.notes ? ` Notes: ${shift.notes}` : ""}`,
+      );
       sessionState.db.auditLog.push({
         id: id("audit"),
         action: "shift-created",
         at: new Date().toISOString(),
         actor: sessionState.user.username,
-        detail: `Created shift for ${employee.fullName} on ${shift.shiftDate} ${shift.startTime}-${shift.endTime}.`,
+        detail:
+          shiftType === "off_day"
+            ? `Created off day for ${employee.fullName} on ${shift.shiftDate}.`
+            : `Created shift for ${employee.fullName} on ${shift.shiftDate} ${shift.startTime}-${shift.endTime}.`,
       });
       await writeDb(sessionState.db);
       sendJson(res, 201, { item: sanitizeShift(shift) });
@@ -2898,6 +2922,10 @@ const routes = [
         sendJson(res, 404, { error: "Shift not found." });
         return;
       }
+      if (shift.shiftType === "off_day") {
+        sendJson(res, 400, { error: "Off days cannot be clocked in." });
+        return;
+      }
       if (shift.clockInAt) {
         sendJson(res, 400, { error: "You have already clocked in for this shift." });
         return;
@@ -2929,6 +2957,10 @@ const routes = [
       );
       if (!shift) {
         sendJson(res, 404, { error: "Shift not found." });
+        return;
+      }
+      if (shift.shiftType === "off_day") {
+        sendJson(res, 400, { error: "Off days cannot be clocked out." });
         return;
       }
       if (!shift.clockInAt) {

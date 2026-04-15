@@ -981,6 +981,11 @@ button:hover {
   color: #9b6422;
 }
 
+.status-off_day {
+  background: #eef1f6;
+  color: #5c6b7f;
+}
+
 .employee-row-actions {
   display: flex;
   gap: 8px;
@@ -1087,6 +1092,29 @@ button:hover {
   gap: 10px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.calendar-shift-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.calendar-shift-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 26px;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.calendar-shift-more {
+  font-size: 0.76rem;
+  color: var(--muted);
+  text-align: center;
 }
 
 .legend-item {

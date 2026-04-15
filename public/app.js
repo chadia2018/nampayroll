@@ -56,6 +56,7 @@ const state = {
   portalTimesheetStatus: "all",
   portalTimesheetMonth: "",
   portalShiftStatus: "all",
+  portalShiftMonth: new Date().toISOString().slice(0, 7),
   employeePortalError: "",
   employeePortalNotice: "",
   loginView: "signin",
@@ -465,7 +466,9 @@ function timesheetCard(entry) {
 
 function shiftCard(shift, options = {}) {
   const actions = options.actions || "";
-  const workedLabel = shift.clockOutAt
+  const workedLabel = shift.shiftType === "off_day"
+    ? "Rest day"
+    : shift.clockOutAt
     ? `${number(shift.workedHours || 0, 2)} hrs worked`
     : shift.clockInAt
       ? `Clocked in ${new Date(shift.clockInAt).toLocaleTimeString("en-NA", { hour: "2-digit", minute: "2-digit" })}`
@@ -475,7 +478,13 @@ function shiftCard(shift, options = {}) {
       <div class="record-head">
         <div>
           <h3>${options.showEmployee ? shift.employeeName : shift.shiftDate}</h3>
-          <p class="muted">${options.showEmployee ? `${shift.shiftDate} · ${shift.startTime} to ${shift.endTime}` : `${shift.startTime} to ${shift.endTime}${shift.location ? ` · ${shift.location}` : ""}`}</p>
+          <p class="muted">${
+            shift.shiftType === "off_day"
+              ? `${options.showEmployee ? `${shift.shiftDate} · ` : ""}Off day${shift.location ? ` · ${shift.location}` : ""}`
+              : options.showEmployee
+                ? `${shift.shiftDate} · ${shift.startTime} to ${shift.endTime}`
+                : `${shift.startTime} to ${shift.endTime}${shift.location ? ` · ${shift.location}` : ""}`
+          }</p>
         </div>
         <span class="status-badge status-${shift.attendanceStatus}">${shift.attendanceStatus.replace("_", " ")}</span>
       </div>
@@ -490,6 +499,71 @@ function shiftCard(shift, options = {}) {
   `;
 }
 
+function shiftMonthChange(direction) {
+  const [yearString, monthString] = state.portalShiftMonth.split("-");
+  const date = new Date(Number(yearString), Number(monthString) - 1 + Number(direction || 0), 1);
+  state.portalShiftMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function buildShiftCalendar(shifts) {
+  const [yearString, monthString] = state.portalShiftMonth.split("-");
+  const year = Number(yearString);
+  const monthIndex = Number(monthString) - 1;
+  const firstDay = new Date(year, monthIndex, 1);
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const monthStart = new Date(year, monthIndex, 1 - startOffset);
+  const calendarDays = [];
+
+  for (let dayIndex = 0; dayIndex < 42; dayIndex += 1) {
+    const current = new Date(monthStart);
+    current.setDate(monthStart.getDate() + dayIndex);
+    const key = current.toISOString().slice(0, 10);
+    const dayShifts = shifts.filter((item) => item.shiftDate === key);
+    const muted = current.getMonth() !== monthIndex;
+    const today = new Date().toISOString().slice(0, 10) === key;
+    calendarDays.push(`
+      <article class="calendar-day ${muted ? "calendar-day-muted" : ""}">
+        <div class="calendar-day-frame ${today ? "calendar-day-today" : ""}">
+          <div class="calendar-day-head">
+            <span>${current.getDate()}</span>
+            ${dayShifts.length ? `<span class="calendar-count">${dayShifts.length}</span>` : ""}
+          </div>
+          <div class="calendar-shift-stack">
+            ${dayShifts.slice(0, 3).map((shift) => `
+              <span class="calendar-shift-chip status-${shift.attendanceStatus}">
+                ${shift.shiftType === "off_day" ? "Off day" : `${shift.startTime}-${shift.endTime}`}
+              </span>
+            `).join("")}
+            ${dayShifts.length > 3 ? `<span class="calendar-shift-more">+${dayShifts.length - 3} more</span>` : ""}
+          </div>
+        </div>
+      </article>
+    `);
+  }
+
+  return `
+    <section class="panel leave-calendar-panel">
+      <div class="record-head">
+        <div>
+          <p class="section-kicker">Calendar</p>
+          <h2>Shift calendar</h2>
+        </div>
+        <div class="calendar-controls">
+          <button class="secondary table-action" type="button" data-action="shift-calendar-month" data-direction="-1">Previous</button>
+          <input type="month" id="portal-shift-month" value="${state.portalShiftMonth}" />
+          <button class="secondary table-action" type="button" data-action="shift-calendar-month" data-direction="1">Next</button>
+        </div>
+      </div>
+      <div class="calendar-weekdays">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+      <div class="leave-calendar-grid">
+        ${calendarDays.join("")}
+      </div>
+    </section>
+  `;
+}
+
 function employeeShiftsView() {
   const shifts = (state.portalData?.shifts || []).filter((item) => {
     const matchesPortal = matchesSearch(state.employeePortalSearch, item.shiftDate, item.startTime, item.endTime, item.attendanceStatus, item.notes, item.location);
@@ -497,8 +571,9 @@ function employeeShiftsView() {
     return matchesPortal && matchesStatus;
   });
   const activeShift = shifts.find((item) => item.attendanceStatus === "clocked_in")
-    || shifts.find((item) => ["scheduled", "late"].includes(item.attendanceStatus))
+    || shifts.find((item) => ["scheduled", "late"].includes(item.attendanceStatus) && item.shiftType !== "off_day")
     || null;
+  const monthShifts = (state.portalData?.shifts || []).filter((item) => item.shiftDate.startsWith(state.portalShiftMonth));
   return `
     <section class="panel-grid">
       <section class="panel">
@@ -518,6 +593,7 @@ function employeeShiftsView() {
               <option value="clocked_in" ${state.portalShiftStatus === "clocked_in" ? "selected" : ""}>Clocked in</option>
               <option value="completed" ${state.portalShiftStatus === "completed" ? "selected" : ""}>Completed</option>
               <option value="missed" ${state.portalShiftStatus === "missed" ? "selected" : ""}>Missed</option>
+              <option value="off_day" ${state.portalShiftStatus === "off_day" ? "selected" : ""}>Off day</option>
             </select>
           </label>
         </div>
@@ -547,6 +623,7 @@ function employeeShiftsView() {
           ${shifts.length ? shifts.map((shift) => shiftCard(shift)).join("") : `<div class="empty">No shifts assigned yet.</div>`}
         </div>
       </section>
+      ${buildShiftCalendar(monthShifts)}
     </section>
   `;
 }
@@ -2304,6 +2381,12 @@ function shiftsView() {
           <article class="stat"><span class="stat-label">Completed</span><span class="stat-value">${summary.completed}</span></article>
         </div>
         <form id="shift-form" class="grid-3">
+          <label>Shift type
+            <select name="shiftType">
+              <option value="work">Working shift</option>
+              <option value="off_day">Off day</option>
+            </select>
+          </label>
           <label>Employee
             <select name="employeeId" required>
               <option value="">Select employee</option>
@@ -2312,8 +2395,8 @@ function shiftsView() {
           </label>
           <label>Shift date <input type="date" name="shiftDate" required /></label>
           <label>Location <input name="location" placeholder="Office, Branch, Site" /></label>
-          <label>Start time <input type="time" name="startTime" required /></label>
-          <label>End time <input type="time" name="endTime" required /></label>
+          <label>Start time <input type="time" name="startTime" /></label>
+          <label>End time <input type="time" name="endTime" /></label>
           <label class="span-2">Instructions / notes <textarea name="notes" placeholder="Supervisor notes, handover details, customer instructions"></textarea></label>
           <div class="actions"><button class="primary" type="submit">Create shift</button></div>
         </form>
@@ -3305,6 +3388,21 @@ function bindEmployeePortal() {
       render();
     });
   }
+
+  const portalShiftMonth = document.querySelector("#portal-shift-month");
+  if (portalShiftMonth) {
+    portalShiftMonth.addEventListener("change", (event) => {
+      state.portalShiftMonth = event.target.value;
+      render();
+    });
+  }
+
+  document.querySelectorAll("[data-action='shift-calendar-month']").forEach((button) => {
+    button.addEventListener("click", () => {
+      shiftMonthChange(button.dataset.direction);
+      render();
+    });
+  });
 
   const employeeLeaveForm = document.querySelector("#employee-leave-form");
   if (employeeLeaveForm) {
