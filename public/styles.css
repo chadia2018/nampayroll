@@ -915,6 +915,32 @@ button:hover {
   color: #a44633;
 }
 
+.status-scheduled {
+  background: #eef3ff;
+  color: #3359b7;
+}
+
+.status-clocked_in {
+  background: #dff8f3;
+  color: #0f6c74;
+}
+
+.status-completed {
+  background: #def7e7;
+  color: #32784f;
+}
+
+.status-missed,
+.status-cancelled {
+  background: #fde5de;
+  color: #a44633;
+}
+
+.status-late {
+  background: #fff1d9;
+  color: #9b6422;
+}
+
 .employee-row-actions {
   display: flex;
   gap: 8px;
@@ -923,6 +949,20 @@ button:hover {
 
 .table-action {
   padding: 9px 14px;
+}
+
+.shift-card {
+  gap: 12px;
+}
+
+.shift-meta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shift-actions-row {
+  margin-top: 6px;
 }
 
 .record-head,
@@ -1602,7 +1642,7 @@ button:hover {
     right: 10px;
     bottom: 10px;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 8px;
     padding: 8px;
     background: rgba(250, 245, 236, 0.96);
@@ -1623,7 +1663,7 @@ button:hover {
     right: 10px;
     bottom: 10px;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 8px;
     padding: 8px;
     background: rgba(250, 245, 236, 0.96);

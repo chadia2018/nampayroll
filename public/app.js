@@ -24,6 +24,7 @@ const state = {
   runs: [],
   leaveRequests: [],
   loanRequests: [],
+  shifts: [],
   timesheets: [],
   passwordResetRequests: [],
   superAdminWorkspaces: [],
@@ -54,6 +55,7 @@ const state = {
   employeePortalSearch: "",
   portalTimesheetStatus: "all",
   portalTimesheetMonth: "",
+  portalShiftStatus: "all",
   employeePortalError: "",
   employeePortalNotice: "",
   loginView: "signin",
@@ -294,6 +296,9 @@ function employeeOverviewView() {
   const timesheets = (state.portalData?.timesheets || []).filter((item) =>
     matchesSearch(state.employeePortalSearch, item.weekStart, item.weekEnd, item.status, item.notes),
   );
+  const shifts = (state.portalData?.shifts || []).filter((item) =>
+    matchesSearch(state.employeePortalSearch, item.shiftDate, item.startTime, item.endTime, item.attendanceStatus, item.notes),
+  );
   const payslips = (state.portalData?.payslips || []).filter((item) =>
     matchesSearch(state.employeePortalSearch, item.payrollMonth, item.employeeNumber, item.employeeName),
   );
@@ -311,6 +316,7 @@ function employeeOverviewView() {
         <div class="stats">
           <article class="stat"><span class="stat-label">Annual leave remaining</span><span class="stat-value">${number(annualRemaining, 0)}</span></article>
           <article class="stat"><span class="stat-label">Sick leave used</span><span class="stat-value">${number(sickUsed, 0)}</span></article>
+          <article class="stat"><span class="stat-label">Assigned shifts</span><span class="stat-value">${shifts.length}</span></article>
           <article class="stat"><span class="stat-label">Payslips available</span><span class="stat-value">${payslips.length}</span></article>
         </div>
         <div class="mini-search-wrap">
@@ -331,6 +337,13 @@ function employeeOverviewView() {
         <h2>Recent submissions</h2>
         <div class="list">
           ${timesheets.slice(0, 3).map(timesheetCard).join("") || `<div class="empty">No timesheets submitted yet.</div>`}
+        </div>
+      </section>
+      <section class="panel">
+        <p class="section-kicker">Shifts</p>
+        <h2>Upcoming attendance</h2>
+        <div class="list">
+          ${shifts.slice(0, 3).map(shiftCard).join("") || `<div class="empty">No shifts assigned yet.</div>`}
         </div>
       </section>
       <section class="panel">
@@ -447,6 +460,94 @@ function timesheetCard(entry) {
       </div>
       <p class="muted">${entry.notes || "No notes."}</p>
     </article>
+  `;
+}
+
+function shiftCard(shift, options = {}) {
+  const actions = options.actions || "";
+  const workedLabel = shift.clockOutAt
+    ? `${number(shift.workedHours || 0, 2)} hrs worked`
+    : shift.clockInAt
+      ? `Clocked in ${new Date(shift.clockInAt).toLocaleTimeString("en-NA", { hour: "2-digit", minute: "2-digit" })}`
+      : "Awaiting clock-in";
+  return `
+    <article class="notice shift-card">
+      <div class="record-head">
+        <div>
+          <h3>${options.showEmployee ? shift.employeeName : shift.shiftDate}</h3>
+          <p class="muted">${options.showEmployee ? `${shift.shiftDate} · ${shift.startTime} to ${shift.endTime}` : `${shift.startTime} to ${shift.endTime}${shift.location ? ` · ${shift.location}` : ""}`}</p>
+        </div>
+        <span class="status-badge status-${shift.attendanceStatus}">${shift.attendanceStatus.replace("_", " ")}</span>
+      </div>
+      ${options.showEmployee ? `<p class="muted">${shift.department || "No department"}${shift.location ? ` · ${shift.location}` : ""}</p>` : ""}
+      <p class="muted"><strong>Instructions:</strong> ${shift.notes || "No shift notes yet."}</p>
+      <div class="shift-meta-row">
+        <span class="tag">${workedLabel}</span>
+        ${shift.clockOutAt ? `<span class="tag">Out ${new Date(shift.clockOutAt).toLocaleTimeString("en-NA", { hour: "2-digit", minute: "2-digit" })}</span>` : ""}
+      </div>
+      ${actions ? `<div class="employee-row-actions shift-actions-row">${actions}</div>` : ""}
+    </article>
+  `;
+}
+
+function employeeShiftsView() {
+  const shifts = (state.portalData?.shifts || []).filter((item) => {
+    const matchesPortal = matchesSearch(state.employeePortalSearch, item.shiftDate, item.startTime, item.endTime, item.attendanceStatus, item.notes, item.location);
+    const matchesStatus = state.portalShiftStatus === "all" || item.attendanceStatus === state.portalShiftStatus;
+    return matchesPortal && matchesStatus;
+  });
+  const activeShift = shifts.find((item) => item.attendanceStatus === "clocked_in")
+    || shifts.find((item) => ["scheduled", "late"].includes(item.attendanceStatus))
+    || null;
+  return `
+    <section class="panel-grid">
+      <section class="panel">
+        <p class="section-kicker">Shifts and Attendance</p>
+        <h2>Clock in and clock out</h2>
+        ${state.employeePortalNotice ? `<div class="banner success-banner">${state.employeePortalNotice}</div>` : ""}
+        ${state.employeePortalError ? `<div class="banner danger-banner">${state.employeePortalError}</div>` : ""}
+        <div class="mini-search-wrap">
+          <input id="employee-portal-search" placeholder="Search shifts" value="${state.employeePortalSearch}" />
+        </div>
+        <div class="grid-2">
+          <label>Status
+            <select id="portal-shift-status">
+              <option value="all" ${state.portalShiftStatus === "all" ? "selected" : ""}>All statuses</option>
+              <option value="scheduled" ${state.portalShiftStatus === "scheduled" ? "selected" : ""}>Scheduled</option>
+              <option value="late" ${state.portalShiftStatus === "late" ? "selected" : ""}>Late</option>
+              <option value="clocked_in" ${state.portalShiftStatus === "clocked_in" ? "selected" : ""}>Clocked in</option>
+              <option value="completed" ${state.portalShiftStatus === "completed" ? "selected" : ""}>Completed</option>
+              <option value="missed" ${state.portalShiftStatus === "missed" ? "selected" : ""}>Missed</option>
+            </select>
+          </label>
+        </div>
+        ${
+          activeShift
+            ? shiftCard(activeShift, {
+                actions: `
+                  ${
+                    !activeShift.clockInAt
+                      ? `<button class="primary table-action" data-action="clock-in-shift" data-id="${activeShift.id}">Clock in</button>`
+                      : ""
+                  }
+                  ${
+                    activeShift.clockInAt && !activeShift.clockOutAt
+                      ? `<button class="secondary table-action" data-action="clock-out-shift" data-id="${activeShift.id}">Clock out</button>`
+                      : ""
+                  }
+                `,
+              })
+            : `<div class="empty">No active shift right now. Assigned shifts will appear here.</div>`
+        }
+      </section>
+      <section class="panel">
+        <p class="section-kicker">History</p>
+        <h2>Your shift attendance</h2>
+        <div class="list">
+          ${shifts.length ? shifts.map((shift) => shiftCard(shift)).join("") : `<div class="empty">No shifts assigned yet.</div>`}
+        </div>
+      </section>
+    </section>
   `;
 }
 
@@ -641,6 +742,7 @@ function renderEmployeePortal() {
   const pendingLeave = (state.portalData?.leaveRequests || []).filter((item) => item.status === "pending").length;
   const pendingLoans = (state.portalData?.loanRequests || []).filter((item) => item.status === "pending").length;
   const pendingTimesheets = (state.portalData?.timesheets || []).filter((item) => item.status === "submitted").length;
+  const openShifts = (state.portalData?.shifts || []).filter((item) => ["scheduled", "late", "clocked_in"].includes(item.attendanceStatus)).length;
   const payslipCount = (state.portalData?.payslips || []).length;
   return appShell(`
     <section class="app-shell employee-portal-shell">
@@ -667,12 +769,14 @@ function renderEmployeePortal() {
           </div>
           <div class="portal-summary-stats">
             <article class="portal-mini-stat"><span>Leave left</span><strong>${number(annualRemaining, 0)} days</strong></article>
+            <article class="portal-mini-stat"><span>Open shifts</span><strong>${openShifts}</strong></article>
             <article class="portal-mini-stat"><span>Payslips</span><strong>${payslipCount}</strong></article>
             <article class="portal-mini-stat"><span>Open items</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
           </div>
         </div>
         <div class="portal-quick-actions">
           ${employeePortalQuickAction("leave", "Request Leave", pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days available`)}
+          ${employeePortalQuickAction("shifts", "Shifts", openShifts ? `${openShifts} active or upcoming` : "Attendance and clocking")}
           ${employeePortalQuickAction("timesheets", "Submit Time", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly timesheets")}
           ${employeePortalQuickAction("loans", "Request Loan", pendingLoans ? `${pendingLoans} pending` : "Track balances")}
           ${employeePortalQuickAction("payslips", "Payslips", payslipCount ? `${payslipCount} ready to view` : "No payslips yet")}
@@ -684,6 +788,7 @@ function renderEmployeePortal() {
           <p class="section-kicker">Self Service</p>
           ${employeePortalNavButton("overview", "Overview")}
           ${employeePortalNavButton("leave", "Leave")}
+          ${employeePortalNavButton("shifts", "Shifts")}
           ${employeePortalNavButton("loans", "Loans")}
           ${employeePortalNavButton("timesheets", "Timesheets")}
           ${employeePortalNavButton("payslips", "Payslips")}
@@ -692,6 +797,7 @@ function renderEmployeePortal() {
         <main>
           ${state.employeePortalView === "overview" ? employeeOverviewView() : ""}
           ${state.employeePortalView === "leave" ? employeeLeaveView() : ""}
+          ${state.employeePortalView === "shifts" ? employeeShiftsView() : ""}
           ${state.employeePortalView === "loans" ? employeeLoansView() : ""}
           ${state.employeePortalView === "timesheets" ? employeeTimesheetsView() : ""}
           ${state.employeePortalView === "payslips" ? employeePayslipsView() : ""}
@@ -700,6 +806,7 @@ function renderEmployeePortal() {
       </div>
       <nav class="portal-bottom-nav">
         ${employeePortalBottomNavButton("leave", "Leave")}
+        ${employeePortalBottomNavButton("shifts", "Shifts")}
         ${employeePortalBottomNavButton("timesheets", "Time")}
         ${employeePortalBottomNavButton("loans", "Loans")}
         ${employeePortalBottomNavButton("payslips", "Payslips")}
@@ -711,6 +818,7 @@ function renderEmployeePortal() {
 
 function dashboardView() {
   const current = state.dashboard?.currentMonth || {};
+  const attendance = state.dashboard?.attendance || {};
   const recent = (state.dashboard?.recentRuns || []).filter((run) =>
     matchesSearch(state.globalSearch, run.employeeName, run.employeeNumber, run.payrollMonth, run.createdBy),
   );
@@ -744,8 +852,10 @@ function dashboardView() {
             ? `<div class="stats compact-stats">
                 <article class="stat"><span class="stat-label">Active employees</span><span class="stat-value">${state.dashboard?.employees || 0}</span></article>
                 <article class="stat"><span class="stat-label">Pending leave requests</span><span class="stat-value">${state.dashboard?.pendingLeaveRequests || 0}</span></article>
+                <article class="stat"><span class="stat-label">Clocked in now</span><span class="stat-value">${attendance.clockedIn || 0}</span></article>
                 <article class="stat"><span class="stat-label">Current month gross</span><span class="stat-value">${money(current.gross || 0)}</span></article>
                 <article class="stat"><span class="stat-label">Current month net</span><span class="stat-value">${money(current.net || 0)}</span></article>
+                <article class="stat"><span class="stat-label">Missed shifts</span><span class="stat-value">${attendance.missed || 0}</span></article>
               </div>`
             : ""
         }
@@ -2130,6 +2240,125 @@ function adminTimesheetRow(entry) {
   `;
 }
 
+function adminShiftRow(shift) {
+  return `
+    <tr>
+      <td>${shift.employeeName}</td>
+      <td>${shift.shiftDate}</td>
+      <td>${shift.startTime}</td>
+      <td>${shift.endTime}</td>
+      <td>${shift.location || "-"}</td>
+      <td>${shift.notes || "-"}</td>
+      <td><span class="status-badge status-${shift.attendanceStatus}">${shift.attendanceStatus.replace("_", " ")}</span></td>
+      <td>${shift.clockInAt ? new Date(shift.clockInAt).toLocaleTimeString("en-NA", { hour: "2-digit", minute: "2-digit" }) : "-"}</td>
+      <td>${shift.clockOutAt ? new Date(shift.clockOutAt).toLocaleTimeString("en-NA", { hour: "2-digit", minute: "2-digit" }) : "-"}</td>
+      <td>${shift.workedHours ? number(shift.workedHours, 2) : "-"}</td>
+      <td>
+        <div class="employee-row-actions">
+          ${
+            shift.status !== "cancelled"
+              ? `<button class="danger-button table-action" data-action="cancel-shift" data-id="${shift.id}" data-name="${shift.employeeName}" data-date="${shift.shiftDate}">Cancel</button>`
+              : `<span class="tag">Cancelled</span>`
+          }
+        </div>
+      </td>
+    </tr>
+  `;
+}
+
+function shiftsView() {
+  const entries = state.shifts.filter((shift) =>
+    matchesSearch(
+      state.globalSearch,
+      shift.employeeName,
+      shift.employeeNumber,
+      shift.shiftDate,
+      shift.startTime,
+      shift.endTime,
+      shift.location,
+      shift.notes,
+      shift.attendanceStatus,
+    ),
+  );
+  const summary = {
+    total: entries.length,
+    active: entries.filter((item) => item.attendanceStatus === "clocked_in").length,
+    upcoming: entries.filter((item) => ["scheduled", "late"].includes(item.attendanceStatus)).length,
+    completed: entries.filter((item) => item.attendanceStatus === "completed").length,
+  };
+  return `
+    <section class="panel-grid">
+      <section class="panel">
+        <div class="record-head">
+          <div>
+            <p class="section-kicker">Shifts and Attendance</p>
+            <h2>Create shifts and track attendance</h2>
+            <p class="muted">Assign work schedules, add supervisor notes, and monitor who clocked in and out.</p>
+          </div>
+        </div>
+        ${state.reviewError ? `<div class="banner danger-banner">${state.reviewError}</div>` : ""}
+        <div class="stats compact-stats">
+          <article class="stat"><span class="stat-label">Total shifts</span><span class="stat-value">${summary.total}</span></article>
+          <article class="stat"><span class="stat-label">Clocked in</span><span class="stat-value">${summary.active}</span></article>
+          <article class="stat"><span class="stat-label">Upcoming</span><span class="stat-value">${summary.upcoming}</span></article>
+          <article class="stat"><span class="stat-label">Completed</span><span class="stat-value">${summary.completed}</span></article>
+        </div>
+        <form id="shift-form" class="grid-3">
+          <label>Employee
+            <select name="employeeId" required>
+              <option value="">Select employee</option>
+              ${state.employees.map((employee) => `<option value="${employee.id}">${employee.fullName} · ${employee.employeeNumber}</option>`).join("")}
+            </select>
+          </label>
+          <label>Shift date <input type="date" name="shiftDate" required /></label>
+          <label>Location <input name="location" placeholder="Office, Branch, Site" /></label>
+          <label>Start time <input type="time" name="startTime" required /></label>
+          <label>End time <input type="time" name="endTime" required /></label>
+          <label class="span-2">Instructions / notes <textarea name="notes" placeholder="Supervisor notes, handover details, customer instructions"></textarea></label>
+          <div class="actions"><button class="primary" type="submit">Create shift</button></div>
+        </form>
+      </section>
+      <section class="panel">
+        <div class="record-head">
+          <div>
+            <p class="section-kicker">Attendance Log</p>
+            <h2>All assigned shifts</h2>
+          </div>
+        </div>
+        <div class="mini-search-wrap">
+          <input class="workspace-search" id="global-search" placeholder="Search shifts" value="${state.globalSearch}" />
+        </div>
+        ${
+          entries.length
+            ? `<div class="employee-table-wrap">
+                <table class="employee-table">
+                  <thead>
+                    <tr>
+                      <th>Employee</th>
+                      <th>Date</th>
+                      <th>Start</th>
+                      <th>End</th>
+                      <th>Location</th>
+                      <th>Notes</th>
+                      <th>Status</th>
+                      <th>Clock In</th>
+                      <th>Clock Out</th>
+                      <th>Hours</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${entries.map(adminShiftRow).join("")}
+                  </tbody>
+                </table>
+              </div>`
+            : `<div class="empty">No shifts created yet.</div>`
+        }
+      </section>
+    </section>
+  `;
+}
+
 function timesheetsView() {
   const entries = state.timesheets.filter((entry) =>
     matchesSearch(state.globalSearch, entry.employeeName, entry.employeeNumber, entry.weekStart, entry.weekEnd, entry.status, entry.notes),
@@ -2184,6 +2413,7 @@ function renderApp() {
   const pendingLeave = (state.leaveRequests || []).filter((item) => item.status === "pending").length;
   const pendingLoans = (state.loanRequests || []).filter((item) => item.status === "pending").length;
   const pendingTimesheets = (state.timesheets || []).filter((item) => item.status === "submitted").length;
+  const activeShifts = (state.shifts || []).filter((item) => item.attendanceStatus === "clocked_in").length;
   return appShell(`
     <section class="app-shell employee-portal-shell admin-portal-shell">
       <header class="topbar">
@@ -2223,12 +2453,14 @@ function renderApp() {
           <div class="portal-summary-stats">
             <article class="portal-mini-stat"><span>Employees</span><strong>${activeEmployees}</strong></article>
             <article class="portal-mini-stat"><span>Pending reviews</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
+            <article class="portal-mini-stat"><span>Clocked in</span><strong>${activeShifts}</strong></article>
             <article class="portal-mini-stat"><span>Reports month</span><strong>${state.reportMonth}</strong></article>
           </div>
         </div>
         <div class="portal-quick-actions admin-quick-actions">
           ${adminQuickAction("employees", "Employees", `${activeEmployees} active records`)}
           ${adminQuickAction("leave", "Leave", pendingLeave ? `${pendingLeave} pending` : "Leave tracker")}
+          ${adminQuickAction("shifts", "Shifts", activeShifts ? `${activeShifts} clocked in now` : "Attendance tracking")}
           ${adminQuickAction("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly submissions")}
           ${adminQuickAction("payroll", "Payroll", "Run and review payroll")}
           ${adminQuickAction("reports", "Reports", "Finance and compliance")}
@@ -2242,6 +2474,7 @@ function renderApp() {
           ${adminNavButton("employees", "Employees")}
           ${adminNavButton("leave", "Leave Requests")}
           ${adminNavButton("loans", "Loans")}
+          ${adminNavButton("shifts", "Shifts")}
           ${adminNavButton("timesheets", "Timesheets")}
           ${adminNavButton("payroll", "Payroll Run")}
           ${adminNavButton("documents", "Documents")}
@@ -2254,6 +2487,7 @@ function renderApp() {
           ${state.view === "employees" ? employeesView() : ""}
           ${state.view === "leave" ? leaveRequestsView() : ""}
           ${state.view === "loans" ? loansView() : ""}
+          ${state.view === "shifts" ? shiftsView() : ""}
           ${state.view === "timesheets" ? timesheetsView() : ""}
           ${state.view === "payroll" ? payrollView() : ""}
           ${state.view === "documents" ? documentsView() : ""}
@@ -2264,6 +2498,7 @@ function renderApp() {
       <nav class="portal-bottom-nav admin-bottom-nav">
         ${adminBottomNavButton("dashboard", "Home")}
         ${adminBottomNavButton("employees", "People")}
+        ${adminBottomNavButton("shifts", "Shifts")}
         ${adminBottomNavButton("leave", "Leave")}
         ${adminBottomNavButton("payroll", "Payroll")}
         ${adminBottomNavButton("reports", "Reports")}
@@ -2373,6 +2608,9 @@ function bindApp() {
       }
       if (state.view === "leave") {
         await loadLeaveRequests();
+      }
+      if (state.view === "shifts") {
+        await loadShifts();
       }
       if (state.view === "loans") {
         await loadLoanRequests();
@@ -2749,6 +2987,25 @@ function bindApp() {
     });
   });
 
+  document.querySelectorAll("[data-action='cancel-shift']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const confirmed = window.confirm(`Cancel shift for ${button.dataset.name} on ${button.dataset.date}?`);
+      if (!confirmed) return;
+      try {
+        await api(`/api/shifts/${button.dataset.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "cancelled" }),
+        });
+        state.reviewError = "";
+        await loadShifts();
+        await loadDashboard();
+      } catch (error) {
+        state.reviewError = error.message;
+      }
+      render();
+    });
+  });
+
   const employeeForm = document.querySelector("#employee-form");
   if (employeeForm) {
     employeeForm.addEventListener("submit", async (event) => {
@@ -2981,6 +3238,27 @@ function bindApp() {
       render();
     });
   }
+
+  const shiftForm = document.querySelector("#shift-form");
+  if (shiftForm) {
+    shiftForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const data = Object.fromEntries(new FormData(shiftForm).entries());
+        await api("/api/shifts", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        state.reviewError = "";
+        shiftForm.reset();
+        await loadShifts();
+        await loadDashboard();
+      } catch (error) {
+        state.reviewError = error.message;
+      }
+      render();
+    });
+  }
 }
 
 function bindEmployeePortal() {
@@ -3016,6 +3294,14 @@ function bindEmployeePortal() {
   if (portalTimesheetMonth) {
     portalTimesheetMonth.addEventListener("change", (event) => {
       state.portalTimesheetMonth = event.target.value;
+      render();
+    });
+  }
+
+  const portalShiftStatus = document.querySelector("#portal-shift-status");
+  if (portalShiftStatus) {
+    portalShiftStatus.addEventListener("change", (event) => {
+      state.portalShiftStatus = event.target.value;
       render();
     });
   }
@@ -3094,6 +3380,36 @@ function bindEmployeePortal() {
   document.querySelectorAll("[data-action='download-payslip']").forEach((button) => {
     button.addEventListener("click", async () => {
       triggerDownload(`/api/employee/payslips/${button.dataset.id}/pdf`);
+    });
+  });
+
+  document.querySelectorAll("[data-action='clock-in-shift']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await api(`/api/shifts/${button.dataset.id}/clock-in`, { method: "POST", body: JSON.stringify({}) });
+        state.employeePortalError = "";
+        state.employeePortalNotice = "Clock-in recorded.";
+        await loadEmployeePortal();
+      } catch (error) {
+        state.employeePortalError = error.message;
+        state.employeePortalNotice = "";
+      }
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='clock-out-shift']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await api(`/api/shifts/${button.dataset.id}/clock-out`, { method: "POST", body: JSON.stringify({}) });
+        state.employeePortalError = "";
+        state.employeePortalNotice = "Clock-out recorded.";
+        await loadEmployeePortal();
+      } catch (error) {
+        state.employeePortalError = error.message;
+        state.employeePortalNotice = "";
+      }
+      render();
     });
   });
 
@@ -3180,6 +3496,11 @@ async function loadLoanRequests() {
   state.loanRequests = response.items;
 }
 
+async function loadShifts() {
+  const response = await api("/api/shifts");
+  state.shifts = response.items;
+}
+
 async function loadTimesheets() {
   const response = await api("/api/timesheets");
   state.timesheets = response.items;
@@ -3215,13 +3536,14 @@ async function loadEmployeePortal() {
 }
 
 async function bootstrapApp() {
-  const [sources, dashboard, employees, runs, leaveRequests, loanRequests, timesheets, passwordResetRequests, dataStatus] = await Promise.all([
+  const [sources, dashboard, employees, runs, leaveRequests, loanRequests, shifts, timesheets, passwordResetRequests, dataStatus] = await Promise.all([
     api("/api/sources"),
     api("/api/dashboard"),
     api("/api/employees"),
     api("/api/payroll-runs"),
     api("/api/leave-requests"),
     api("/api/loan-requests"),
+    api("/api/shifts"),
     api("/api/timesheets"),
     api("/api/password-reset-requests"),
     api("/api/data/status"),
@@ -3234,6 +3556,7 @@ async function bootstrapApp() {
   state.runs = runs.items;
   state.leaveRequests = leaveRequests.items;
   state.loanRequests = loanRequests.items;
+  state.shifts = shifts.items;
   state.timesheets = timesheets.items;
   state.passwordResetRequests = passwordResetRequests.items;
   state.dataStatus = dataStatus;

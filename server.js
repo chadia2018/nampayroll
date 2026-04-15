@@ -74,6 +74,7 @@ function defaultWorkspace(overrides = {}) {
     employees: overrides.employees || [],
     leaveRequests: overrides.leaveRequests || [],
     loanRequests: overrides.loanRequests || [],
+    shifts: overrides.shifts || [],
     timesheets: overrides.timesheets || [],
     notifications: overrides.notifications || [],
     passwordResetRequests: overrides.passwordResetRequests || [],
@@ -288,6 +289,7 @@ function buildRootDbFromLegacy(legacyDb) {
     employees: legacyDb.employees || [],
     leaveRequests: legacyDb.leaveRequests || [],
     loanRequests: legacyDb.loanRequests || [],
+    shifts: legacyDb.shifts || [],
     timesheets: legacyDb.timesheets || [],
     notifications: legacyDb.notifications || [],
     passwordResetRequests: legacyDb.passwordResetRequests || [],
@@ -873,6 +875,45 @@ function sanitizeLoanRequest(request) {
     totalRepayable: metrics.totalRepayable,
     amountPaidEstimate: metrics.amountPaidEstimate,
     progressPercent: metrics.progressPercent,
+  };
+}
+
+function getShiftTimestamp(shiftDate, timeValue) {
+  if (!shiftDate || !timeValue) return null;
+  const stamp = new Date(`${shiftDate}T${timeValue}:00`);
+  return Number.isNaN(stamp.getTime()) ? null : stamp;
+}
+
+function getShiftAttendanceStatus(shift, now = new Date()) {
+  if (!shift) return "scheduled";
+  if (shift.status === "cancelled") return "cancelled";
+  if (shift.clockOutAt) return "completed";
+  if (shift.clockInAt) return "clocked_in";
+  const startAt = getShiftTimestamp(shift.shiftDate, shift.startTime);
+  const endAt = getShiftTimestamp(shift.shiftDate, shift.endTime);
+  if (startAt && now > startAt) {
+    if (endAt && now > endAt) return "missed";
+    return "late";
+  }
+  return "scheduled";
+}
+
+function sanitizeShift(shift) {
+  const startAt = getShiftTimestamp(shift.shiftDate, shift.startTime);
+  const endAt = getShiftTimestamp(shift.shiftDate, shift.endTime);
+  const clockInAt = shift.clockInAt ? new Date(shift.clockInAt) : null;
+  const clockOutAt = shift.clockOutAt ? new Date(shift.clockOutAt) : null;
+  const workedMinutes =
+    clockInAt && clockOutAt && !Number.isNaN(clockInAt.getTime()) && !Number.isNaN(clockOutAt.getTime())
+      ? Math.max(Math.round((clockOutAt - clockInAt) / 60000), 0)
+      : 0;
+  return {
+    ...shift,
+    attendanceStatus: getShiftAttendanceStatus(shift),
+    scheduledHours:
+      startAt && endAt && endAt > startAt ? Number(((endAt - startAt) / 3600000).toFixed(2)) : 0,
+    workedMinutes,
+    workedHours: Number((workedMinutes / 60).toFixed(2)),
   };
 }
 
@@ -1681,6 +1722,18 @@ function activePayrollRuns(runs) {
   return (runs || []).filter((run) => !isCancelledPayrollRun(run));
 }
 
+function buildShiftAttendanceSummary(shifts) {
+  const items = (shifts || []).map(sanitizeShift);
+  return {
+    total: items.length,
+    scheduled: items.filter((item) => item.attendanceStatus === "scheduled").length,
+    clockedIn: items.filter((item) => item.attendanceStatus === "clocked_in").length,
+    completed: items.filter((item) => item.attendanceStatus === "completed").length,
+    missed: items.filter((item) => item.attendanceStatus === "missed").length,
+    late: items.filter((item) => item.attendanceStatus === "late").length,
+  };
+}
+
 function buildDepartmentPayrollCost(runs, employees) {
   const employeeMap = new Map((employees || []).map((employee) => [employee.id, employee]));
   const totals = new Map();
@@ -2173,6 +2226,7 @@ const routes = [
         employees: sessionState.db.employees.filter((item) => item.status !== "archived").length,
         pendingLeaveRequests: (sessionState.db.leaveRequests || []).filter((item) => item.status === "pending").length,
         pendingPasswordResets: (sessionState.db.passwordResetRequests || []).filter((item) => item.status === "pending").length,
+        attendance: buildShiftAttendanceSummary(sessionState.db.shifts || []),
         currentMonth: monthlySummary(sessionState.db.payrollRuns, month),
         recentRuns: sessionState.db.payrollRuns.slice(-5).reverse(),
       });
@@ -2194,6 +2248,7 @@ const routes = [
           payrollRuns: (sessionState.db.payrollRuns || []).length,
           leaveRequests: (sessionState.db.leaveRequests || []).length,
           loanRequests: (sessionState.db.loanRequests || []).length,
+          shifts: (sessionState.db.shifts || []).length,
           timesheets: (sessionState.db.timesheets || []).length,
         },
         backups,
@@ -2732,6 +2787,173 @@ const routes = [
   },
   {
     method: "GET",
+    path: "/api/shifts",
+    handler: requireAdmin(async (req, res, params, sessionState) => {
+      sendJson(res, 200, { items: (sessionState.db.shifts || []).slice().reverse().map(sanitizeShift) });
+    }),
+  },
+  {
+    method: "POST",
+    path: "/api/shifts",
+    handler: requireAdmin(async (req, res, params, sessionState) => {
+      const body = await parseBody(req);
+      const employee = (sessionState.db.employees || []).find(
+        (item) => item.id === String(body.employeeId || "") && item.status !== "archived",
+      );
+      if (!employee) {
+        sendJson(res, 404, { error: "Employee not found." });
+        return;
+      }
+      const shiftDate = String(body.shiftDate || "");
+      const startTime = String(body.startTime || "");
+      const endTime = String(body.endTime || "");
+      const startAt = getShiftTimestamp(shiftDate, startTime);
+      const endAt = getShiftTimestamp(shiftDate, endTime);
+      if (!startAt || !endAt || endAt <= startAt) {
+        sendJson(res, 400, { error: "Enter a valid shift date, start time, and end time." });
+        return;
+      }
+
+      sessionState.db.shifts = sessionState.db.shifts || [];
+      const shift = {
+        id: id("shift"),
+        employeeId: employee.id,
+        employeeNumber: employee.employeeNumber,
+        employeeName: employee.fullName,
+        department: employee.department || "",
+        title: employee.title || "",
+        shiftDate,
+        startTime,
+        endTime,
+        location: String(body.location || "").trim(),
+        notes: String(body.notes || "").trim(),
+        status: "scheduled",
+        clockInAt: null,
+        clockOutAt: null,
+        createdAt: new Date().toISOString(),
+        createdBy: sessionState.user.username,
+      };
+
+      sessionState.db.shifts.push(shift);
+      createNotification(sessionState.db, {
+        employeeId: employee.id,
+        type: "info",
+        title: "New shift assigned",
+        body: `You have been assigned a shift on ${shift.shiftDate} from ${shift.startTime} to ${shift.endTime}.${shift.notes ? ` Notes: ${shift.notes}` : ""}`,
+      });
+      sessionState.db.auditLog.push({
+        id: id("audit"),
+        action: "shift-created",
+        at: new Date().toISOString(),
+        actor: sessionState.user.username,
+        detail: `Created shift for ${employee.fullName} on ${shift.shiftDate} ${shift.startTime}-${shift.endTime}.`,
+      });
+      await writeDb(sessionState.db);
+      sendJson(res, 201, { item: sanitizeShift(shift) });
+    }),
+  },
+  {
+    method: "PATCH",
+    path: "/api/shifts/:shiftId",
+    handler: requireAdmin(async (req, res, params, sessionState) => {
+      const shift = (sessionState.db.shifts || []).find((item) => item.id === params.shiftId);
+      if (!shift) {
+        sendJson(res, 404, { error: "Shift not found." });
+        return;
+      }
+      const body = await parseBody(req);
+      const nextStatus = String(body.status || "").trim();
+      if (!["cancelled", "scheduled"].includes(nextStatus)) {
+        sendJson(res, 400, { error: "Invalid shift status." });
+        return;
+      }
+      shift.status = nextStatus;
+      shift.notes = String(body.notes || shift.notes || "").trim();
+      shift.updatedAt = new Date().toISOString();
+      shift.updatedBy = sessionState.user.username;
+      sessionState.db.auditLog.push({
+        id: id("audit"),
+        action: "shift-updated",
+        at: new Date().toISOString(),
+        actor: sessionState.user.username,
+        detail: `${nextStatus} shift ${shift.id} for ${shift.employeeName}.`,
+      });
+      await writeDb(sessionState.db);
+      sendJson(res, 200, { item: sanitizeShift(shift) });
+    }),
+  },
+  {
+    method: "POST",
+    path: "/api/shifts/:shiftId/clock-in",
+    handler: requireEmployeeOrAdmin(async (req, res, params, sessionState) => {
+      const employee = getEmployeeForSession(sessionState);
+      if (!employee) {
+        sendJson(res, 403, { error: "Employee access required." });
+        return;
+      }
+      const shift = (sessionState.db.shifts || []).find(
+        (item) => item.id === params.shiftId && item.employeeId === employee.id && item.status !== "cancelled",
+      );
+      if (!shift) {
+        sendJson(res, 404, { error: "Shift not found." });
+        return;
+      }
+      if (shift.clockInAt) {
+        sendJson(res, 400, { error: "You have already clocked in for this shift." });
+        return;
+      }
+      shift.clockInAt = new Date().toISOString();
+      shift.status = "clocked_in";
+      sessionState.db.auditLog.push({
+        id: id("audit"),
+        action: "shift-clock-in",
+        at: shift.clockInAt,
+        actor: sessionState.user.username,
+        detail: `${employee.fullName} clocked in for shift ${shift.id}.`,
+      });
+      await writeDb(sessionState.db);
+      sendJson(res, 200, { item: sanitizeShift(shift) });
+    }),
+  },
+  {
+    method: "POST",
+    path: "/api/shifts/:shiftId/clock-out",
+    handler: requireEmployeeOrAdmin(async (req, res, params, sessionState) => {
+      const employee = getEmployeeForSession(sessionState);
+      if (!employee) {
+        sendJson(res, 403, { error: "Employee access required." });
+        return;
+      }
+      const shift = (sessionState.db.shifts || []).find(
+        (item) => item.id === params.shiftId && item.employeeId === employee.id && item.status !== "cancelled",
+      );
+      if (!shift) {
+        sendJson(res, 404, { error: "Shift not found." });
+        return;
+      }
+      if (!shift.clockInAt) {
+        sendJson(res, 400, { error: "Clock in before clocking out." });
+        return;
+      }
+      if (shift.clockOutAt) {
+        sendJson(res, 400, { error: "You have already clocked out for this shift." });
+        return;
+      }
+      shift.clockOutAt = new Date().toISOString();
+      shift.status = "completed";
+      sessionState.db.auditLog.push({
+        id: id("audit"),
+        action: "shift-clock-out",
+        at: shift.clockOutAt,
+        actor: sessionState.user.username,
+        detail: `${employee.fullName} clocked out for shift ${shift.id}.`,
+      });
+      await writeDb(sessionState.db);
+      sendJson(res, 200, { item: sanitizeShift(shift) });
+    }),
+  },
+  {
+    method: "GET",
     path: "/api/timesheets",
     handler: requireAdmin(async (req, res, params, sessionState) => {
       sendJson(res, 200, { items: (sessionState.db.timesheets || []).slice().reverse().map(sanitizeTimesheet) });
@@ -2970,6 +3192,11 @@ const routes = [
         .slice()
         .reverse()
         .map(sanitizeTimesheet);
+      const shifts = (sessionState.db.shifts || [])
+        .filter((item) => item.employeeId === employee.id)
+        .slice()
+        .reverse()
+        .map(sanitizeShift);
       const payslips = (sessionState.db.payrollRuns || [])
         .filter((item) => item.employeeId === employee.id && !isCancelledPayrollRun(item))
         .slice()
@@ -2984,6 +3211,7 @@ const routes = [
         employee: sanitizeEmployee(employee),
         leaveRequests,
         loanRequests,
+        shifts,
         timesheets,
         payslips,
         notifications,
