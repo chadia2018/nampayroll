@@ -57,6 +57,7 @@ const state = {
   portalTimesheetMonth: "",
   portalShiftStatus: "all",
   portalShiftMonth: new Date().toISOString().slice(0, 7),
+  activeChatEmployeeId: "",
   employeePortalError: "",
   employeePortalNotice: "",
   loginView: "signin",
@@ -711,6 +712,75 @@ function employeeTimesheetsView() {
   `;
 }
 
+function chatThreadMessage(message, employeeId) {
+  const mine = message.senderEmployeeId === employeeId;
+  return `
+    <article class="chat-message ${mine ? "chat-message-mine" : ""}">
+      <div class="chat-message-meta">
+        <strong>${mine ? "You" : message.senderName}</strong>
+        <span>${new Date(message.sentAt).toLocaleString("en-NA", { dateStyle: "medium", timeStyle: "short" })}</span>
+      </div>
+      <p>${message.message}</p>
+    </article>
+  `;
+}
+
+function employeeChatView() {
+  const employee = state.portalData?.employee;
+  const contacts = (state.portalData?.chatContacts || []).filter((item) =>
+    matchesSearch(state.employeePortalSearch, item.fullName, item.employeeNumber, item.department, item.title),
+  );
+  const activeContact = contacts.find((item) => item.id === state.activeChatEmployeeId) || contacts[0] || null;
+  const messages = (state.portalData?.chats || []).filter((item) =>
+    activeContact
+      ? (item.senderEmployeeId === activeContact.id && item.recipientEmployeeId === employee?.id)
+        || (item.senderEmployeeId === employee?.id && item.recipientEmployeeId === activeContact.id)
+      : false,
+  );
+
+  return `
+    <section class="panel-grid">
+      <section class="panel">
+        <p class="section-kicker">Employee Chat</p>
+        <h2>Talk to coworkers</h2>
+        ${state.employeePortalNotice ? `<div class="banner success-banner">${state.employeePortalNotice}</div>` : ""}
+        ${state.employeePortalError ? `<div class="banner danger-banner">${state.employeePortalError}</div>` : ""}
+        <div class="mini-search-wrap">
+          <input id="employee-portal-search" placeholder="Search coworkers" value="${state.employeePortalSearch}" />
+        </div>
+        <div class="chat-contact-list">
+          ${contacts.length ? contacts.map((contact) => `
+            <button class="chat-contact-card ${activeContact?.id === contact.id ? "chat-contact-card-active" : ""}" data-action="open-chat-contact" data-id="${contact.id}" type="button">
+              <strong>${contact.fullName}</strong>
+              <span>${contact.title || "Employee"}${contact.department ? ` · ${contact.department}` : ""}</span>
+            </button>
+          `).join("") : `<div class="empty">No coworkers available for chat yet.</div>`}
+        </div>
+      </section>
+      <section class="panel">
+        <p class="section-kicker">Conversation</p>
+        <h2>${activeContact ? activeContact.fullName : "Select a coworker"}</h2>
+        ${
+          activeContact
+            ? `
+              <div class="chat-thread">
+                ${messages.length ? messages.map((message) => chatThreadMessage(message, employee?.id)).join("") : `<div class="empty">No messages yet. Start the conversation.</div>`}
+              </div>
+              <form id="employee-chat-form" class="grid-2">
+                <input type="hidden" name="recipientEmployeeId" value="${activeContact.id}" />
+                <label class="span-2">Message <textarea name="message" placeholder="Type your message here" required></textarea></label>
+                <div class="span-2 actions">
+                  <button class="primary" type="submit">Send message</button>
+                </div>
+              </form>
+            `
+            : `<div class="empty">Choose a coworker to view or send messages.</div>`
+        }
+      </section>
+    </section>
+  `;
+}
+
 function payslipDownloadButton(run) {
   return `<button class="secondary table-action" data-action="download-payslip" data-id="${run.id}">Download</button>`;
 }
@@ -854,6 +924,7 @@ function renderEmployeePortal() {
         <div class="portal-quick-actions">
           ${employeePortalQuickAction("leave", "Request Leave", pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days available`)}
           ${employeePortalQuickAction("shifts", "Shifts", openShifts ? `${openShifts} active or upcoming` : "Attendance and clocking")}
+          ${employeePortalQuickAction("chat", "Chat", "Talk to coworkers")}
           ${employeePortalQuickAction("timesheets", "Submit Time", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly timesheets")}
           ${employeePortalQuickAction("loans", "Request Loan", pendingLoans ? `${pendingLoans} pending` : "Track balances")}
           ${employeePortalQuickAction("payslips", "Payslips", payslipCount ? `${payslipCount} ready to view` : "No payslips yet")}
@@ -866,6 +937,7 @@ function renderEmployeePortal() {
           ${employeePortalNavButton("overview", "Overview")}
           ${employeePortalNavButton("leave", "Leave")}
           ${employeePortalNavButton("shifts", "Shifts")}
+          ${employeePortalNavButton("chat", "Chat")}
           ${employeePortalNavButton("loans", "Loans")}
           ${employeePortalNavButton("timesheets", "Timesheets")}
           ${employeePortalNavButton("payslips", "Payslips")}
@@ -875,6 +947,7 @@ function renderEmployeePortal() {
           ${state.employeePortalView === "overview" ? employeeOverviewView() : ""}
           ${state.employeePortalView === "leave" ? employeeLeaveView() : ""}
           ${state.employeePortalView === "shifts" ? employeeShiftsView() : ""}
+          ${state.employeePortalView === "chat" ? employeeChatView() : ""}
           ${state.employeePortalView === "loans" ? employeeLoansView() : ""}
           ${state.employeePortalView === "timesheets" ? employeeTimesheetsView() : ""}
           ${state.employeePortalView === "payslips" ? employeePayslipsView() : ""}
@@ -884,6 +957,7 @@ function renderEmployeePortal() {
       <nav class="portal-bottom-nav">
         ${employeePortalBottomNavButton("leave", "Leave")}
         ${employeePortalBottomNavButton("shifts", "Shifts")}
+        ${employeePortalBottomNavButton("chat", "Chat")}
         ${employeePortalBottomNavButton("timesheets", "Time")}
         ${employeePortalBottomNavButton("loans", "Loans")}
         ${employeePortalBottomNavButton("payslips", "Payslips")}
@@ -3511,6 +3585,34 @@ function bindEmployeePortal() {
     });
   });
 
+  document.querySelectorAll("[data-action='open-chat-contact']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeChatEmployeeId = button.dataset.id;
+      render();
+    });
+  });
+
+  const employeeChatForm = document.querySelector("#employee-chat-form");
+  if (employeeChatForm) {
+    employeeChatForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const data = Object.fromEntries(new FormData(employeeChatForm).entries());
+        await api("/api/employee/chats", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        state.employeePortalError = "";
+        state.employeePortalNotice = "Message sent.";
+        await loadEmployeePortal();
+      } catch (error) {
+        state.employeePortalError = error.message;
+        state.employeePortalNotice = "";
+      }
+      render();
+    });
+  }
+
   const employeePasswordForm = document.querySelector("#employee-password-form");
   if (employeePasswordForm) {
     employeePasswordForm.addEventListener("submit", async (event) => {
@@ -3630,6 +3732,11 @@ async function loadEmployeePortal() {
   const response = await api("/api/employee/me");
   state.portalData = response;
   state.company = response.company;
+  if (!state.activeChatEmployeeId) {
+    state.activeChatEmployeeId = response.chatContacts?.[0]?.id || "";
+  } else if (!(response.chatContacts || []).some((item) => item.id === state.activeChatEmployeeId)) {
+    state.activeChatEmployeeId = response.chatContacts?.[0]?.id || "";
+  }
   state.activeRun = response.payslips?.[0] || null;
 }
 

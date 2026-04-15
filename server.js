@@ -73,6 +73,7 @@ function defaultWorkspace(overrides = {}) {
     company: sanitizeCompany(overrides.company || {}),
     users: overrides.users || [],
     employees: overrides.employees || [],
+    chatMessages: overrides.chatMessages || [],
     leaveRequests: overrides.leaveRequests || [],
     loanRequests: overrides.loanRequests || [],
     shifts: overrides.shifts || [],
@@ -288,6 +289,7 @@ function buildRootDbFromLegacy(legacyDb) {
     },
     users: legacyDb.users || [],
     employees: legacyDb.employees || [],
+    chatMessages: legacyDb.chatMessages || [],
     leaveRequests: legacyDb.leaveRequests || [],
     loanRequests: legacyDb.loanRequests || [],
     shifts: legacyDb.shifts || [],
@@ -931,6 +933,12 @@ function sanitizeNotification(entry) {
   };
 }
 
+function sanitizeChatMessage(entry) {
+  return {
+    ...entry,
+  };
+}
+
 function createNotification(db, payload) {
   db.notifications = db.notifications || [];
   const entry = {
@@ -944,6 +952,28 @@ function createNotification(db, payload) {
   };
   db.notifications.unshift(entry);
   return entry;
+}
+
+function getEmployeeChatContacts(db, employeeId) {
+  return (db.employees || [])
+    .filter((item) => item.id !== employeeId && item.status !== "archived")
+    .map((item) => ({
+      id: item.id,
+      employeeNumber: item.employeeNumber,
+      fullName: item.fullName,
+      title: item.title || "",
+      department: item.department || "",
+      cellphone: item.profile?.cellphone || "",
+      personalEmail: item.profile?.personalEmail || "",
+    }));
+}
+
+function getEmployeeChatMessages(db, employeeId) {
+  return (db.chatMessages || [])
+    .filter((item) => item.senderEmployeeId === employeeId || item.recipientEmployeeId === employeeId)
+    .slice()
+    .sort((left, right) => String(left.sentAt || "").localeCompare(String(right.sentAt || "")))
+    .map(sanitizeChatMessage);
 }
 
 async function sendResendEmail(to, subject, text) {
@@ -3201,6 +3231,72 @@ const routes = [
   },
   {
     method: "GET",
+    path: "/api/employee/chats",
+    handler: requireEmployeeOrAdmin(async (req, res, params, sessionState) => {
+      const employee = getEmployeeForSession(sessionState);
+      if (!employee) {
+        sendJson(res, 403, { error: "Employee access required." });
+        return;
+      }
+      sendJson(res, 200, {
+        contacts: getEmployeeChatContacts(sessionState.db, employee.id),
+        items: getEmployeeChatMessages(sessionState.db, employee.id),
+      });
+    }),
+  },
+  {
+    method: "POST",
+    path: "/api/employee/chats",
+    handler: requireEmployeeOrAdmin(async (req, res, params, sessionState) => {
+      const employee = getEmployeeForSession(sessionState);
+      if (!employee) {
+        sendJson(res, 403, { error: "Employee access required." });
+        return;
+      }
+      const body = await parseBody(req);
+      const recipient = (sessionState.db.employees || []).find(
+        (item) => item.id === String(body.recipientEmployeeId || "") && item.status !== "archived" && item.id !== employee.id,
+      );
+      if (!recipient) {
+        sendJson(res, 404, { error: "Choose a valid coworker to chat with." });
+        return;
+      }
+      const message = String(body.message || "").trim();
+      if (!message) {
+        sendJson(res, 400, { error: "Message cannot be empty." });
+        return;
+      }
+
+      sessionState.db.chatMessages = sessionState.db.chatMessages || [];
+      const entry = {
+        id: id("chat"),
+        senderEmployeeId: employee.id,
+        senderName: employee.fullName,
+        recipientEmployeeId: recipient.id,
+        recipientName: recipient.fullName,
+        message,
+        sentAt: new Date().toISOString(),
+      };
+      sessionState.db.chatMessages.push(entry);
+      createNotification(sessionState.db, {
+        employeeId: recipient.id,
+        type: "info",
+        title: `New chat from ${employee.fullName}`,
+        body: message.length > 120 ? `${message.slice(0, 117)}...` : message,
+      });
+      sessionState.db.auditLog.push({
+        id: id("audit"),
+        action: "employee-chat-sent",
+        at: entry.sentAt,
+        actor: sessionState.user.username,
+        detail: `${employee.fullName} sent a chat message to ${recipient.fullName}.`,
+      });
+      await writeDb(sessionState.db);
+      sendJson(res, 201, { item: sanitizeChatMessage(entry) });
+    }),
+  },
+  {
+    method: "GET",
     path: "/api/employee/me",
     handler: requireEmployeeOrAdmin(async (req, res, params, sessionState) => {
       const employee = getEmployeeForSession(sessionState);
@@ -3237,10 +3333,14 @@ const routes = [
         .filter((item) => item.employeeId === employee.id)
         .slice()
         .map(sanitizeNotification);
+      const chats = getEmployeeChatMessages(sessionState.db, employee.id);
+      const chatContacts = getEmployeeChatContacts(sessionState.db, employee.id);
 
       sendJson(res, 200, {
         company: sanitizeCompany(sessionState.db.company),
         employee: sanitizeEmployee(employee),
+        chatContacts,
+        chats,
         leaveRequests,
         loanRequests,
         shifts,
