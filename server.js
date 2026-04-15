@@ -30,6 +30,12 @@ const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
   ".js": "application/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".txt": "text/plain; charset=utf-8",
+  ".pdf": "application/pdf",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".jpg": "image/jpeg",
@@ -768,6 +774,52 @@ async function persistLogo(dataUrl) {
   const outputPath = path.join(UPLOADS_DIR, filename);
   await fs.writeFile(outputPath, buffer);
   return `/uploads/${filename}`;
+}
+
+async function persistChatAttachment(dataUrl, originalName = "") {
+  if (!dataUrl) return null;
+  const match = String(dataUrl).match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    throw new Error("Attachment format is invalid.");
+  }
+
+  const mime = match[1];
+  const extensionMap = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/webp": "webp",
+    "application/pdf": "pdf",
+    "text/plain": "txt",
+    "application/msword": "doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/vnd.ms-excel": "xls",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  };
+  const extension = extensionMap[mime];
+  if (!extension) {
+    throw new Error("Attachment must be an image, PDF, text, Word, or Excel file.");
+  }
+
+  const buffer = Buffer.from(match[2], "base64");
+  if (buffer.length > 5 * 1024 * 1024) {
+    throw new Error("Attachment file is too large. Keep it under 5MB.");
+  }
+
+  const safeName = String(originalName || `attachment.${extension}`)
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || `attachment.${extension}`;
+  const filename = `chat-${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const outputPath = path.join(UPLOADS_DIR, filename);
+  await fs.writeFile(outputPath, buffer);
+  return {
+    name: safeName,
+    mime,
+    size: buffer.length,
+    url: `/uploads/${filename}`,
+    isImage: mime.startsWith("image/"),
+  };
 }
 
 async function getSession(req) {
@@ -3262,8 +3314,11 @@ const routes = [
         return;
       }
       const message = String(body.message || "").trim();
-      if (!message) {
-        sendJson(res, 400, { error: "Message cannot be empty." });
+      const attachment = body.attachmentDataUrl
+        ? await persistChatAttachment(body.attachmentDataUrl, body.attachmentName)
+        : null;
+      if (!message && !attachment) {
+        sendJson(res, 400, { error: "Message cannot be empty unless you attach a file." });
         return;
       }
 
@@ -3275,6 +3330,7 @@ const routes = [
         recipientEmployeeId: recipient.id,
         recipientName: recipient.fullName,
         message,
+        attachment,
         sentAt: new Date().toISOString(),
       };
       sessionState.db.chatMessages.push(entry);
@@ -3282,7 +3338,11 @@ const routes = [
         employeeId: recipient.id,
         type: "info",
         title: `New chat from ${employee.fullName}`,
-        body: message.length > 120 ? `${message.slice(0, 117)}...` : message,
+        body: message
+          ? message.length > 120
+            ? `${message.slice(0, 117)}...`
+            : message
+          : `${employee.fullName} sent you an attachment.`,
       });
       sessionState.db.auditLog.push({
         id: id("audit"),

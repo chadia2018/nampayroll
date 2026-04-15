@@ -720,7 +720,17 @@ function chatThreadMessage(message, employeeId) {
         <strong>${mine ? "You" : message.senderName}</strong>
         <span>${new Date(message.sentAt).toLocaleString("en-NA", { dateStyle: "medium", timeStyle: "short" })}</span>
       </div>
-      <p>${message.message}</p>
+      ${message.message ? `<p>${message.message}</p>` : ""}
+      ${
+        message.attachment
+          ? `
+            <a class="chat-attachment ${message.attachment.isImage ? "chat-attachment-image" : ""}" href="${message.attachment.url}" target="_blank" rel="noopener noreferrer">
+              ${message.attachment.isImage ? `<img src="${message.attachment.url}" alt="${message.attachment.name}" />` : ""}
+              <span>${message.attachment.name}</span>
+            </a>
+          `
+          : ""
+      }
     </article>
   `;
 }
@@ -768,7 +778,13 @@ function employeeChatView() {
               </div>
               <form id="employee-chat-form" class="grid-2">
                 <input type="hidden" name="recipientEmployeeId" value="${activeContact.id}" />
-                <label class="span-2">Message <textarea name="message" placeholder="Type your message here" required></textarea></label>
+                <div class="span-2 chat-emoji-bar">
+                  ${["😀", "👍", "🙏", "🎉", "❤️", "🔥", "✅", "🙂"].map((emoji) => `
+                    <button class="secondary chat-emoji-button" type="button" data-action="insert-chat-emoji" data-emoji="${emoji}">${emoji}</button>
+                  `).join("")}
+                </div>
+                <label class="span-2">Message <textarea name="message" placeholder="Type your message here"></textarea></label>
+                <label class="span-2">Attach file <input type="file" name="attachmentFile" accept=".png,.jpg,.jpeg,.webp,.pdf,.txt,.doc,.docx,.xls,.xlsx" /></label>
                 <div class="span-2 actions">
                   <button class="primary" type="submit">Send message</button>
                 </div>
@@ -3592,12 +3608,32 @@ function bindEmployeePortal() {
     });
   });
 
+  document.querySelectorAll("[data-action='insert-chat-emoji']").forEach((button) => {
+    button.addEventListener("click", () => {
+      const field = document.querySelector("#employee-chat-form textarea[name='message']");
+      if (!field) return;
+      const start = field.selectionStart ?? field.value.length;
+      const end = field.selectionEnd ?? field.value.length;
+      const emoji = button.dataset.emoji || "";
+      field.value = `${field.value.slice(0, start)}${emoji}${field.value.slice(end)}`;
+      field.focus();
+      const nextPosition = start + emoji.length;
+      field.setSelectionRange(nextPosition, nextPosition);
+    });
+  });
+
   const employeeChatForm = document.querySelector("#employee-chat-form");
   if (employeeChatForm) {
     employeeChatForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       try {
-        const data = Object.fromEntries(new FormData(employeeChatForm).entries());
+        const formData = new FormData(employeeChatForm);
+        const data = Object.fromEntries(formData.entries());
+        const file = formData.get("attachmentFile");
+        if (file && typeof file === "object" && file.size) {
+          data.attachmentDataUrl = await fileToDataUrl(file);
+          data.attachmentName = file.name;
+        }
         await api("/api/employee/chats", {
           method: "POST",
           body: JSON.stringify(data),
@@ -3797,7 +3833,7 @@ function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("Failed to read the selected logo file."));
+    reader.onerror = () => reject(new Error("Failed to read the selected file."));
     reader.readAsDataURL(file);
   });
 }
