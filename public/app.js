@@ -237,7 +237,7 @@ function renderLogin() {
 }
 
 function employeePortalNavButton(view, label) {
-  return `<button class="${state.employeePortalView === view ? "active" : "secondary"}" data-employee-view="${view}">${label}</button>`;
+  return `<button class="pane-nav-button ${state.employeePortalView === view ? "active" : "secondary"}" data-employee-view="${view}"><span>${label}</span></button>`;
 }
 
 function employeePortalQuickAction(view, title, detail) {
@@ -258,7 +258,7 @@ function employeePortalBottomNavButton(view, label) {
 }
 
 function adminNavButton(view, label) {
-  return `<button class="${state.view === view ? "active" : "secondary"}" data-view="${view}">${label}</button>`;
+  return `<button class="pane-nav-button ${state.view === view ? "active" : "secondary"}" data-view="${view}"><span>${label}</span></button>`;
 }
 
 function adminQuickAction(view, title, detail) {
@@ -274,6 +274,24 @@ function adminBottomNavButton(view, label) {
   return `
     <button class="portal-bottom-nav-button ${state.view === view ? "active" : ""}" data-view="${view}" type="button">
       ${label}
+    </button>
+  `;
+}
+
+function employeeRailButton(view, icon, label) {
+  return `
+    <button class="rail-button ${state.employeePortalView === view ? "active" : ""}" data-employee-view="${view}" type="button" title="${label}" aria-label="${label}">
+      <span class="rail-icon">${icon}</span>
+      <span class="rail-label">${label}</span>
+    </button>
+  `;
+}
+
+function adminRailButton(view, icon, label) {
+  return `
+    <button class="rail-button ${state.view === view ? "active" : ""}" data-view="${view}" type="button" title="${label}" aria-label="${label}">
+      <span class="rail-icon">${icon}</span>
+      <span class="rail-label">${label}</span>
     </button>
   `;
 }
@@ -908,58 +926,73 @@ function renderEmployeePortal() {
   const openShifts = (state.portalData?.shifts || []).filter((item) => ["scheduled", "late", "clocked_in"].includes(item.attendanceStatus)).length;
   const payslipCount = (state.portalData?.payslips || []).length;
   return appShell(`
-    <section class="app-shell employee-portal-shell">
-      <header class="topbar">
-        <div class="brand portal-brand">
+    <section class="workspace-shell employee-workspace-shell">
+      <aside class="app-rail">
+        <div class="app-rail-brand">
           <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
-          <div>
-            <strong>${employee?.fullName || "Employee Portal"}</strong>
-            <div class="small">${employee?.employeeNumber || ""} · ${employee?.title || "Employee"}</div>
+        </div>
+        <div class="app-rail-group">
+          ${employeeRailButton("overview", "◫", "Home")}
+          ${employeeRailButton("leave", "◌", "Leave")}
+          ${employeeRailButton("shifts", "◷", "Shifts")}
+          ${employeeRailButton("chat", "✉", "Chat")}
+          ${employeeRailButton("timesheets", "☰", "Time")}
+          ${employeeRailButton("loans", "◍", "Loans")}
+          ${employeeRailButton("payslips", "▣", "Payslips")}
+          ${employeeRailButton("account", "⚙", "Account")}
+        </div>
+      </aside>
+      <div class="workspace-surface">
+        <header class="workspace-topbar">
+          <div class="workspace-topbar-search">
+            <input class="workspace-search workspace-search-wide" id="employee-portal-search-global" placeholder="Search messages, payslips, leave, shifts" value="${state.employeePortalSearch}" />
           </div>
-        </div>
-        <div class="topbar-actions portal-topbar-actions">
-          <input class="workspace-search compact-search" id="employee-portal-search-global" placeholder="Search portal" value="${state.employeePortalSearch}" />
-          <span class="pill">${state.company?.name || "Company"}</span>
-          <button class="ghost" data-action="logout">Log out</button>
-        </div>
-      </header>
-      <section class="panel portal-summary-panel">
-        <div class="portal-summary-head">
-          <div>
-            <p class="section-kicker">Self Service</p>
-            <h2>Everything employees need in one place</h2>
-            <p class="muted">Request leave, submit timesheets, ask for loans, download payslips, and keep account details current.</p>
+          <div class="workspace-topbar-actions">
+            <span class="pill">${state.company?.name || "Company"}</span>
+            <button class="ghost" data-action="logout">Log out</button>
           </div>
-          <div class="portal-summary-stats">
-            <article class="portal-mini-stat"><span>Leave left</span><strong>${number(annualRemaining, 0)} days</strong></article>
-            <article class="portal-mini-stat"><span>Open shifts</span><strong>${openShifts}</strong></article>
-            <article class="portal-mini-stat"><span>Payslips</span><strong>${payslipCount}</strong></article>
-            <article class="portal-mini-stat"><span>Open items</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
-          </div>
-        </div>
-        <div class="portal-quick-actions">
-          ${employeePortalQuickAction("leave", "Request Leave", pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days available`)}
-          ${employeePortalQuickAction("shifts", "Shifts", openShifts ? `${openShifts} active or upcoming` : "Attendance and clocking")}
-          ${employeePortalQuickAction("chat", "Chat", "Talk to coworkers")}
-          ${employeePortalQuickAction("timesheets", "Submit Time", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly timesheets")}
-          ${employeePortalQuickAction("loans", "Request Loan", pendingLoans ? `${pendingLoans} pending` : "Track balances")}
-          ${employeePortalQuickAction("payslips", "Payslips", payslipCount ? `${payslipCount} ready to view` : "No payslips yet")}
-          ${employeePortalQuickAction("account", "Update Account", "Profile and password")}
-        </div>
-      </section>
-      <div class="layout portal-layout">
-        <aside class="nav panel portal-nav">
-          <p class="section-kicker">Self Service</p>
-          ${employeePortalNavButton("overview", "Overview")}
-          ${employeePortalNavButton("leave", "Leave")}
-          ${employeePortalNavButton("shifts", "Shifts")}
-          ${employeePortalNavButton("chat", "Chat")}
-          ${employeePortalNavButton("loans", "Loans")}
-          ${employeePortalNavButton("timesheets", "Timesheets")}
-          ${employeePortalNavButton("payslips", "Payslips")}
-          ${employeePortalNavButton("account", "Account")}
-        </aside>
-        <main>
+        </header>
+        <div class="workspace-body">
+          <aside class="sidebar-pane">
+            <div class="sidebar-pane-head">
+              <p class="section-kicker">Employee Workspace</p>
+              <h2>${employee?.fullName || "Employee Portal"}</h2>
+              <p class="muted">${employee?.employeeNumber || ""} · ${employee?.title || "Employee"}</p>
+            </div>
+            <div class="sidebar-stat-stack">
+              <article class="sidebar-stat-card"><span>Leave left</span><strong>${number(annualRemaining, 0)} days</strong></article>
+              <article class="sidebar-stat-card"><span>Open shifts</span><strong>${openShifts}</strong></article>
+              <article class="sidebar-stat-card"><span>Payslips</span><strong>${payslipCount}</strong></article>
+              <article class="sidebar-stat-card"><span>Open items</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
+            </div>
+            <div class="sidebar-nav-list">
+              ${employeePortalNavButton("overview", "Overview")}
+              ${employeePortalNavButton("leave", "Leave")}
+              ${employeePortalNavButton("shifts", "Shifts")}
+              ${employeePortalNavButton("chat", "Chat")}
+              ${employeePortalNavButton("loans", "Loans")}
+              ${employeePortalNavButton("timesheets", "Timesheets")}
+              ${employeePortalNavButton("payslips", "Payslips")}
+              ${employeePortalNavButton("account", "Account")}
+            </div>
+          </aside>
+          <main class="content-stage">
+            <section class="workspace-hero-card">
+              <div class="workspace-hero-copy">
+                <p class="section-kicker">Self Service</p>
+                <h1 class="workspace-title">Everything employees need in one place</h1>
+                <p class="muted">Request leave, submit timesheets, ask for loans, download payslips, and keep account details current.</p>
+              </div>
+              <div class="portal-quick-actions">
+                ${employeePortalQuickAction("leave", "Request Leave", pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days available`)}
+                ${employeePortalQuickAction("shifts", "Shifts", openShifts ? `${openShifts} active or upcoming` : "Attendance and clocking")}
+                ${employeePortalQuickAction("chat", "Chat", "Talk to coworkers")}
+                ${employeePortalQuickAction("timesheets", "Submit Time", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly timesheets")}
+                ${employeePortalQuickAction("loans", "Request Loan", pendingLoans ? `${pendingLoans} pending` : "Track balances")}
+                ${employeePortalQuickAction("payslips", "Payslips", payslipCount ? `${payslipCount} ready to view` : "No payslips yet")}
+                ${employeePortalQuickAction("account", "Update Account", "Profile and password")}
+              </div>
+            </section>
           ${state.employeePortalView === "overview" ? employeeOverviewView() : ""}
           ${state.employeePortalView === "leave" ? employeeLeaveView() : ""}
           ${state.employeePortalView === "shifts" ? employeeShiftsView() : ""}
@@ -968,7 +1001,8 @@ function renderEmployeePortal() {
           ${state.employeePortalView === "timesheets" ? employeeTimesheetsView() : ""}
           ${state.employeePortalView === "payslips" ? employeePayslipsView() : ""}
           ${state.employeePortalView === "account" ? employeeAccountView() : ""}
-        </main>
+          </main>
+        </div>
       </div>
       <nav class="portal-bottom-nav">
         ${employeePortalBottomNavButton("leave", "Leave")}
@@ -2589,73 +2623,90 @@ function renderApp() {
   const pendingTimesheets = (state.timesheets || []).filter((item) => item.status === "submitted").length;
   const activeShifts = (state.shifts || []).filter((item) => item.attendanceStatus === "clocked_in").length;
   return appShell(`
-    <section class="app-shell employee-portal-shell admin-portal-shell">
-      <header class="topbar">
-        <div class="brand portal-brand">
+    <section class="workspace-shell admin-workspace-shell">
+      <aside class="app-rail">
+        <div class="app-rail-brand">
           <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
-          <div>
-            <strong>${companyName}</strong>
-            <div class="small">${state.session.name} · ${state.session.role}</div>
+        </div>
+        <div class="app-rail-group">
+          ${adminRailButton("dashboard", "◫", "Home")}
+          ${adminRailButton("employees", "◉", "People")}
+          ${adminRailButton("leave", "◌", "Leave")}
+          ${adminRailButton("shifts", "◷", "Shifts")}
+          ${adminRailButton("timesheets", "☰", "Time")}
+          ${adminRailButton("payroll", "▣", "Payroll")}
+          ${adminRailButton("reports", "◫", "Reports")}
+          ${adminRailButton("company", "⚙", "Company")}
+        </div>
+      </aside>
+      <div class="workspace-surface">
+        <header class="workspace-topbar">
+          <div class="workspace-topbar-search">
+            <input class="workspace-search workspace-search-wide" id="global-search-topbar" placeholder="Search employees, payroll, requests, reports" value="${state.globalSearch}" />
           </div>
-        </div>
-        <div class="topbar-actions portal-topbar-actions">
-          <input class="workspace-search compact-search" id="global-search-topbar" placeholder="Search workspace" value="${state.globalSearch}" />
-          ${
-            state.session?.role === "super_admin"
-              ? `
-                <select id="super-admin-workspace-switch" class="workspace-search compact-search">
-                  ${(state.superAdminWorkspaces || []).map((workspace) => `
-                    <option value="${workspace.id}" ${workspace.id === state.company?.workspaceId ? "selected" : ""}>${workspace.name}</option>
-                  `).join("")}
-                </select>
-              `
-              : ""
-          }
-          <span class="pill">Billing: ${state.company?.billingStatus || "trial"}</span>
-          <span class="pill">Tax ref: ${state.company?.taxReference || "n/a"}</span>
-          <span class="pill">SSC: ${state.company?.sscRegistration || "n/a"}</span>
-          <button class="ghost" data-action="logout">Log out</button>
-        </div>
-      </header>
-      <section class="panel portal-summary-panel">
-        <div class="portal-summary-head">
-          <div>
-            <p class="section-kicker">Admin Workspace</p>
-            <h2>Run payroll and manage the company from one place</h2>
-            <p class="muted">Keep employees, leave, loans, timesheets, payroll, and reports within easy reach on mobile and desktop.</p>
+          <div class="workspace-topbar-actions">
+            ${
+              state.session?.role === "super_admin"
+                ? `
+                  <select id="super-admin-workspace-switch" class="workspace-search compact-search">
+                    ${(state.superAdminWorkspaces || []).map((workspace) => `
+                      <option value="${workspace.id}" ${workspace.id === state.company?.workspaceId ? "selected" : ""}>${workspace.name}</option>
+                    `).join("")}
+                  </select>
+                `
+                : ""
+            }
+            <span class="pill">Billing: ${state.company?.billingStatus || "trial"}</span>
+            <button class="ghost" data-action="logout">Log out</button>
           </div>
-          <div class="portal-summary-stats">
-            <article class="portal-mini-stat"><span>Employees</span><strong>${activeEmployees}</strong></article>
-            <article class="portal-mini-stat"><span>Pending reviews</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
-            <article class="portal-mini-stat"><span>Clocked in</span><strong>${activeShifts}</strong></article>
-            <article class="portal-mini-stat"><span>Reports month</span><strong>${state.reportMonth}</strong></article>
-          </div>
-        </div>
-        <div class="portal-quick-actions admin-quick-actions">
-          ${adminQuickAction("employees", "Employees", `${activeEmployees} active records`)}
-          ${adminQuickAction("leave", "Leave", pendingLeave ? `${pendingLeave} pending` : "Leave tracker")}
-          ${adminQuickAction("shifts", "Shifts", activeShifts ? `${activeShifts} clocked in now` : "Attendance tracking")}
-          ${adminQuickAction("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly submissions")}
-          ${adminQuickAction("payroll", "Payroll", "Run and review payroll")}
-          ${adminQuickAction("reports", "Reports", "Finance and compliance")}
-        </div>
-      </section>
-      <div class="layout portal-layout admin-layout">
-        <aside class="nav panel portal-nav admin-nav">
-          <p class="section-kicker">Workspace</p>
-          ${adminNavButton("dashboard", "Dashboard")}
-          ${adminNavButton("company", "Company")}
-          ${adminNavButton("employees", "Employees")}
-          ${adminNavButton("leave", "Leave Requests")}
-          ${adminNavButton("loans", "Loans")}
-          ${adminNavButton("shifts", "Shifts")}
-          ${adminNavButton("timesheets", "Timesheets")}
-          ${adminNavButton("payroll", "Payroll Run")}
-          ${adminNavButton("documents", "Documents")}
-          ${adminNavButton("data", "Data")}
-          ${adminNavButton("reports", "Reports")}
-        </aside>
-        <main>
+        </header>
+        <div class="workspace-body">
+          <aside class="sidebar-pane">
+            <div class="sidebar-pane-head">
+              <p class="section-kicker">Admin Workspace</p>
+              <h2>${companyName}</h2>
+              <p class="muted">${state.session.name} · ${state.session.role}</p>
+            </div>
+            <div class="sidebar-stat-stack">
+              <article class="sidebar-stat-card"><span>Employees</span><strong>${activeEmployees}</strong></article>
+              <article class="sidebar-stat-card"><span>Pending reviews</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
+              <article class="sidebar-stat-card"><span>Clocked in</span><strong>${activeShifts}</strong></article>
+              <article class="sidebar-stat-card"><span>Reports month</span><strong>${state.reportMonth}</strong></article>
+            </div>
+            <div class="sidebar-nav-list">
+              ${adminNavButton("dashboard", "Dashboard")}
+              ${adminNavButton("company", "Company")}
+              ${adminNavButton("employees", "Employees")}
+              ${adminNavButton("leave", "Leave Requests")}
+              ${adminNavButton("loans", "Loans")}
+              ${adminNavButton("shifts", "Shifts")}
+              ${adminNavButton("timesheets", "Timesheets")}
+              ${adminNavButton("payroll", "Payroll Run")}
+              ${adminNavButton("documents", "Documents")}
+              ${adminNavButton("data", "Data")}
+              ${adminNavButton("reports", "Reports")}
+            </div>
+            <div class="sidebar-pill-stack">
+              <span class="pill">Tax ref: ${state.company?.taxReference || "n/a"}</span>
+              <span class="pill">SSC: ${state.company?.sscRegistration || "n/a"}</span>
+            </div>
+          </aside>
+          <main class="content-stage">
+            <section class="workspace-hero-card">
+              <div class="workspace-hero-copy">
+                <p class="section-kicker">Operations</p>
+                <h1 class="workspace-title">Run payroll and manage the company from one place</h1>
+                <p class="muted">Keep employees, leave, loans, shifts, timesheets, payroll, and reports within easy reach.</p>
+              </div>
+              <div class="portal-quick-actions admin-quick-actions">
+                ${adminQuickAction("employees", "Employees", `${activeEmployees} active records`)}
+                ${adminQuickAction("leave", "Leave", pendingLeave ? `${pendingLeave} pending` : "Leave tracker")}
+                ${adminQuickAction("shifts", "Shifts", activeShifts ? `${activeShifts} clocked in now` : "Attendance tracking")}
+                ${adminQuickAction("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly submissions")}
+                ${adminQuickAction("payroll", "Payroll", "Run and review payroll")}
+                ${adminQuickAction("reports", "Reports", "Finance and compliance")}
+              </div>
+            </section>
           ${state.view === "dashboard" ? dashboardView() : ""}
           ${state.view === "company" ? companyView() : ""}
           ${state.view === "employees" ? employeesView() : ""}
@@ -2667,7 +2718,8 @@ function renderApp() {
           ${state.view === "documents" ? documentsView() : ""}
           ${state.view === "data" ? dataView() : ""}
           ${state.view === "reports" ? reportsView() : ""}
-        </main>
+          </main>
+        </div>
       </div>
       <nav class="portal-bottom-nav admin-bottom-nav">
         ${adminBottomNavButton("dashboard", "Home")}
