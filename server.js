@@ -71,6 +71,7 @@ function defaultCompany() {
     notifyEmployeeOnTimesheetUpdate: true,
     notifyEmployeeOnPayslipReady: true,
     notifyEmployeeOnShiftAssigned: true,
+    notifyEmployeeOnChatMessage: true,
   };
 }
 
@@ -1116,7 +1117,8 @@ async function sendEmployeeUpdateAlert(db, employee, type, subject, message) {
     (type === "loan" && company.notifyEmployeeOnLoanUpdate) ||
     (type === "timesheet" && company.notifyEmployeeOnTimesheetUpdate) ||
     (type === "payslip" && company.notifyEmployeeOnPayslipReady) ||
-    (type === "shift" && company.notifyEmployeeOnShiftAssigned);
+    (type === "shift" && company.notifyEmployeeOnShiftAssigned) ||
+    (type === "chat" && company.notifyEmployeeOnChatMessage);
   if (!shouldSend) return;
 
   const deliveries = [];
@@ -2245,6 +2247,7 @@ const routes = [
       const notifyEmployeeOnLoanUpdate = body.notifyEmployeeOnLoanUpdate !== false && body.notifyEmployeeOnLoanUpdate !== "false";
       const notifyEmployeeOnTimesheetUpdate = body.notifyEmployeeOnTimesheetUpdate !== false && body.notifyEmployeeOnTimesheetUpdate !== "false";
       const notifyEmployeeOnPayslipReady = body.notifyEmployeeOnPayslipReady !== false && body.notifyEmployeeOnPayslipReady !== "false";
+      const notifyEmployeeOnChatMessage = body.notifyEmployeeOnChatMessage !== false && body.notifyEmployeeOnChatMessage !== "false";
       const adminNotificationEmail = String(body.adminNotificationEmail || "").trim();
       const adminNotificationCellphone = String(body.adminNotificationCellphone || "").trim();
 
@@ -2286,6 +2289,7 @@ const routes = [
         notifyEmployeeOnLoanUpdate,
         notifyEmployeeOnTimesheetUpdate,
         notifyEmployeeOnPayslipReady,
+        notifyEmployeeOnChatMessage,
         logoPath,
       });
 
@@ -3344,6 +3348,17 @@ const routes = [
             : message
           : `${employee.fullName} sent you an attachment.`,
       });
+      await sendEmployeeUpdateAlert(
+        sessionState.db,
+        recipient,
+        "chat",
+        `New chat from ${employee.fullName}`,
+        message
+          ? message.length > 160
+            ? `${message.slice(0, 157)}...`
+            : message
+          : `${employee.fullName} sent you an attachment.`,
+      );
       sessionState.db.auditLog.push({
         id: id("audit"),
         action: "employee-chat-sent",

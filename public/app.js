@@ -1448,6 +1448,7 @@ function companyView() {
               <label class="settings-check"><input type="checkbox" name="notifyEmployeeOnLoanUpdate" ${state.company?.notifyEmployeeOnLoanUpdate !== false ? "checked" : ""} /> Send loan status updates</label>
               <label class="settings-check"><input type="checkbox" name="notifyEmployeeOnTimesheetUpdate" ${state.company?.notifyEmployeeOnTimesheetUpdate !== false ? "checked" : ""} /> Send timesheet review updates</label>
               <label class="settings-check"><input type="checkbox" name="notifyEmployeeOnPayslipReady" ${state.company?.notifyEmployeeOnPayslipReady !== false ? "checked" : ""} /> Send payslip-ready alerts</label>
+              <label class="settings-check"><input type="checkbox" name="notifyEmployeeOnChatMessage" ${state.company?.notifyEmployeeOnChatMessage !== false ? "checked" : ""} /> Send chat message alerts</label>
             </div>
           </section>
           <label class="span-2">Company logo
@@ -3238,6 +3239,7 @@ function bindApp() {
             notifyEmployeeOnLoanUpdate: companyForm.elements.namedItem("notifyEmployeeOnLoanUpdate")?.checked ?? false,
             notifyEmployeeOnTimesheetUpdate: companyForm.elements.namedItem("notifyEmployeeOnTimesheetUpdate")?.checked ?? false,
             notifyEmployeeOnPayslipReady: companyForm.elements.namedItem("notifyEmployeeOnPayslipReady")?.checked ?? false,
+            notifyEmployeeOnChatMessage: companyForm.elements.namedItem("notifyEmployeeOnChatMessage")?.checked ?? false,
           }),
         });
 
