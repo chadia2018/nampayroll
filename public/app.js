@@ -2617,6 +2617,11 @@ function timesheetsView() {
 
 function renderApp() {
   const companyName = state.company?.name || "Namibia Payroll Desk";
+  const activeEmployees = (state.employees || []).filter((item) => item.status !== "archived").length;
+  const pendingLeave = (state.leaveRequests || []).filter((item) => item.status === "pending").length;
+  const pendingLoans = (state.loanRequests || []).filter((item) => item.status === "pending").length;
+  const pendingTimesheets = (state.timesheets || []).filter((item) => item.status === "submitted").length;
+  const activeShifts = (state.shifts || []).filter((item) => item.attendanceStatus === "clocked_in").length;
   return appShell(`
     <section class="workspace-shell admin-workspace-shell">
       <aside class="app-rail">
