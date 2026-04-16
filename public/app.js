@@ -62,6 +62,7 @@ const state = {
   employeePortalError: "",
   employeePortalNotice: "",
   loginView: "signin",
+  mobileNavOpen: false,
 };
 
 async function api(path, options = {}) {
@@ -1053,7 +1054,7 @@ function renderEmployeePortal() {
       <div class="workspace-surface">
         <header class="workspace-topbar">
           <div class="mobile-topbar-brand">
-            <span class="mobile-topbar-icon">☰</span>
+            <button class="mobile-topbar-icon-button" data-action="toggle-mobile-nav" type="button" aria-label="Open menu" aria-expanded="${state.mobileNavOpen ? "true" : "false"}">☰</button>
             <div class="mobile-topbar-brand-lockup">
               <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
               <strong>NamPayroll</strong>
@@ -1069,7 +1070,8 @@ function renderEmployeePortal() {
           </div>
         </header>
         <div class="workspace-body">
-          <aside class="sidebar-pane">
+          ${state.mobileNavOpen ? `<button class="mobile-nav-backdrop" data-action="close-mobile-nav" type="button" aria-label="Close menu"></button>` : ""}
+          <aside class="sidebar-pane ${state.mobileNavOpen ? "mobile-open" : ""}">
             <div class="sidebar-nav-list employee-portal-menu">
               ${employeePortalNavButton("overview", "Overview")}
               ${employeePortalNavButton("leave", "Leave")}
@@ -2834,7 +2836,7 @@ function renderApp() {
       <div class="workspace-surface">
         <header class="workspace-topbar">
           <div class="mobile-topbar-brand">
-            <span class="mobile-topbar-icon">☰</span>
+            <button class="mobile-topbar-icon-button" data-action="toggle-mobile-nav" type="button" aria-label="Open menu" aria-expanded="${state.mobileNavOpen ? "true" : "false"}">☰</button>
             <div class="mobile-topbar-brand-lockup">
               <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
               <strong>NamPayroll</strong>
@@ -2863,6 +2865,27 @@ function renderApp() {
           </div>
         </header>
         <div class="workspace-body">
+          ${state.mobileNavOpen ? `<button class="mobile-nav-backdrop" data-action="close-mobile-nav" type="button" aria-label="Close menu"></button>` : ""}
+          <aside class="sidebar-pane admin-mobile-pane ${state.mobileNavOpen ? "mobile-open" : ""}">
+            <div class="sidebar-pane-head">
+              <p class="section-kicker">Admin Menu</p>
+              <h2>${companyName}</h2>
+              <p class="muted">${state.session.name} · ${state.session.role}</p>
+            </div>
+            <div class="sidebar-nav-list">
+              ${adminNavButton("dashboard", "Dashboard")}
+              ${adminNavButton("employees", "Employees")}
+              ${adminNavButton("leave", "Leave Requests")}
+              ${adminNavButton("loans", "Loans")}
+              ${adminNavButton("shifts", "Shifts")}
+              ${adminNavButton("timesheets", "Timesheets")}
+              ${adminNavButton("payroll", "Payroll")}
+              ${adminNavButton("reports", "Reports")}
+              ${adminNavButton("company", "Company")}
+              ${adminNavButton("documents", "Documents")}
+              ${adminNavButton("data", "Data")}
+            </div>
+          </aside>
           <main class="content-stage">
             ${state.view === "dashboard" ? `
               <section class="workspace-hero-card workspace-hero-card-modern">
@@ -2999,9 +3022,24 @@ function createPayslipDocument(run) {
 }
 
 function bindApp() {
+  document.querySelectorAll("[data-action='toggle-mobile-nav']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.mobileNavOpen = !state.mobileNavOpen;
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='close-mobile-nav']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.mobileNavOpen = false;
+      render();
+    });
+  });
+
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", async () => {
       state.view = button.dataset.view;
+      state.mobileNavOpen = false;
       if (state.view === "reports") {
         await loadReport(state.reportMonth);
       }
@@ -3670,6 +3708,20 @@ function bindApp() {
 }
 
 function bindEmployeePortal() {
+  document.querySelectorAll("[data-action='toggle-mobile-nav']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.mobileNavOpen = !state.mobileNavOpen;
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='close-mobile-nav']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.mobileNavOpen = false;
+      render();
+    });
+  });
+
   document.querySelectorAll("[data-action='logout']").forEach((button) => {
     button.addEventListener("click", logoutUser);
   });
@@ -3677,6 +3729,7 @@ function bindEmployeePortal() {
   document.querySelectorAll("[data-employee-view]").forEach((button) => {
     button.addEventListener("click", () => {
       state.employeePortalView = button.dataset.employeeView;
+      state.mobileNavOpen = false;
       state.employeePortalError = "";
       state.employeePortalNotice = "";
       render();

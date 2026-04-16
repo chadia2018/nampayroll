@@ -2078,14 +2078,35 @@ button:hover {
     border-radius: 10px;
   }
 
-  .mobile-topbar-icon {
-    display: grid;
-    place-items: center;
-    width: 28px;
-    height: 28px;
-    color: var(--muted);
-    font-size: 1.1rem;
-  }
+.mobile-topbar-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.mobile-topbar-icon-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 12px;
+  background: rgba(55, 120, 204, 0.08);
+  border: 1px solid rgba(23, 36, 50, 0.08);
+  color: var(--ink);
+  font-size: 1.1rem;
+}
+
+.mobile-nav-backdrop {
+  display: none;
+}
+
+.admin-mobile-pane {
+  display: none;
+}
 
   .workspace-topbar-search {
     display: none;
@@ -2103,6 +2124,31 @@ button:hover {
 
   .sidebar-pane {
     display: none;
+  }
+
+  .sidebar-pane.mobile-open,
+  .admin-mobile-pane.mobile-open {
+    display: grid;
+    position: fixed;
+    top: 84px;
+    left: 10px;
+    right: 72px;
+    z-index: 30;
+    max-height: calc(100vh - 170px);
+    overflow: auto;
+    border-radius: 24px;
+    background: rgba(250, 252, 255, 0.98);
+    box-shadow: 0 24px 40px rgba(26, 36, 52, 0.18);
+  }
+
+  .mobile-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.22);
+    z-index: 24;
+    border: 0;
+    padding: 0;
   }
 
   .workspace-hero-card {
