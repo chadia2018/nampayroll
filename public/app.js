@@ -2617,11 +2617,6 @@ function timesheetsView() {
 
 function renderApp() {
   const companyName = state.company?.name || "Namibia Payroll Desk";
-  const activeEmployees = (state.employees || []).filter((item) => item.status !== "archived").length;
-  const pendingLeave = (state.leaveRequests || []).filter((item) => item.status === "pending").length;
-  const pendingLoans = (state.loanRequests || []).filter((item) => item.status === "pending").length;
-  const pendingTimesheets = (state.timesheets || []).filter((item) => item.status === "submitted").length;
-  const activeShifts = (state.shifts || []).filter((item) => item.attendanceStatus === "clocked_in").length;
   return appShell(`
     <section class="workspace-shell admin-workspace-shell">
       <aside class="app-rail">
@@ -2662,17 +2657,6 @@ function renderApp() {
         </header>
         <div class="workspace-body">
           <aside class="sidebar-pane">
-            <div class="sidebar-pane-head">
-              <p class="section-kicker">Admin Workspace</p>
-              <h2>${companyName}</h2>
-              <p class="muted">${state.session.name} · ${state.session.role}</p>
-            </div>
-            <div class="sidebar-stat-stack">
-              <article class="sidebar-stat-card"><span>Employees</span><strong>${activeEmployees}</strong></article>
-              <article class="sidebar-stat-card"><span>Pending reviews</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
-              <article class="sidebar-stat-card"><span>Clocked in</span><strong>${activeShifts}</strong></article>
-              <article class="sidebar-stat-card"><span>Reports month</span><strong>${state.reportMonth}</strong></article>
-            </div>
             <div class="sidebar-nav-list">
               ${adminNavButton("dashboard", "Dashboard")}
               ${adminNavButton("company", "Company")}
