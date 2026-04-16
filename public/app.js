@@ -39,6 +39,7 @@ const state = {
   showEmployeeForm: false,
   globalSearch: "",
   employeeSearch: "",
+  selectedEmployeeId: "",
   employeeDepartment: "all",
   employeeStatus: "active",
   leaveStatusFilter: "all",
@@ -91,6 +92,88 @@ function matchesSearch(query, ...values) {
   const needle = String(query || "").trim().toLowerCase();
   if (!needle) return true;
   return values.some((value) => String(value || "").toLowerCase().includes(needle));
+}
+
+function initials(value) {
+  const parts = String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2);
+  return parts.map((part) => part[0]?.toUpperCase() || "").join("") || "NP";
+}
+
+function employeeAvatar(employee, className = "") {
+  return `<span class="employee-avatar ${className}">${initials(employee?.fullName)}</span>`;
+}
+
+function buildLineComparisonChart(items, primaryKey, secondaryKey, labelKey) {
+  if (!items.length) {
+    return `<div class="empty">Not enough report data for a trend chart yet.</div>`;
+  }
+
+  const width = 520;
+  const height = 220;
+  const padding = 24;
+  const chartWidth = width - padding * 2;
+  const chartHeight = height - padding * 2;
+  const values = items.flatMap((item) => [Number(item[primaryKey] || 0), Number(item[secondaryKey] || 0)]);
+  const max = Math.max(...values, 1);
+  const xStep = items.length > 1 ? chartWidth / (items.length - 1) : 0;
+  const scaleY = (value) => height - padding - (Number(value || 0) / max) * chartHeight;
+  const point = (value, index) => `${padding + xStep * index},${scaleY(value)}`;
+  const primaryPoints = items.map((item, index) => point(item[primaryKey], index)).join(" ");
+  const secondaryPoints = items.map((item, index) => point(item[secondaryKey], index)).join(" ");
+
+  return `
+    <div class="report-line-card">
+      <svg viewBox="0 0 ${width} ${height}" class="report-line-chart" role="img" aria-label="Payroll trend chart">
+        <defs>
+          <linearGradient id="line-fill-primary" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stop-color="rgba(15, 166, 178, 0.28)" />
+            <stop offset="100%" stop-color="rgba(15, 166, 178, 0.02)" />
+          </linearGradient>
+        </defs>
+        ${[0.25, 0.5, 0.75, 1].map((tick) => `
+          <line x1="${padding}" y1="${height - padding - chartHeight * tick}" x2="${width - padding}" y2="${height - padding - chartHeight * tick}" stroke="rgba(64, 89, 122, 0.16)" stroke-width="1" />
+        `).join("")}
+        <polyline fill="none" stroke="#1396a3" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${primaryPoints}" />
+        <polyline fill="none" stroke="#ff8a1f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${secondaryPoints}" />
+      </svg>
+      <div class="report-line-labels">
+        ${items.map((item) => `<span>${item[labelKey]}</span>`).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function buildDonutLegend(items) {
+  const total = items.reduce((sum, item) => sum + Number(item.value || 0), 0);
+  if (!total) {
+    return `<div class="empty">No deduction split available yet.</div>`;
+  }
+
+  let cursor = 0;
+  const stops = items.map((item) => {
+    const start = cursor;
+    cursor += (Number(item.value || 0) / total) * 100;
+    return `${item.color} ${start}% ${cursor}%`;
+  }).join(", ");
+
+  return `
+    <div class="deduction-donut-shell">
+      <div class="deduction-donut" style="background: conic-gradient(${stops});"></div>
+      <div class="deduction-legend">
+        ${items.map((item) => `
+          <div class="deduction-legend-item">
+            <span class="deduction-dot" style="background:${item.color};"></span>
+            <strong>${item.label}</strong>
+            <span>${money(item.value)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
 }
 
 function loanProgress(request) {
@@ -1542,20 +1625,44 @@ function employeesView() {
     (sum, employee) => sum + Number(employee.basicWage || 0) + Number(employee.taxableAllowances || 0),
     0,
   );
+  const selectedEmployee =
+    filteredEmployees.find((employee) => employee.id === state.selectedEmployeeId) ||
+    filteredEmployees[0] ||
+    activeEmployees[0] ||
+    state.employees[0] ||
+    null;
+  const selectedLeave = selectedEmployee
+    ? Math.max(selectedEmployee.daysPerWeek * 4 - Number(selectedEmployee.leaveBalances?.annualLeaveUsed || 0), 0)
+    : 0;
+  const selectedTotal = Number(selectedEmployee?.basicWage || 0)
+    + Number(selectedEmployee?.taxableAllowances || 0)
+    + Number(selectedEmployee?.standardBonus || 0);
 
   return `
-    <section class="panel-grid employee-page">
-      <section class="employee-header">
+    <section class="panel-grid employee-page employee-mock-page">
+      <section class="employee-header employee-header-modern">
         <div>
           <h2>Employees</h2>
-          <p class="muted">Manage your workforce records</p>
+          <p class="muted">A cleaner payroll directory with detail-first review.</p>
         </div>
-        <button class="primary employee-add-button" data-action="toggle-employee-form">
-          ${state.showEmployeeForm || state.editingEmployeeId ? "Close Form" : "+ Add Employee"}
-        </button>
+        <div class="employee-header-actions">
+          <select id="employee-department-filter" class="workspace-search compact-search">
+            <option value="all">Filter All</option>
+            ${departments
+              .map(
+                (department) =>
+                  `<option value="${department}" ${state.employeeDepartment === department ? "selected" : ""}>${department}</option>`,
+              )
+              .join("")}
+          </select>
+          <button class="secondary icon-button" type="button" aria-label="Filter employees">⌕</button>
+          <button class="primary employee-add-button" data-action="toggle-employee-form">
+            ${state.showEmployeeForm || state.editingEmployeeId ? "Close Form" : "Add Employee"}
+          </button>
+        </div>
       </section>
 
-      <section class="employee-summary-grid">
+      <section class="employee-summary-grid employee-summary-grid-modern">
         <article class="employee-summary-card accent-navy">
           <span class="summary-title">Total employees</span>
           <strong>${state.employees.length}</strong>
@@ -1651,113 +1758,193 @@ function employeesView() {
           </section>`
         : ""}
 
-      <section class="panel employee-directory-panel">
-        <div class="employee-toolbar">
-          <input id="global-search" class="workspace-search" placeholder="Search across the workspace" value="${state.globalSearch}" />
-          <div>
+      <section class="employee-directory-shell">
+        <section class="panel employee-directory-panel employee-directory-main">
+          <div class="employee-toolbar employee-toolbar-modern">
+            <input id="global-search" class="workspace-search" placeholder="Search across the workspace" value="${state.globalSearch}" />
             <input
               id="employee-search"
               class="employee-search"
               placeholder="Search by name, ID or payroll no."
               value="${state.employeeSearch}"
             />
+            <select id="employee-status-filter">
+              <option value="all" ${state.employeeStatus === "all" ? "selected" : ""}>All statuses</option>
+              <option value="active" ${state.employeeStatus === "active" ? "selected" : ""}>Active</option>
+            </select>
           </div>
-          <select id="employee-department-filter">
-            <option value="all">All Departments</option>
-            ${departments
-              .map(
-                (department) =>
-                  `<option value="${department}" ${state.employeeDepartment === department ? "selected" : ""}>${department}</option>`,
-              )
-              .join("")}
-          </select>
-          <select id="employee-status-filter">
-            <option value="all" ${state.employeeStatus === "all" ? "selected" : ""}>All Statuses</option>
-            <option value="active" ${state.employeeStatus === "active" ? "selected" : ""}>Active</option>
-          </select>
-        </div>
+          <div class="employee-list-head">
+            <span>Name</span>
+            <span>Company</span>
+            <span>Status</span>
+            <span>Salary</span>
+            <span>Date</span>
+            <span></span>
+          </div>
 
-        ${
-          filteredEmployees.length
-            ? `<div class="employee-table-wrap">
-                <table class="employee-table">
-                  <thead>
-                    <tr>
-                      <th>No.</th>
-                      <th>Name</th>
-                      <th>Contact</th>
-                      <th>Position</th>
-                      <th>Department</th>
-                      <th>Basic Salary</th>
-                      <th>Leave Balance</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${filteredEmployees.map(employeeRow).join("")}
-                  </tbody>
-                </table>
-              </div>`
-            : `<div class="empty">No employees match these filters.</div>`
-        }
+          ${
+            filteredEmployees.length
+              ? `<div class="employee-directory-list">
+                  ${filteredEmployees.map((employee) => `
+                    <article class="employee-directory-row ${selectedEmployee?.id === employee.id ? "selected" : ""}">
+                      <button class="employee-directory-primary" data-action="select-employee" data-id="${employee.id}" type="button">
+                        <div class="employee-directory-name">
+                          ${employeeAvatar(employee)}
+                          <div>
+                            <strong>${employee.fullName}</strong>
+                            <span>${employee.employeeNumber}</span>
+                          </div>
+                        </div>
+                        <span>${employee.department || "General"}</span>
+                        <span><span class="status-badge">${employee.status || "Active"}</span></span>
+                        <span>${money(employee.basicWage)}</span>
+                        <span>${employee.startDate || "-"}</span>
+                      </button>
+                      <div class="employee-directory-actions">
+                        <button class="secondary table-action" data-action="edit-employee" data-id="${employee.id}">Edit</button>
+                        <button class="ghost table-action" data-action="start-payroll" data-id="${employee.id}">Payroll</button>
+                        <button class="danger-button table-action" data-action="delete-employee" data-id="${employee.id}" data-name="${employee.fullName}">Delete</button>
+                      </div>
+                    </article>
+                  `).join("")}
+                </div>`
+              : `<div class="empty">No employees match these filters.</div>`
+          }
+        </section>
+
+        <aside class="panel employee-profile-panel">
+          ${
+            selectedEmployee
+              ? `
+                <div class="employee-profile-hero">
+                  ${employeeAvatar(selectedEmployee, "employee-avatar-large")}
+                  <h3>${selectedEmployee.fullName}</h3>
+                  <p class="muted">${selectedEmployee.department || "General"}${selectedEmployee.title ? ` · ${selectedEmployee.title}` : ""}</p>
+                </div>
+                <section class="employee-profile-section">
+                  <h4>Contact</h4>
+                  <div class="employee-profile-fact-list">
+                    <div><span>Phone</span><strong>${selectedEmployee.profile?.cellphone || "Not saved"}</strong></div>
+                    <div><span>Email</span><strong>${selectedEmployee.profile?.personalEmail || "Not saved"}</strong></div>
+                    <div><span>ID</span><strong>${selectedEmployee.idNumber || "Not saved"}</strong></div>
+                  </div>
+                </section>
+                <section class="employee-profile-section">
+                  <h4>Salary Breakdown</h4>
+                  <div class="employee-profile-fact-list">
+                    <div><span>Salary</span><strong>${money(selectedEmployee.basicWage)}</strong></div>
+                    <div><span>Allowances</span><strong>${money(selectedEmployee.taxableAllowances || 0)}</strong></div>
+                    <div><span>Bonus</span><strong>${money(selectedEmployee.standardBonus || 0)}</strong></div>
+                    <div><span>Total</span><strong>${money(selectedTotal)}</strong></div>
+                  </div>
+                </section>
+                <section class="employee-profile-section">
+                  <h4>Next Payroll</h4>
+                  <div class="employee-profile-fact-list">
+                    <div><span>Leave Balance</span><strong>${number(selectedLeave, 0)} days</strong></div>
+                    <div><span>Status</span><strong>${selectedEmployee.status || "Active"}</strong></div>
+                    <div><span>Payroll Month</span><strong>${state.reportMonth}</strong></div>
+                  </div>
+                </section>
+              `
+              : `<div class="empty">Select an employee to see more detail.</div>`
+          }
+        </aside>
       </section>
     </section>
   `;
 }
 
 function payrollView() {
+  const activeEmployees = state.employees.filter((employee) => (employee.status || "active") === "active");
+  const selectedEmployee =
+    state.employees.find((employee) => employee.id === state.selectedEmployeeId) ||
+    activeEmployees[0] ||
+    state.employees[0] ||
+    null;
+  const runMetrics = state.activeRun?.result?.metrics || {};
+  const totalGross = state.activeRun
+    ? Number(runMetrics.taxableGross || 0)
+    : activeEmployees.reduce((sum, employee) => sum + Number(employee.basicWage || 0) + Number(employee.taxableAllowances || 0), 0);
+  const totalDeductions = state.activeRun
+    ? Number(runMetrics.employeeSsc || 0) + Number(runMetrics.paye || 0) + Number(state.activeRun.input?.otherDeductions || 0)
+    : Number((state.report?.summary || {}).paye || 0) + Number((state.report?.summary || {}).employeeSsc || 0);
+  const totalNet = state.activeRun ? Number(runMetrics.netPay || 0) : Math.max(totalGross - totalDeductions, 0);
   const employeeOptions = state.employees
     .filter((employee) => matchesSearch(state.globalSearch, employee.fullName, employee.employeeNumber, employee.department, employee.title))
     .map(
       (employee) =>
-        `<option value="${employee.id}">${employee.employeeNumber} · ${employee.fullName}</option>`,
+        `<option value="${employee.id}" ${selectedEmployee?.id === employee.id ? "selected" : ""}>${employee.employeeNumber} · ${employee.fullName}</option>`,
     )
     .join("");
 
   return `
-    <section class="panel-grid">
-      <section class="panel">
-        <p class="section-kicker">Payroll run</p>
-        <h2>Create payroll</h2>
-        <form id="payroll-form" class="grid-3">
-          <label>Employee
-            <select name="employeeId" required>
-              <option value="">Select employee</option>
-              ${employeeOptions}
-            </select>
-          </label>
-          <label>Payroll month <input type="month" name="payrollMonth" value="${state.reportMonth}" required /></label>
-          <label>Taxable allowances (N$) <input type="number" min="0" step="0.01" name="allowances" value="0" /></label>
-          <label>Bonus or commission (N$) <input type="number" min="0" step="0.01" name="bonus" value="0" /></label>
-          <label>Other deductions (N$) <input type="number" min="0" step="0.01" name="otherDeductions" value="0" /></label>
-          <label>Overtime hours <input type="number" min="0" step="0.25" name="overtimeHours" value="0" /></label>
-          <label>Max daily overtime <input type="number" min="0" step="0.25" name="maxDailyOvertime" value="0" /></label>
-          <label>Max weekly overtime <input type="number" min="0" step="0.25" name="maxWeeklyOvertime" value="0" /></label>
-          <label>Sunday hours <input type="number" min="0" step="0.25" name="sundayHours" value="0" /></label>
-          <label>Ordinarily works Sunday
-            <select name="ordinarilyWorksSunday">
-              <option value="false">No</option>
-              <option value="true">Yes</option>
-            </select>
-          </label>
-          <label>Public holiday hours <input type="number" min="0" step="0.25" name="publicHolidayHours" value="0" /></label>
-          <label>Public holiday was ordinary day
-            <select name="publicHolidayOrdinaryDay">
-              <option value="false">No</option>
-              <option value="true">Yes</option>
-            </select>
-          </label>
-          <label>Night hours <input type="number" min="0" step="0.25" name="nightHours" value="0" /></label>
-          <label>Annual leave used <input type="number" min="0" step="0.5" name="annualLeaveUsed" value="0" /></label>
-          <label>Sick leave used <input type="number" min="0" step="0.5" name="sickLeaveUsed" value="0" /></label>
-          <div class="actions">
-            <button class="primary" type="submit">Create payroll run</button>
-            <button class="secondary" type="button" data-action="bulk-payroll-run">Bulk create for month</button>
+    <section class="panel-grid payroll-mock-page">
+      <section class="payroll-modal-shell">
+        <div class="payroll-modal-card">
+          <div class="payroll-modal-head">
+            <div>
+              <h2>Run Payroll</h2>
+              <p class="muted">Review and confirm payroll for the selected period.</p>
+            </div>
           </div>
-        </form>
+          <form id="payroll-form" class="payroll-modal-form">
+            <label>Payroll Period
+              <input type="month" name="payrollMonth" value="${state.reportMonth}" required />
+            </label>
+            <label>Employee Filter
+              <select name="employeeId" required>
+                <option value="">All Employees</option>
+                ${employeeOptions}
+              </select>
+            </label>
+            <input type="hidden" name="allowances" value="0" />
+            <input type="hidden" name="bonus" value="0" />
+            <input type="hidden" name="otherDeductions" value="0" />
+            <input type="hidden" name="overtimeHours" value="0" />
+            <input type="hidden" name="maxDailyOvertime" value="0" />
+            <input type="hidden" name="maxWeeklyOvertime" value="0" />
+            <input type="hidden" name="sundayHours" value="0" />
+            <input type="hidden" name="publicHolidayHours" value="0" />
+            <input type="hidden" name="nightHours" value="0" />
+            <input type="hidden" name="annualLeaveUsed" value="0" />
+            <input type="hidden" name="sickLeaveUsed" value="0" />
+            <input type="hidden" name="ordinarilyWorksSunday" value="false" />
+            <input type="hidden" name="publicHolidayOrdinaryDay" value="false" />
+            <div class="payroll-review-grid">
+              <article class="payroll-review-card">
+                <span class="payroll-review-icon">◉</span>
+                <div>
+                  <span>Total Employees</span>
+                  <strong>${selectedEmployee ? 1 : activeEmployees.length}</strong>
+                  <small>${selectedEmployee ? selectedEmployee.fullName : `${activeEmployees.length} active employees`}</small>
+                </div>
+              </article>
+              <article class="payroll-review-card">
+                <span class="payroll-review-icon">◌</span>
+                <div>
+                  <span>Total Amount</span>
+                  <strong>${money(totalGross)}</strong>
+                  <small>Net pay: ${money(totalNet)}</small>
+                </div>
+              </article>
+              <article class="payroll-review-card">
+                <span class="payroll-review-icon">%</span>
+                <div>
+                  <span>Total Deductions</span>
+                  <strong>${money(totalDeductions)}</strong>
+                  <small>PAYE and employee SSC</small>
+                </div>
+              </article>
+            </div>
+            <div class="payroll-modal-actions">
+              <button class="secondary" type="button" data-action="bulk-payroll-run">Bulk Create</button>
+              <button class="primary" type="submit">Confirm & Run</button>
+            </div>
+          </form>
+        </div>
       </section>
-      <section class="panel printable">
+      <section class="panel printable payroll-result-panel">
         <div class="record-head">
           <div>
             <p class="section-kicker">Payslip</p>
@@ -1806,153 +1993,125 @@ function reportsView() {
     matchesSearch(state.globalSearch, item.employeeName, item.employeeNumber),
   );
   const holidayCalendar = compliance.holidayCalendar || [];
+  const financeTrend = (departmentCosts.length
+    ? departmentCosts.slice(0, 5).map((item) => ({
+        label: item.department,
+        primary: Number(item.employerCost || 0),
+        secondary: Math.max(Number(item.employerCost || 0) - Number(item.employeeCost || 0), 0),
+      }))
+    : rows.slice(0, 5).map((item) => ({
+        label: item.employeeName.split(" ")[0],
+        primary: Number(item.result?.metrics?.taxableGross || 0),
+        secondary: Number(item.result?.metrics?.netPay || 0),
+      })));
+  const complianceRows = [
+    { label: "PAYE filing", status: (emp201.payeDue || 0) > 0 ? "Pending" : "Ready" },
+    { label: "SSC remittance", status: (sscRemittance.employeeContribution || 0) > 0 ? "Pending" : "Ready" },
+    { label: "Holiday calendar", status: holidayCalendar.length ? "Loaded" : "Pending" },
+    { label: "Leave accrual review", status: leaveAccrualRules.length ? "Ready" : "Pending" },
+  ];
+  const deductionSeries = [
+    { label: "PAYE", value: Number(summary?.paye || 0), color: "#ff8a1f" },
+    { label: "Employee SSC", value: Number(summary?.employeeSsc || 0), color: "#1396a3" },
+    { label: "Loans", value: Number(loanExposure.totalOutstandingEstimate || 0), color: "#6d5df6" },
+  ];
+  const taxTable = [
+    { label: "Taxable remuneration", amount: money(emp201.taxableRemuneration || 0), due: sscRemittance.dueDateHint || "-" },
+    { label: "PAYE due", amount: money(emp201.payeDue || 0), due: sscRemittance.dueDateHint || "-" },
+    { label: "Employee SSC", amount: money(emp201.employeeSscWithheld || 0), due: sscRemittance.dueDateHint || "-" },
+    { label: "Employer SSC", amount: money(emp201.employerSscContribution || 0), due: sscRemittance.dueDateHint || "-" },
+  ];
   return `
-    <section class="panel-grid">
-      <section class="panel">
-        <div class="record-head">
-          <div>
-            <p class="section-kicker">Reports</p>
-            <h2>Monthly payroll summary</h2>
-          </div>
-          <div class="section-switcher">
-            ${sectionToggle("summary", state.reportSection, "Summary", "set-report-section")}
-            ${sectionToggle("compliance", state.reportSection, "Compliance", "set-report-section")}
-            ${sectionToggle("people", state.reportSection, "People", "set-report-section")}
-            ${sectionToggle("finance", state.reportSection, "Finance", "set-report-section")}
-            ${sectionToggle("runs", state.reportSection, "Runs", "set-report-section")}
-          </div>
+    <section class="panel-grid reports-mock-page">
+      <section class="reports-header-bar">
+        <div>
+          <h2>Reports</h2>
         </div>
-        <form id="report-form" class="grid-2">
-          <label>Report month <input type="month" name="month" value="${state.reportMonth}" required /></label>
-          <div class="actions">
-            <button class="primary" type="submit">Load report</button>
-          </div>
+        <form id="report-form" class="reports-toolbar">
+          <label class="reports-month-input">Date Range
+            <input type="month" name="month" value="${state.reportMonth}" required />
+          </label>
+          <button class="primary" type="submit">Load</button>
+          <button class="secondary" type="button" data-action="export-finance" data-type="payroll-journal" data-month="${state.reportMonth}">Export (PDF, CSV)</button>
         </form>
-        <div class="mini-search-wrap">
-          <input class="workspace-search" id="global-search" placeholder="Search report sections" value="${state.globalSearch}" />
-        </div>
-        <div class="actions">
-          <button class="secondary" data-action="export-finance" data-type="bank-payments" data-month="${state.reportMonth}">Bank payment file</button>
-          <button class="secondary" data-action="export-finance" data-type="payroll-journal" data-month="${state.reportMonth}">Payroll journal</button>
-          <button class="secondary" data-action="export-finance" data-type="deduction-schedule" data-month="${state.reportMonth}">Deduction schedule</button>
-        </div>
-        ${
-          !summary
-            ? `<div class="empty">Load a month to see totals.</div>`
-            : ""
-        }
-        ${
-          state.reportSection === "summary" && summary
-            ? `
-              <div class="stats compact-stats">
-                <article class="stat"><span class="stat-label">Runs</span><span class="stat-value">${summary.runCount}</span></article>
-                <article class="stat"><span class="stat-label">Gross</span><span class="stat-value">${money(summary.gross)}</span></article>
-                <article class="stat"><span class="stat-label">PAYE</span><span class="stat-value">${money(summary.paye)}</span></article>
-                <article class="stat"><span class="stat-label">Employee SSC</span><span class="stat-value">${money(summary.employeeSsc)}</span></article>
-                <article class="stat"><span class="stat-label">Employer SSC</span><span class="stat-value">${money(summary.employerSsc)}</span></article>
-                <article class="stat"><span class="stat-label">Employer cost</span><span class="stat-value">${money(summary.employerCost)}</span></article>
-              </div>
-            `
-            : ""
-        }
-        ${
-          state.reportSection === "compliance" && summary
-            ? `
-              <div class="stats compact-stats">
-                <article class="stat"><span class="stat-label">Employees filed</span><span class="stat-value">${emp201.employeesFiled || 0}</span></article>
-                <article class="stat"><span class="stat-label">Taxable remuneration</span><span class="stat-value">${money(emp201.taxableRemuneration || 0)}</span></article>
-                <article class="stat"><span class="stat-label">PAYE due</span><span class="stat-value">${money(emp201.payeDue || 0)}</span></article>
-                <article class="stat"><span class="stat-label">Employee SSC</span><span class="stat-value">${money(emp201.employeeSscWithheld || 0)}</span></article>
-                <article class="stat"><span class="stat-label">Employer SSC</span><span class="stat-value">${money(emp201.employerSscContribution || 0)}</span></article>
-                <article class="stat"><span class="stat-label">SSC due date</span><span class="stat-value">${sscRemittance.dueDateHint || "-"}</span></article>
-              </div>
-              <div class="compact-two-col">
-                <article class="notice"><h3>Assessable wages</h3><p class="muted">${money(sscRemittance.assessableBasicWages || 0)}</p></article>
-                <article class="notice"><h3>Employee contribution</h3><p class="muted">${money(sscRemittance.employeeContribution || 0)}</p></article>
-                <article class="notice"><h3>Employer contribution</h3><p class="muted">${money(sscRemittance.employerContribution || 0)}</p></article>
-                <article class="notice"><h3>Holiday count</h3><p class="muted">${holidayCalendar.length}</p></article>
-              </div>
-            `
-            : ""
-        }
-        ${
-          state.reportSection === "people" && summary
-            ? `
-              <div class="stats compact-stats">
-                <article class="stat"><span class="stat-label">Total employees</span><span class="stat-value">${headcount.total || 0}</span></article>
-                <article class="stat"><span class="stat-label">Active employees</span><span class="stat-value">${headcount.active || 0}</span></article>
-                <article class="stat"><span class="stat-label">Departments</span><span class="stat-value">${(headcount.departments || []).length}</span></article>
-                <article class="stat"><span class="stat-label">Leave days</span><span class="stat-value">${number(leaveLiability.reduce((sum, item) => sum + item.remainingDays, 0), 1)}</span></article>
-                <article class="stat"><span class="stat-label">Leave value</span><span class="stat-value">${money(leaveLiability.reduce((sum, item) => sum + item.estimatedValue, 0))}</span></article>
-                <article class="stat"><span class="stat-label">Approved loans</span><span class="stat-value">${loanExposure.approvedCount || 0}</span></article>
-              </div>
-              <div class="employee-table-wrap compact-table">
-                <table class="employee-table">
-                  <thead>
-                    <tr>
-                      <th>Department / Employee</th>
-                      <th>Count / Months</th>
-                      <th>Accrued / Days</th>
-                      <th>Value / Exposure</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${(headcount.departments || []).slice(0, 6).map((item) => `
-                      <tr>
-                        <td>${item.department}</td>
-                        <td>${item.count}</td>
-                        <td>-</td>
-                        <td>-</td>
-                      </tr>
-                    `).join("")}
-                    ${leaveAccrualRules.slice(0, 6).map((item) => `
-                      <tr>
-                        <td>${item.employeeName}</td>
-                        <td>${item.monthsOfService}</td>
-                        <td>${number(item.annualRemaining, 1)}</td>
-                        <td>${money((leaveLiability.find((entry) => entry.employeeId === item.employeeId) || {}).estimatedValue || 0)}</td>
-                      </tr>
-                    `).join("")}
-                  </tbody>
-                </table>
-              </div>
-            `
-            : ""
-        }
-        ${
-          state.reportSection === "finance" && summary
-            ? `
-              <div class="stats compact-stats">
-                <article class="stat"><span class="stat-label">Exposure</span><span class="stat-value">${money(loanExposure.totalOutstandingEstimate || 0)}</span></article>
-                <article class="stat"><span class="stat-label">Avg loan size</span><span class="stat-value">${money(loanExposure.averageLoanSize || 0)}</span></article>
-                <article class="stat"><span class="stat-label">Top department cost</span><span class="stat-value">${money((departmentCosts[0] || {}).employerCost || 0)}</span></article>
-              </div>
-              ${departmentCosts.length ? buildBarChart(departmentCosts.slice(0, 5), "employerCost", "department", money) : ""}
-              ${overtimeTrends.length ? buildBarChart(overtimeTrends, "overtimePay", "month", money) : ""}
-              <div class="list compact-list">
-                ${(loanExposure.largestLoans || []).slice(0, 4).map((item) => `
-                  <article class="notice">
-                    <div class="record-head">
-                      <div>
-                        <h3>${item.employeeName}</h3>
-                        <p class="muted">${item.employeeNumber} · ${item.repaymentMonths} month repayment</p>
-                      </div>
-                      <span class="tag">${money(item.amount)}</span>
-                    </div>
-                  </article>
-                `).join("") || `<div class="empty">No approved loans yet.</div>`}
-              </div>
-            `
-            : ""
-        }
-        ${
-          state.reportSection === "runs" && summary
-            ? `<div class="list compact-list">
-                ${rows.length ? rows.map(runCard).join("") : `<div class="empty">No payroll runs for this month.</div>`}
-              </div>`
-            : ""
-        }
       </section>
+      ${
+        !summary
+          ? `<section class="panel"><div class="empty">Load a month to see the redesigned reports dashboard.</div></section>`
+          : `
+            <section class="reports-card-grid">
+              <article class="panel reports-analytics-card">
+                <div class="reports-card-head">
+                  <div>
+                    <h3>Finance Summary</h3>
+                    <p class="muted">Payroll costs</p>
+                  </div>
+                  <span class="pill">Total Cost: ${money(summary.employerCost || 0)}</span>
+                </div>
+                ${buildLineComparisonChart(financeTrend, "primary", "secondary", "label")}
+              </article>
+              <article class="panel reports-analytics-card">
+                <div class="reports-card-head">
+                  <div>
+                    <h3>Compliance Report</h3>
+                    <p class="muted">Current filing readiness</p>
+                  </div>
+                  <span class="pill">Due: ${sscRemittance.dueDateHint || "-"}</span>
+                </div>
+                <div class="compliance-status-list">
+                  ${complianceRows.map((item) => `
+                    <div class="compliance-status-row">
+                      <div class="compliance-status-title">
+                        <span class="compliance-status-dot ${item.status === "Pending" ? "warning" : ""}"></span>
+                        <strong>${item.label}</strong>
+                      </div>
+                      <span class="status-badge ${item.status === "Pending" ? "status-pending" : ""}">${item.status}</span>
+                    </div>
+                  `).join("")}
+                </div>
+              </article>
+              <article class="panel reports-analytics-card">
+                <div class="reports-card-head">
+                  <div>
+                    <h3>Employee Deductions</h3>
+                    <p class="muted">Monthly deduction mix</p>
+                  </div>
+                  <span class="pill">${summary.runCount} runs</span>
+                </div>
+                ${buildDonutLegend(deductionSeries)}
+              </article>
+              <article class="panel reports-analytics-card">
+                <div class="reports-card-head">
+                  <div>
+                    <h3>Tax Summary</h3>
+                    <p class="muted">Monthly remittance snapshot</p>
+                  </div>
+                  <span class="pill">Employees filed: ${emp201.employeesFiled || headcount.active || 0}</span>
+                </div>
+                <div class="employee-table-wrap">
+                  <table class="employee-table report-summary-table">
+                    <thead>
+                      <tr>
+                        <th>Category</th>
+                        <th>Amount</th>
+                        <th>Due</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${taxTable.map((row) => `
+                        <tr>
+                          <td>${row.label}</td>
+                          <td>${row.amount}</td>
+                          <td>${row.due}</td>
+                        </tr>
+                      `).join("")}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            </section>
+          `
+      }
     </section>
   `;
 }
@@ -2629,14 +2788,14 @@ function renderApp() {
           <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
         </div>
         <div class="app-rail-group">
-          ${adminRailButton("dashboard", "◫", "Home")}
-          ${adminRailButton("employees", "◉", "People")}
+          ${adminRailButton("dashboard", "⌂", "Home")}
+          ${adminRailButton("employees", "◉", "Employees")}
           ${adminRailButton("leave", "◌", "Leave")}
           ${adminRailButton("shifts", "◷", "Shifts")}
-          ${adminRailButton("timesheets", "☰", "Time")}
-          ${adminRailButton("payroll", "▣", "Payroll")}
-          ${adminRailButton("reports", "◫", "Reports")}
-          ${adminRailButton("company", "⚙", "Company")}
+          ${adminRailButton("timesheets", "☰", "Timesheets")}
+          ${adminRailButton("payroll", "$", "Payroll")}
+          ${adminRailButton("reports", "▤", "Reports")}
+          ${adminRailButton("company", "⚙", "Settings")}
         </div>
       </aside>
       <div class="workspace-surface">
@@ -2656,46 +2815,31 @@ function renderApp() {
                 `
                 : ""
             }
+            <span class="pill">${companyName}</span>
             <span class="pill">Billing: ${state.company?.billingStatus || "trial"}</span>
+            <span class="topbar-avatar">${initials(state.session?.name || "Admin")}</span>
             <button class="ghost" data-action="logout">Log out</button>
           </div>
         </header>
         <div class="workspace-body">
-          <aside class="sidebar-pane">
-            <div class="sidebar-nav-list">
-              ${adminNavButton("dashboard", "Dashboard")}
-              ${adminNavButton("company", "Company")}
-              ${adminNavButton("employees", "Employees")}
-              ${adminNavButton("leave", "Leave Requests")}
-              ${adminNavButton("loans", "Loans")}
-              ${adminNavButton("shifts", "Shifts")}
-              ${adminNavButton("timesheets", "Timesheets")}
-              ${adminNavButton("payroll", "Payroll Run")}
-              ${adminNavButton("documents", "Documents")}
-              ${adminNavButton("data", "Data")}
-              ${adminNavButton("reports", "Reports")}
-            </div>
-            <div class="sidebar-pill-stack">
-              <span class="pill">Tax ref: ${state.company?.taxReference || "n/a"}</span>
-              <span class="pill">SSC: ${state.company?.sscRegistration || "n/a"}</span>
-            </div>
-          </aside>
           <main class="content-stage">
-            <section class="workspace-hero-card">
-              <div class="workspace-hero-copy">
-                <p class="section-kicker">Operations</p>
-                <h1 class="workspace-title">Run payroll and manage the company from one place</h1>
-                <p class="muted">Keep employees, leave, loans, shifts, timesheets, payroll, and reports within easy reach.</p>
-              </div>
-              <div class="portal-quick-actions admin-quick-actions">
-                ${adminQuickAction("employees", "Employees", `${activeEmployees} active records`)}
-                ${adminQuickAction("leave", "Leave", pendingLeave ? `${pendingLeave} pending` : "Leave tracker")}
-                ${adminQuickAction("shifts", "Shifts", activeShifts ? `${activeShifts} clocked in now` : "Attendance tracking")}
-                ${adminQuickAction("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly submissions")}
-                ${adminQuickAction("payroll", "Payroll", "Run and review payroll")}
-                ${adminQuickAction("reports", "Reports", "Finance and compliance")}
-              </div>
-            </section>
+            ${state.view === "dashboard" ? `
+              <section class="workspace-hero-card workspace-hero-card-modern">
+                <div class="workspace-hero-copy">
+                  <p class="section-kicker">Payroll workspace</p>
+                  <h1 class="workspace-title">${companyName}</h1>
+                  <p class="muted">A focused control surface for employees, approvals, payroll runs, and reports.</p>
+                </div>
+                <div class="portal-quick-actions admin-quick-actions admin-quick-actions-mobile">
+                  ${adminQuickAction("employees", "Employees", `${activeEmployees} Active`)}
+                  ${adminQuickAction("leave", "Leave Status", pendingLeave ? `${pendingLeave} Pending Request` : "No pending requests")}
+                  ${adminQuickAction("shifts", "Shifts", activeShifts ? `Today: ${activeShifts} clocked in` : "Today: no activity")}
+                  ${adminQuickAction("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "This week: all submitted")}
+                  ${adminQuickAction("payroll", "Payroll", pendingLoans ? `${pendingLoans} loan reviews pending` : "Next run ready")}
+                  ${adminQuickAction("reports", "Reports", "Finance and compliance")}
+                </div>
+              </section>
+            ` : ""}
           ${state.view === "dashboard" ? dashboardView() : ""}
           ${state.view === "company" ? companyView() : ""}
           ${state.view === "employees" ? employeesView() : ""}
@@ -2930,12 +3074,20 @@ function bindApp() {
 
   document.querySelectorAll("[data-action='start-payroll']").forEach((button) => {
     button.addEventListener("click", () => {
+      state.selectedEmployeeId = button.dataset.id;
       state.view = "payroll";
       render();
       const payrollSelect = document.querySelector("#payroll-form select[name='employeeId']");
       if (payrollSelect) {
         payrollSelect.value = button.dataset.id;
       }
+    });
+  });
+
+  document.querySelectorAll("[data-action='select-employee']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.selectedEmployeeId = button.dataset.id;
+      render();
     });
   });
 
@@ -3751,6 +3903,9 @@ async function loadDashboard() {
 async function loadEmployees() {
   const response = await api("/api/employees");
   state.employees = response.items;
+  if (!response.items.some((item) => item.id === state.selectedEmployeeId)) {
+    state.selectedEmployeeId = response.items[0]?.id || "";
+  }
 }
 
 async function loadRuns() {

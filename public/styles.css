@@ -2146,3 +2146,539 @@ button:hover {
     border-color: #cfcfcf !important;
   }
 }
+
+.admin-workspace-shell {
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.app-rail {
+  background:
+    radial-gradient(circle at top left, rgba(64, 200, 185, 0.18), transparent 22%),
+    radial-gradient(circle at bottom left, rgba(25, 34, 88, 0.56), transparent 28%),
+    linear-gradient(180deg, #16143e 0%, #18174a 48%, #111738 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 22px 50px rgba(13, 18, 43, 0.34);
+}
+
+.app-rail .brand-mark-image {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 8px;
+}
+
+.rail-button {
+  justify-items: start;
+  gap: 10px;
+  padding: 12px 10px;
+  color: rgba(225, 231, 255, 0.7);
+}
+
+.rail-button.active {
+  background: linear-gradient(135deg, rgba(25, 193, 186, 0.92), rgba(30, 136, 229, 0.72));
+  color: #fff;
+}
+
+.workspace-surface {
+  background: rgba(248, 251, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: 30px;
+  box-shadow: 0 26px 60px rgba(22, 35, 56, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.workspace-topbar {
+  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid rgba(23, 36, 50, 0.08);
+}
+
+.workspace-body {
+  display: block;
+  padding: 24px;
+}
+
+.topbar-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #20c9b4, #2f6fff);
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+}
+
+.workspace-hero-card-modern {
+  margin-bottom: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(61, 125, 255, 0.18), transparent 34%),
+    radial-gradient(circle at bottom left, rgba(36, 199, 172, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 246, 253, 0.98));
+}
+
+.admin-quick-actions-mobile .portal-quick-action {
+  min-height: 104px;
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff, #f4f8ff);
+}
+
+.admin-quick-actions-mobile .portal-quick-action strong {
+  font-size: 1.1rem;
+}
+
+.employee-mock-page,
+.reports-mock-page,
+.payroll-mock-page {
+  gap: 20px;
+}
+
+.employee-header-modern,
+.reports-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.employee-header-actions,
+.reports-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.icon-button {
+  min-width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 14px;
+}
+
+.employee-summary-grid-modern {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.employee-directory-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.68fr);
+  gap: 20px;
+}
+
+.employee-directory-main,
+.employee-profile-panel,
+.reports-analytics-card,
+.payroll-modal-card,
+.payroll-result-panel {
+  border-radius: 28px;
+  box-shadow: 0 20px 44px rgba(19, 31, 52, 0.08);
+}
+
+.employee-toolbar-modern {
+  grid-template-columns: minmax(220px, 1.2fr) minmax(220px, 1fr) 180px;
+  align-items: center;
+}
+
+.employee-list-head,
+.employee-directory-primary {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) minmax(110px, 0.9fr) 110px 110px 110px;
+  gap: 16px;
+  align-items: center;
+}
+
+.employee-list-head {
+  padding: 0 10px 12px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  border-bottom: 1px solid rgba(23, 36, 50, 0.08);
+}
+
+.employee-directory-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.employee-directory-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.96));
+  border: 1px solid rgba(23, 36, 50, 0.08);
+}
+
+.employee-directory-row.selected {
+  border-color: rgba(32, 201, 180, 0.5);
+  box-shadow: 0 14px 28px rgba(32, 201, 180, 0.12);
+}
+
+.employee-directory-primary {
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.employee-directory-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.employee-directory-name span,
+.employee-directory-primary > span {
+  color: var(--muted);
+}
+
+.employee-directory-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.employee-avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #223f63, #24c7ae);
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  box-shadow: 0 10px 22px rgba(34, 63, 99, 0.2);
+}
+
+.employee-avatar-large {
+  width: 96px;
+  height: 96px;
+  font-size: 1.6rem;
+}
+
+.employee-profile-panel {
+  align-self: start;
+  display: grid;
+  gap: 22px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(245, 248, 253, 0.96));
+}
+
+.employee-profile-hero {
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(23, 36, 50, 0.08);
+}
+
+.employee-profile-section {
+  display: grid;
+  gap: 14px;
+}
+
+.employee-profile-section h4,
+.reports-card-head h3 {
+  font-size: 1.35rem;
+  font-family: "Space Grotesk", sans-serif;
+  margin: 0;
+}
+
+.employee-profile-fact-list {
+  display: grid;
+  gap: 12px;
+}
+
+.employee-profile-fact-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(23, 36, 50, 0.08);
+}
+
+.employee-profile-fact-list span {
+  color: var(--muted);
+}
+
+.reports-toolbar {
+  margin: 0;
+}
+
+.reports-month-input {
+  min-width: 220px;
+}
+
+.reports-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.reports-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+
+.report-line-card {
+  display: grid;
+  gap: 10px;
+}
+
+.report-line-chart {
+  width: 100%;
+  height: auto;
+}
+
+.report-line-labels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.compliance-status-list {
+  display: grid;
+  gap: 14px;
+}
+
+.compliance-status-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.compliance-status-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compliance-status-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #16967d;
+  box-shadow: 0 0 0 6px rgba(22, 150, 125, 0.12);
+}
+
+.compliance-status-dot.warning {
+  background: #ffb14a;
+  box-shadow: 0 0 0 6px rgba(255, 177, 74, 0.14);
+}
+
+.deduction-donut-shell {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+}
+
+.deduction-donut {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.deduction-donut::after {
+  content: "";
+  position: absolute;
+  inset: 34px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(23, 36, 50, 0.05);
+}
+
+.deduction-legend {
+  display: grid;
+  gap: 12px;
+}
+
+.deduction-legend-item {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.deduction-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.report-summary-table th,
+.report-summary-table td {
+  white-space: nowrap;
+}
+
+.payroll-modal-shell {
+  display: grid;
+}
+
+.payroll-modal-card {
+  padding: 34px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 249, 255, 0.96));
+}
+
+.payroll-modal-head {
+  margin-bottom: 24px;
+}
+
+.payroll-modal-form {
+  display: grid;
+  gap: 22px;
+}
+
+.payroll-modal-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.payroll-review-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.payroll-review-card {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(23, 36, 50, 0.08);
+}
+
+.payroll-review-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(67, 91, 226, 0.14), rgba(32, 201, 180, 0.18));
+  color: var(--brand-deep);
+  font-weight: 700;
+}
+
+.payroll-review-card span,
+.payroll-review-card small {
+  color: var(--muted);
+}
+
+.payroll-review-card strong {
+  display: block;
+  font-size: 2rem;
+  line-height: 1.05;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.payroll-modal-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.payroll-result-panel {
+  margin-top: 8px;
+}
+
+@media (max-width: 1120px) {
+  .employee-directory-shell,
+  .reports-card-grid,
+  .deduction-donut-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-summary-grid-modern,
+  .payroll-review-grid,
+  .admin-quick-actions-mobile {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .employee-list-head,
+  .employee-directory-primary {
+    grid-template-columns: minmax(180px, 1.4fr) 1fr 100px 100px;
+  }
+
+  .employee-list-head span:nth-child(5),
+  .employee-directory-primary > span:nth-child(5) {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .admin-workspace-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .app-rail {
+    display: none;
+  }
+
+  .workspace-body {
+    padding: 18px;
+  }
+
+  .workspace-topbar-actions .pill:first-of-type {
+    display: none;
+  }
+
+  .employee-header-modern,
+  .reports-header-bar,
+  .employee-header-actions,
+  .reports-toolbar,
+  .payroll-modal-form,
+  .employee-toolbar-modern {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .employee-summary-grid-modern,
+  .payroll-review-grid,
+  .admin-quick-actions-mobile,
+  .portal-quick-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-directory-row {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-list-head {
+    display: none;
+  }
+
+  .employee-directory-primary {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .employee-directory-actions {
+    justify-content: flex-start;
+  }
+
+  .payroll-modal-card {
+    padding: 24px 18px;
+  }
+
+  .portal-bottom-nav.admin-bottom-nav {
+    display: grid;
+  }
+}
