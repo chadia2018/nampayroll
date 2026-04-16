@@ -1037,17 +1037,6 @@ function renderEmployeePortal() {
         </header>
         <div class="workspace-body">
           <aside class="sidebar-pane">
-            <div class="sidebar-pane-head">
-              <p class="section-kicker">Employee Workspace</p>
-              <h2>${employee?.fullName || "Employee Portal"}</h2>
-              <p class="muted">${employee?.employeeNumber || ""} · ${employee?.title || "Employee"}</p>
-            </div>
-            <div class="sidebar-stat-stack">
-              <article class="sidebar-stat-card"><span>Leave left</span><strong>${number(annualRemaining, 0)} days</strong></article>
-              <article class="sidebar-stat-card"><span>Open shifts</span><strong>${openShifts}</strong></article>
-              <article class="sidebar-stat-card"><span>Payslips</span><strong>${payslipCount}</strong></article>
-              <article class="sidebar-stat-card"><span>Open items</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
-            </div>
             <div class="sidebar-nav-list employee-portal-menu">
               ${employeePortalNavButton("overview", "Overview")}
               ${employeePortalNavButton("leave", "Leave")}

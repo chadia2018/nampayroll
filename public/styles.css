@@ -500,6 +500,11 @@ h2 {
   scrollbar-width: thin;
 }
 
+.employee-workspace-shell .sidebar-pane {
+  gap: 8px;
+  padding-top: 8px;
+}
+
 .employee-portal-menu .pane-nav-button {
   min-height: 44px;
   width: auto;
