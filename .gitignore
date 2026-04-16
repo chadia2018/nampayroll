@@ -1,0 +1,5 @@
+data/payroll.sqlite
+data/db.json
+data/uploads/
+node_modules/
+.DS_Store
