@@ -1048,7 +1048,7 @@ function renderEmployeePortal() {
               <article class="sidebar-stat-card"><span>Payslips</span><strong>${payslipCount}</strong></article>
               <article class="sidebar-stat-card"><span>Open items</span><strong>${pendingLeave + pendingLoans + pendingTimesheets}</strong></article>
             </div>
-            <div class="sidebar-nav-list">
+            <div class="sidebar-nav-list employee-portal-menu">
               ${employeePortalNavButton("overview", "Overview")}
               ${employeePortalNavButton("leave", "Leave")}
               ${employeePortalNavButton("shifts", "Shifts")}

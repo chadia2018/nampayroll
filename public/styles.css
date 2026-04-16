@@ -491,6 +491,23 @@ h2 {
   text-align: left;
 }
 
+.employee-portal-menu {
+  grid-template-columns: repeat(auto-fit, minmax(120px, max-content));
+  gap: 10px;
+  align-items: center;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.employee-portal-menu .pane-nav-button {
+  min-height: 44px;
+  width: auto;
+  white-space: nowrap;
+  justify-content: center;
+  padding: 0 18px;
+}
+
 .content-stage {
   display: grid;
   gap: 16px;
@@ -2655,6 +2672,17 @@ button:hover {
   .admin-quick-actions-mobile,
   .portal-quick-actions {
     grid-template-columns: 1fr;
+  }
+
+  .employee-portal-menu {
+    grid-template-columns: repeat(8, max-content);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 8px;
+  }
+
+  .employee-portal-menu .pane-nav-button {
+    min-width: max-content;
   }
 
   .employee-directory-row {
