@@ -361,6 +361,20 @@ function adminBottomNavButton(view, label) {
   `;
 }
 
+function mobileSummaryCard(view, title, summary, icon, scope = "admin") {
+  const attribute = scope === "employee" ? `data-employee-view="${view}"` : `data-view="${view}"`;
+  const active = scope === "employee" ? state.employeePortalView === view : state.view === view;
+  return `
+    <button class="mobile-summary-card ${active ? "active" : ""}" ${attribute} type="button">
+      <div class="mobile-summary-card-head">
+        <h3>${title}</h3>
+        <span class="mobile-summary-card-icon">${icon}</span>
+      </div>
+      <div class="mobile-summary-card-bar">${summary}</div>
+    </button>
+  `;
+}
+
 function employeeRailButton(view, icon, label) {
   return `
     <button class="rail-button ${state.employeePortalView === view ? "active" : ""}" data-employee-view="${view}" type="button" title="${label}" aria-label="${label}">
@@ -410,9 +424,20 @@ function employeeOverviewView() {
   const sickUsed = Number(employee?.leaveBalances?.sickLeaveUsed || 0);
   const annualRemaining = Math.max(annualAllowance - annualUsed, 0);
   const notifications = state.portalData?.notifications || [];
+  const pendingLeave = leaveRequests.filter((item) => item.status === "pending").length;
+  const pendingTimesheets = timesheets.filter((item) => item.status === "submitted").length;
+  const openShifts = shifts.filter((item) => ["scheduled", "late", "clocked_in"].includes(item.attendanceStatus)).length;
+  const unreadNotifications = notifications.filter((item) => !item.readAt).length;
 
   return `
     <section class="panel-grid">
+      <section class="mobile-overview-stack">
+        ${mobileSummaryCard("leave", "Leave Status", pendingLeave ? `${pendingLeave} pending request${pendingLeave === 1 ? "" : "s"}` : `${number(annualRemaining, 0)} days available`, "◌", "employee")}
+        ${mobileSummaryCard("shifts", "Shifts", openShifts ? `Today: ${openShifts} active or upcoming` : "No active shifts", "◷", "employee")}
+        ${mobileSummaryCard("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "This week: all clear", "☰", "employee")}
+        ${mobileSummaryCard("payslips", "Payslips", payslips.length ? `${payslips.length} available to view` : "No payslips yet", "▣", "employee")}
+        ${mobileSummaryCard("chat", "Chat", unreadNotifications ? `${unreadNotifications} new updates` : "Open team conversations", "✉", "employee")}
+      </section>
       <section class="panel">
         <p class="section-kicker">Employee Portal</p>
         <h2>${employee?.fullName || "Employee"} self-service</h2>
@@ -1027,6 +1052,14 @@ function renderEmployeePortal() {
       </aside>
       <div class="workspace-surface">
         <header class="workspace-topbar">
+          <div class="mobile-topbar-brand">
+            <span class="mobile-topbar-icon">☰</span>
+            <div class="mobile-topbar-brand-lockup">
+              <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
+              <strong>NamPayroll</strong>
+            </div>
+            <span class="mobile-topbar-icon">◉</span>
+          </div>
           <div class="workspace-topbar-search">
             <input class="workspace-search workspace-search-wide" id="employee-portal-search-global" placeholder="Search messages, payslips, leave, shifts" value="${state.employeePortalSearch}" />
           </div>
@@ -1077,13 +1110,11 @@ function renderEmployeePortal() {
         </div>
       </div>
       <nav class="portal-bottom-nav">
+        ${employeePortalBottomNavButton("overview", "Home")}
         ${employeePortalBottomNavButton("leave", "Leave")}
-        ${employeePortalBottomNavButton("shifts", "Shifts")}
-        ${employeePortalBottomNavButton("chat", "Chat")}
-        ${employeePortalBottomNavButton("timesheets", "Time")}
-        ${employeePortalBottomNavButton("loans", "Loans")}
-        ${employeePortalBottomNavButton("payslips", "Payslips")}
-        ${employeePortalBottomNavButton("account", "Account")}
+        ${employeePortalBottomNavButton("shifts", "Calendar")}
+        ${employeePortalBottomNavButton("payslips", "Pay")}
+        ${employeePortalBottomNavButton("account", "Profile")}
       </nav>
     </section>
   `);
@@ -1100,10 +1131,23 @@ function dashboardView() {
     value: run.result.metrics.netPay,
   }));
   const resetRequests = state.passwordResetRequests || [];
+  const nextRun = recent[0];
+  const payrollSummary = nextRun
+    ? `Next run: ${nextRun.payrollMonth} | ${money(nextRun.result.metrics.netPay || 0)}`
+    : current.net
+      ? `Current month net ${money(current.net || 0)}`
+      : "No payroll runs yet";
 
   return `
     <section class="panel-grid">
       ${state.dashboard?.user && state.dashboard.bootstrapPasswordWarning ? `<div class="banner">Change the seeded admin password before production use.</div>` : ""}
+      <section class="mobile-overview-stack">
+        ${mobileSummaryCard("employees", "Employees", `${state.dashboard?.employees || 0} active`, "◉")}
+        ${mobileSummaryCard("leave", "Leave Status", `${state.dashboard?.pendingLeaveRequests || 0} pending request${state.dashboard?.pendingLeaveRequests === 1 ? "" : "s"}`, "◌")}
+        ${mobileSummaryCard("shifts", "Shifts", attendance.clockedIn ? `Today: ${attendance.clockedIn} clocked in` : "Today: no one clocked in", "◷")}
+        ${mobileSummaryCard("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "This week: all submitted", "☰")}
+        ${mobileSummaryCard("payroll", "Payroll", payrollSummary, "▣")}
+      </section>
       <section class="panel">
         <div class="record-head">
           <div>
@@ -2789,6 +2833,14 @@ function renderApp() {
       </aside>
       <div class="workspace-surface">
         <header class="workspace-topbar">
+          <div class="mobile-topbar-brand">
+            <span class="mobile-topbar-icon">☰</span>
+            <div class="mobile-topbar-brand-lockup">
+              <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
+              <strong>NamPayroll</strong>
+            </div>
+            <span class="mobile-topbar-icon">◉</span>
+          </div>
           <div class="workspace-topbar-search">
             <input class="workspace-search workspace-search-wide" id="global-search-topbar" placeholder="Search employees, payroll, requests, reports" value="${state.globalSearch}" />
           </div>
@@ -2845,11 +2897,10 @@ function renderApp() {
       </div>
       <nav class="portal-bottom-nav admin-bottom-nav">
         ${adminBottomNavButton("dashboard", "Home")}
-        ${adminBottomNavButton("employees", "People")}
-        ${adminBottomNavButton("shifts", "Shifts")}
-        ${adminBottomNavButton("leave", "Leave")}
-        ${adminBottomNavButton("payroll", "Payroll")}
-        ${adminBottomNavButton("reports", "Reports")}
+        ${adminBottomNavButton("employees", "Team")}
+        ${adminBottomNavButton("shifts", "Calendar")}
+        ${adminBottomNavButton("payroll", "Pay")}
+        ${adminBottomNavButton("company", "Profile")}
       </nav>
     </section>
   `);
