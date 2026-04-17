@@ -1133,6 +1133,7 @@ function dashboardView() {
     value: run.result.metrics.netPay,
   }));
   const resetRequests = state.passwordResetRequests || [];
+  const pendingTimesheets = (state.timesheets || []).filter((item) => item.status === "submitted").length;
   const nextRun = recent[0];
   const payrollSummary = nextRun
     ? `Next run: ${nextRun.payrollMonth} | ${money(nextRun.result.metrics.netPay || 0)}`
