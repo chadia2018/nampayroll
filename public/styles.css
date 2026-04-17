@@ -495,6 +495,32 @@ h2 {
   text-align: left;
 }
 
+.workspace-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  border-radius: 14px;
+  text-align: left;
+}
+
+.workspace-nav-item.active {
+  background: linear-gradient(135deg, rgba(22, 93, 131, 0.14), rgba(22, 93, 131, 0.04));
+  border: 1px solid rgba(22, 93, 131, 0.18);
+}
+
+.workspace-nav-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  color: var(--muted);
+}
+
+.employee-home-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .employee-portal-menu {
   grid-template-columns: repeat(auto-fit, minmax(120px, max-content));
   gap: 10px;
@@ -1270,6 +1296,139 @@ button:hover {
   flex-wrap: wrap;
 }
 
+.requests-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.request-summary-card {
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 249, 253, 0.92));
+  border: 1px solid rgba(23, 36, 50, 0.08);
+  display: grid;
+  gap: 8px;
+}
+
+.request-summary-card span {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.request-summary-card strong {
+  font-size: 1.55rem;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.request-summary-warning {
+  background: linear-gradient(180deg, rgba(255, 245, 226, 0.98), rgba(255, 250, 242, 0.92));
+  border-color: rgba(240, 168, 62, 0.26);
+}
+
+.request-summary-success {
+  background: linear-gradient(180deg, rgba(235, 249, 242, 0.98), rgba(245, 252, 248, 0.92));
+  border-color: rgba(31, 137, 99, 0.2);
+}
+
+.request-summary-danger {
+  background: linear-gradient(180deg, rgba(255, 239, 235, 0.98), rgba(255, 249, 247, 0.92));
+  border-color: rgba(195, 76, 53, 0.18);
+}
+
+.request-workspace-shell {
+  display: block;
+}
+
+.request-queue-pane,
+.request-detail-pane,
+.request-drawer {
+  border-radius: 24px;
+  border: 1px solid rgba(23, 36, 50, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 18px;
+}
+
+.request-review-list {
+  display: grid;
+  gap: 12px;
+  max-height: 720px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.request-review-card {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(23, 36, 50, 0.08);
+  background: rgba(252, 254, 255, 0.96);
+  text-align: left;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.request-review-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(22, 93, 131, 0.2);
+  box-shadow: 0 14px 28px rgba(15, 34, 52, 0.08);
+}
+
+.request-review-card.selected {
+  border-color: rgba(22, 93, 131, 0.28);
+  background: linear-gradient(145deg, rgba(22, 93, 131, 0.1), rgba(22, 93, 131, 0.03));
+  box-shadow: 0 16px 34px rgba(15, 34, 52, 0.08);
+}
+
+.request-detail-section {
+  display: grid;
+  gap: 16px;
+}
+
+.request-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 21, 40, 0.34);
+  border: 0;
+  z-index: 34;
+}
+
+.request-drawer {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  width: min(520px, calc(100vw - 32px));
+  overflow: auto;
+  z-index: 35;
+  box-shadow: 0 28px 60px rgba(12, 25, 44, 0.22);
+  backdrop-filter: blur(16px);
+}
+
+.request-drawer-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.loan-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.loan-metrics-grid > div {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(23, 36, 50, 0.08);
+  background: rgba(248, 251, 254, 0.94);
+}
+
 .table-action {
   padding: 7px 11px;
   font-size: 0.84rem;
@@ -1792,6 +1951,93 @@ button:hover {
   background: rgba(186, 77, 50, 0.06);
 }
 
+.payroll-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.payroll-step-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(23, 36, 50, 0.08);
+  background: rgba(250, 252, 255, 0.92);
+  text-align: left;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.payroll-step-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(15, 34, 52, 0.06);
+}
+
+.payroll-step-card.active {
+  border-color: rgba(22, 93, 131, 0.28);
+  background: linear-gradient(145deg, rgba(22, 93, 131, 0.12), rgba(22, 93, 131, 0.03));
+  box-shadow: 0 18px 36px rgba(15, 34, 52, 0.08);
+}
+
+.payroll-step-card.complete {
+  border-color: rgba(31, 137, 99, 0.18);
+  background: linear-gradient(145deg, rgba(31, 137, 99, 0.08), rgba(31, 137, 99, 0.02));
+}
+
+.payroll-step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  background: rgba(22, 93, 131, 0.1);
+  color: var(--brand-deep);
+  font-weight: 800;
+  font-family: "Space Grotesk", sans-serif;
+  flex-shrink: 0;
+}
+
+.payroll-step-card.complete .payroll-step-number {
+  background: rgba(31, 137, 99, 0.14);
+  color: var(--success);
+}
+
+.payroll-step-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.payroll-step-kicker {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.payroll-step-label {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.payroll-step-shell {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(23, 36, 50, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 250, 254, 0.92));
+}
+
+.payroll-stage-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
 .pill,
 .tag {
   display: inline-block;
@@ -1877,6 +2123,7 @@ button:hover {
   .grid-3,
   .stats,
   .facts,
+  .employee-home-grid,
   .employee-summary-grid,
   .leave-balance-grid,
   .compact-grid-3,
@@ -2802,7 +3049,10 @@ button:hover {
 
   .employee-summary-grid-modern,
   .payroll-review-grid,
-  .admin-quick-actions-mobile {
+  .admin-quick-actions-mobile,
+  .requests-summary-grid,
+  .payroll-stepper,
+  .loan-metrics-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -2847,8 +3097,20 @@ button:hover {
   .employee-summary-grid-modern,
   .payroll-review-grid,
   .admin-quick-actions-mobile,
-  .portal-quick-actions {
+  .portal-quick-actions,
+  .requests-summary-grid,
+  .payroll-stepper,
+  .loan-metrics-grid {
     grid-template-columns: 1fr;
+  }
+
+  .request-drawer {
+    top: auto;
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+    width: auto;
+    max-height: 78vh;
   }
 
   .employee-portal-menu {
@@ -2881,6 +3143,10 @@ button:hover {
 
   .payroll-modal-card {
     padding: 24px 18px;
+  }
+
+  .payroll-stage-head {
+    flex-direction: column;
   }
 
   .portal-bottom-nav.admin-bottom-nav {

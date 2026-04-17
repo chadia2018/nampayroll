@@ -34,6 +34,12 @@ const state = {
   report: null,
   dashboardSection: "overview",
   reportSection: "summary",
+  requestsTab: "leave",
+  requestDrawerOpen: false,
+  settingsSection: "company",
+  peopleProfileTab: "profile",
+  payrollStep: "period",
+  requestsSelectedId: "",
   editingEmployeeId: null,
   removeLogo: false,
   showEmployeeForm: false,
@@ -213,6 +219,253 @@ function buildBarChart(items, valueKey, labelKey, formatter) {
 
 function sectionToggle(name, current, label, dataAction, dataValueKey = "section") {
   return `<button class="${current === name ? "primary" : "secondary"}" data-action="${dataAction}" data-${dataValueKey}="${name}" type="button">${label}</button>`;
+}
+
+function adminNavItem(view, label, icon) {
+  return `
+    <button class="workspace-nav-item ${state.view === view ? "active" : ""}" data-view="${view}" type="button">
+      <span class="workspace-nav-icon">${icon}</span>
+      <span>${label}</span>
+    </button>
+  `;
+}
+
+function employeePortalMainNavButton(view, label) {
+  return `<button class="pane-nav-button ${state.employeePortalView === view ? "active" : "secondary"}" data-employee-view="${view}"><span>${label}</span></button>`;
+}
+
+function employeePortalSecondaryNavButton(view, label) {
+  return `<button class="secondary pane-nav-button" data-employee-view="${view}"><span>${label}</span></button>`;
+}
+
+function payrollReadiness(employee) {
+  if (!employee) return { ready: false, issues: ["Select an employee or use all active employees to continue."] };
+  const issues = [];
+  if (!employee.idNumber) issues.push("Missing ID or passport number.");
+  if (!employee.basicWage) issues.push("Missing basic wage.");
+  if (!employee.department) issues.push("Missing department.");
+  if (!employee.bankName || !employee.accountNumber) issues.push("Missing bank payment details.");
+  return { ready: issues.length === 0, issues };
+}
+
+function getRequestsDataset() {
+  const statusOrder = {
+    pending: 0,
+    submitted: 0,
+    scheduled: 1,
+    late: 1,
+    clocked_in: 1,
+    approved: 2,
+    completed: 2,
+    declined: 3,
+    rejected: 3,
+    missed: 3,
+    cancelled: 4,
+  };
+
+  let items;
+
+  if (state.requestsTab === "leave") {
+    items = state.leaveRequests.map((item) => ({
+      id: item.id,
+      title: item.employeeName,
+      subtitle: `${item.leaveType} · ${item.startDate} to ${item.endDate}`,
+      meta: `${item.daysRequested} working day${item.daysRequested === 1 ? "" : "s"}`,
+      status: item.status,
+      kind: "leave",
+      item,
+    }));
+  } else if (state.requestsTab === "loans") {
+    items = state.loanRequests.map((item) => ({
+      id: item.id,
+      title: item.employeeName,
+      subtitle: `${money(item.amount)} · ${item.repaymentMonths} month repayment`,
+      meta: item.requestedAt.slice(0, 10),
+      status: item.status,
+      kind: "loan",
+      item,
+    }));
+  } else if (state.requestsTab === "timesheets") {
+    items = state.timesheets.map((item) => ({
+      id: item.id,
+      title: item.employeeName,
+      subtitle: `${item.weekStart} to ${item.weekEnd}`,
+      meta: `${number(item.regularHours, 2)} regular · ${number(item.overtimeHours, 2)} OT`,
+      status: item.status,
+      kind: "timesheet",
+      item,
+    }));
+  } else {
+    items = state.shifts.map((item) => ({
+      id: item.id,
+      title: item.employeeName,
+      subtitle: `${item.shiftDate} · ${item.shiftType === "off_day" ? "Off day" : `${item.startTime} to ${item.endTime}`}`,
+      meta: item.location || "No location",
+      status: item.attendanceStatus,
+      kind: "attendance",
+      item,
+    }));
+  }
+
+  return items
+    .filter((entry) =>
+      matchesSearch(
+        state.globalSearch,
+        entry.title,
+        entry.subtitle,
+        entry.meta,
+        entry.status,
+        entry.item?.reason,
+        entry.item?.notes,
+      ),
+    )
+    .sort((left, right) => {
+      const statusDelta = (statusOrder[left.status] ?? 99) - (statusOrder[right.status] ?? 99);
+      if (statusDelta !== 0) return statusDelta;
+      return String(right.item?.requestedAt || right.item?.createdAt || right.item?.shiftDate || "").localeCompare(
+        String(left.item?.requestedAt || left.item?.createdAt || left.item?.shiftDate || ""),
+      );
+    });
+}
+
+function syncRequestsSelection() {
+  const items = getRequestsDataset();
+  if (!items.length) {
+    state.requestsSelectedId = "";
+    return { items, selected: null };
+  }
+  if (!items.some((entry) => entry.id === state.requestsSelectedId)) {
+    state.requestsSelectedId = items[0].id;
+  }
+  return {
+    items,
+    selected: items.find((entry) => entry.id === state.requestsSelectedId) || items[0],
+  };
+}
+
+function requestSummaryCard(label, value, tone = "default") {
+  return `
+    <article class="request-summary-card ${tone !== "default" ? `request-summary-${tone}` : ""}">
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </article>
+  `;
+}
+
+function requestReviewCard(entry) {
+  return `
+    <button class="request-review-card ${state.requestsSelectedId === entry.id ? "selected" : ""}" data-action="select-request-item" data-id="${entry.id}" type="button">
+      <div class="record-head">
+        <div>
+          <h3>${entry.title}</h3>
+          <p class="muted">${entry.subtitle}</p>
+        </div>
+        <span class="status-badge status-${entry.status}">${entry.status.replace("_", " ")}</span>
+      </div>
+      <p class="muted">${entry.meta}</p>
+    </button>
+  `;
+}
+
+function requestReviewDetail(entry) {
+  if (!entry) {
+    return `<div class="empty">Select a request to review it on the right.</div>`;
+  }
+
+  if (entry.kind === "leave") {
+    const request = entry.item;
+    return `
+      <section class="request-detail-section">
+        <p class="section-kicker">Leave review</p>
+        <h2>${request.employeeName}</h2>
+        <div class="facts">
+          <div class="fact"><span class="label">Type</span><span class="value">${request.leaveType}</span></div>
+          <div class="fact"><span class="label">Dates</span><span class="value">${request.startDate} to ${request.endDate}</span></div>
+          <div class="fact"><span class="label">Working days</span><span class="value">${request.daysRequested}</span></div>
+          <div class="fact"><span class="label">Status</span><span class="value">${request.status}</span></div>
+        </div>
+        <div class="notice"><p class="muted">${request.reason || "No reason provided."}</p></div>
+        <div class="employee-row-actions">
+          ${request.status === "pending" ? `<button class="secondary table-action" data-action="approve-leave" data-id="${request.id}">Approve</button><button class="danger-button table-action" data-action="decline-leave" data-id="${request.id}">Decline</button>` : `<span class="tag">${request.reviewedBy || "Reviewed"}</span>`}
+        </div>
+      </section>
+    `;
+  }
+
+  if (entry.kind === "loan") {
+    const request = entry.item;
+    return `
+      <section class="request-detail-section">
+        <p class="section-kicker">Loan review</p>
+        <h2>${request.employeeName}</h2>
+        <div class="loan-metrics-grid">
+          <div><span class="muted">Requested</span><strong>${money(request.amount)}</strong></div>
+          <div><span class="muted">Repayment term</span><strong>${request.repaymentMonths} months</strong></div>
+          <div><span class="muted">Interest</span><strong>${percent(request.interestRate || 0)}</strong></div>
+          <div><span class="muted">Outstanding</span><strong>${money(request.estimatedOutstandingBalance || 0)}</strong></div>
+        </div>
+        <div class="notice"><p class="muted">${request.reason || "No reason provided."}</p></div>
+        <div class="employee-row-actions">
+          ${request.status === "pending" ? `<button class="secondary table-action" data-action="approve-loan" data-id="${request.id}" data-interest="${request.interestRate || 0}">Approve</button><button class="danger-button table-action" data-action="decline-loan" data-id="${request.id}">Decline</button>` : `<span class="tag">${request.reviewedBy || "Reviewed"}</span>`}
+        </div>
+      </section>
+    `;
+  }
+
+  if (entry.kind === "timesheet") {
+    const item = entry.item;
+    return `
+      <section class="request-detail-section">
+        <p class="section-kicker">Timesheet review</p>
+        <h2>${item.employeeName}</h2>
+        <div class="facts">
+          <div class="fact"><span class="label">Week</span><span class="value">${item.weekStart} to ${item.weekEnd}</span></div>
+          <div class="fact"><span class="label">Regular</span><span class="value">${number(item.regularHours, 2)} hrs</span></div>
+          <div class="fact"><span class="label">Overtime</span><span class="value">${number(item.overtimeHours, 2)} hrs</span></div>
+          <div class="fact"><span class="label">Status</span><span class="value">${item.status}</span></div>
+        </div>
+        <div class="notice"><p class="muted">${item.notes || "No notes provided."}</p></div>
+        <div class="employee-row-actions">
+          ${item.status === "submitted" ? `<button class="secondary table-action" data-action="approve-timesheet" data-id="${item.id}">Approve</button><button class="danger-button table-action" data-action="reject-timesheet" data-id="${item.id}">Reject</button>` : `<span class="tag">${item.reviewedBy || "Reviewed"}</span>`}
+        </div>
+      </section>
+    `;
+  }
+
+  const shift = entry.item;
+  return `
+    <section class="request-detail-section">
+      <p class="section-kicker">Attendance review</p>
+      <h2>${shift.employeeName}</h2>
+      ${shiftCard(shift)}
+      <div class="employee-row-actions">
+        ${shift.attendanceStatus !== "cancelled" ? `<button class="danger-button table-action" data-action="cancel-shift" data-id="${shift.id}" data-name="${shift.employeeName}" data-date="${shift.shiftDate}">Cancel shift</button>` : `<span class="tag">Cancelled</span>`}
+      </div>
+    </section>
+  `;
+}
+
+function payrollStepper() {
+  const steps = [
+    { key: "period", label: "Select period" },
+    { key: "inputs", label: "Review inputs" },
+    { key: "outputs", label: "Review outputs" },
+    { key: "publish", label: "Approve and publish" },
+  ];
+  const activeIndex = steps.findIndex((step) => step.key === state.payrollStep);
+  return `
+    <div class="payroll-stepper">
+      ${steps.map((step, index) => `
+        <button class="payroll-step-card ${step.key === state.payrollStep ? "active" : index < activeIndex ? "complete" : ""}" data-action="set-payroll-step" data-step="${step.key}" type="button">
+          <span class="payroll-step-number">${index + 1}</span>
+          <span class="payroll-step-copy">
+            <span class="payroll-step-kicker">Step ${index + 1}</span>
+            <span class="payroll-step-label">${step.label}</span>
+          </span>
+        </button>
+      `).join("")}
+    </div>
+  `;
 }
 
 async function logoutUser() {
@@ -429,61 +682,135 @@ function employeeOverviewView() {
   const pendingTimesheets = timesheets.filter((item) => item.status === "submitted").length;
   const openShifts = shifts.filter((item) => ["scheduled", "late", "clocked_in"].includes(item.attendanceStatus)).length;
   const unreadNotifications = notifications.filter((item) => !item.readAt).length;
+  const nextShift = shifts.find((item) => ["scheduled", "late", "clocked_in"].includes(item.attendanceStatus));
+  const latestPayslip = payslips[0];
+  const latestNotification = notifications[0];
+  const latestTimesheet = timesheets[0];
 
   return `
     <section class="panel-grid">
       <section class="mobile-overview-stack">
         ${mobileSummaryCard("leave", "Leave Status", pendingLeave ? `${pendingLeave} pending request${pendingLeave === 1 ? "" : "s"}` : `${number(annualRemaining, 0)} days available`, "◌", "employee")}
-        ${mobileSummaryCard("shifts", "Shifts", openShifts ? `Today: ${openShifts} active or upcoming` : "No active shifts", "◷", "employee")}
-        ${mobileSummaryCard("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "This week: all clear", "☰", "employee")}
+        ${mobileSummaryCard("time", "Shifts", openShifts ? `Today: ${openShifts} active or upcoming` : "No active shifts", "◷", "employee")}
+        ${mobileSummaryCard("time", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "This week: all clear", "☰", "employee")}
         ${mobileSummaryCard("payslips", "Payslips", payslips.length ? `${payslips.length} available to view` : "No payslips yet", "▣", "employee")}
-        ${mobileSummaryCard("chat", "Chat", unreadNotifications ? `${unreadNotifications} new updates` : "Open team conversations", "✉", "employee")}
+        ${mobileSummaryCard("inbox", "Inbox", unreadNotifications ? `${unreadNotifications} new updates` : "Open notifications and chat", "✉", "employee")}
       </section>
+      <section class="panel-grid employee-home-grid">
+        <section class="panel">
+          <p class="section-kicker">Home</p>
+          <h2>${employee?.fullName || "Employee"} self-service</h2>
+          <p class="muted">Everything you need for pay, leave, time, and updates in one place.</p>
+          <div class="stats compact-stats">
+            <article class="stat"><span class="stat-label">Leave balance</span><span class="stat-value">${number(annualRemaining, 0)} days</span></article>
+            <article class="stat"><span class="stat-label">Latest payslip</span><span class="stat-value">${latestPayslip ? latestPayslip.payrollMonth : "Not ready"}</span></article>
+            <article class="stat"><span class="stat-label">Next shift</span><span class="stat-value">${nextShift ? nextShift.shiftDate : "Not scheduled"}</span></article>
+            <article class="stat"><span class="stat-label">Unread updates</span><span class="stat-value">${unreadNotifications}</span></article>
+          </div>
+        </section>
+        <section class="panel">
+          <p class="section-kicker">Latest payslip</p>
+          <h2>${latestPayslip ? latestPayslip.payrollMonth : "No payslip yet"}</h2>
+          ${latestPayslip
+            ? `<div class="notice">
+                <div class="record-head">
+                  <div>
+                    <h3>Net pay ${money(latestPayslip.result.metrics.netPay)}</h3>
+                    <p class="muted">${latestPayslip.employeeNumber} · latest published payslip</p>
+                  </div>
+                  <button class="secondary table-action" data-action="open-employee-payslip" data-id="${latestPayslip.id}">View</button>
+                </div>
+              </div>`
+            : `<div class="empty">No payslip available yet.</div>`}
+        </section>
+        <section class="panel">
+          <p class="section-kicker">Leave balance</p>
+          <h2>${number(annualRemaining, 0)} days remaining</h2>
+          <div class="list">
+            ${leaveRequests.slice(0, 1).map(leaveRequestCard).join("") || `<div class="empty">No leave requests yet.</div>`}
+          </div>
+        </section>
+        <section class="panel">
+          <p class="section-kicker">Next shift</p>
+          <h2>${nextShift ? nextShift.shiftDate : "No shift scheduled"}</h2>
+          <div class="list">
+            ${nextShift ? shiftCard(nextShift) : `<div class="empty">No upcoming shift assigned yet.</div>`}
+          </div>
+        </section>
+        <section class="panel">
+          <p class="section-kicker">Timesheet status</p>
+          <h2>${latestTimesheet ? latestTimesheet.status : "No timesheet yet"}</h2>
+          <div class="list">
+            ${latestTimesheet ? timesheetCard(latestTimesheet) : `<div class="empty">No timesheets submitted yet.</div>`}
+          </div>
+        </section>
+        <section class="panel">
+          <p class="section-kicker">Latest notification</p>
+          <h2>${latestNotification ? latestNotification.title : "No updates"}</h2>
+          <div class="list">
+            ${latestNotification ? notificationCard(latestNotification) : `<div class="empty">No notifications yet.</div>`}
+          </div>
+        </section>
+      </section>
+    </section>
+  `;
+}
+
+function employeeTimeView() {
+  const shifts = (state.portalData?.shifts || []).filter((item) =>
+    matchesSearch(state.employeePortalSearch, item.shiftDate, item.startTime, item.endTime, item.attendanceStatus, item.notes),
+  );
+  const timesheets = (state.portalData?.timesheets || []).filter((item) =>
+    matchesSearch(state.employeePortalSearch, item.weekStart, item.weekEnd, item.status, item.notes),
+  );
+  return `
+    <section class="panel-grid">
       <section class="panel">
-        <p class="section-kicker">Employee Portal</p>
-        <h2>${employee?.fullName || "Employee"} self-service</h2>
-        <div class="stats">
-          <article class="stat"><span class="stat-label">Annual leave remaining</span><span class="stat-value">${number(annualRemaining, 0)}</span></article>
-          <article class="stat"><span class="stat-label">Sick leave used</span><span class="stat-value">${number(sickUsed, 0)}</span></article>
-          <article class="stat"><span class="stat-label">Assigned shifts</span><span class="stat-value">${shifts.length}</span></article>
-          <article class="stat"><span class="stat-label">Payslips available</span><span class="stat-value">${payslips.length}</span></article>
-        </div>
+        <p class="section-kicker">Time</p>
+        <h2>Shifts and timesheets</h2>
         <div class="mini-search-wrap">
-          <input id="employee-portal-search" placeholder="Search your portal" value="${state.employeePortalSearch}" />
+          <input id="employee-portal-search" placeholder="Search shifts or timesheets" value="${state.employeePortalSearch}" />
         </div>
       </section>
       <section class="panel">
-        <p class="section-kicker">Recent requests</p>
-        <h2>Latest leave and loan activity</h2>
-        <div class="list">
-          ${leaveRequests.slice(0, 2).map(leaveRequestCard).join("") || `<div class="empty">No leave requests yet.</div>`}
-          ${loanRequests.slice(0, 2).map(loanRequestCard).join("") || ""}
-          ${!leaveRequests.length && !loanRequests.length ? "" : ""}
-        </div>
-      </section>
-      <section class="panel">
-        <p class="section-kicker">Timesheets</p>
-        <h2>Recent submissions</h2>
-        <div class="list">
-          ${timesheets.slice(0, 3).map(timesheetCard).join("") || `<div class="empty">No timesheets submitted yet.</div>`}
-        </div>
-      </section>
-      <section class="panel">
-        <p class="section-kicker">Shifts</p>
-        <h2>Upcoming attendance</h2>
+        <p class="section-kicker">Next shift</p>
+        <h2>Attendance</h2>
         <div class="list">
           ${shifts.slice(0, 3).map(shiftCard).join("") || `<div class="empty">No shifts assigned yet.</div>`}
         </div>
       </section>
       <section class="panel">
-        <p class="section-kicker">Notifications</p>
-        <h2>Portal updates</h2>
+        <p class="section-kicker">Timesheets</p>
+        <h2>Submission status</h2>
         <div class="list">
-          ${notifications.length
-            ? notifications.slice(0, 5).map(notificationCard).join("")
-            : `<div class="empty">No notifications yet.</div>`}
+          ${timesheets.slice(0, 3).map(timesheetCard).join("") || `<div class="empty">No timesheets submitted yet.</div>`}
         </div>
       </section>
+    </section>
+  `;
+}
+
+function employeeInboxView() {
+  const notifications = (state.portalData?.notifications || []).filter((item) =>
+    matchesSearch(state.employeePortalSearch, item.title, item.body, item.createdAt),
+  );
+  return `
+    <section class="panel-grid">
+      <section class="panel">
+        <p class="section-kicker">Inbox</p>
+        <h2>Notifications and chat</h2>
+        <div class="mini-search-wrap">
+          <input id="employee-portal-search" placeholder="Search inbox" value="${state.employeePortalSearch}" />
+        </div>
+      </section>
+      <section class="panel">
+        <p class="section-kicker">Latest notifications</p>
+        <h2>Recent updates</h2>
+        <div class="list">
+          ${notifications.length ? notifications.slice(0, 6).map(notificationCard).join("") : `<div class="empty">No notifications yet.</div>`}
+        </div>
+      </section>
+      ${employeeChatView()}
     </section>
   `;
 }
@@ -1042,13 +1369,10 @@ function renderEmployeePortal() {
         </div>
         <div class="app-rail-group">
           ${employeeRailButton("overview", "◫", "Home")}
-          ${employeeRailButton("leave", "◌", "Leave")}
-          ${employeeRailButton("shifts", "◷", "Shifts")}
-          ${employeeRailButton("chat", "✉", "Chat")}
-          ${employeeRailButton("timesheets", "☰", "Time")}
-          ${employeeRailButton("loans", "◍", "Loans")}
           ${employeeRailButton("payslips", "▣", "Payslips")}
-          ${employeeRailButton("account", "⚙", "Account")}
+          ${employeeRailButton("leave", "◌", "Leave")}
+          ${employeeRailButton("time", "◷", "Time")}
+          ${employeeRailButton("inbox", "✉", "Inbox")}
         </div>
       </aside>
       <div class="workspace-surface">
@@ -1072,40 +1396,43 @@ function renderEmployeePortal() {
         <div class="workspace-body">
           ${state.mobileNavOpen ? `<button class="mobile-nav-backdrop" data-action="close-mobile-nav" type="button" aria-label="Close menu"></button>` : ""}
           <aside class="sidebar-pane ${state.mobileNavOpen ? "mobile-open" : ""}">
+            <div class="sidebar-pane-head">
+              <p class="section-kicker">Employee</p>
+              <h2>${employee?.fullName || "Portal"}</h2>
+              <p class="muted">${employee?.employeeNumber || ""}</p>
+            </div>
             <div class="sidebar-nav-list employee-portal-menu">
-              ${employeePortalNavButton("overview", "Overview")}
-              ${employeePortalNavButton("leave", "Leave")}
-              ${employeePortalNavButton("shifts", "Shifts")}
-              ${employeePortalNavButton("chat", "Chat")}
-              ${employeePortalNavButton("loans", "Loans")}
-              ${employeePortalNavButton("timesheets", "Timesheets")}
-              ${employeePortalNavButton("payslips", "Payslips")}
-              ${employeePortalNavButton("account", "Account")}
+              ${employeePortalMainNavButton("overview", "Home")}
+              ${employeePortalMainNavButton("payslips", "Payslips")}
+              ${employeePortalMainNavButton("leave", "Leave")}
+              ${employeePortalMainNavButton("time", "Time")}
+              ${employeePortalMainNavButton("inbox", "Inbox")}
+            </div>
+            <div class="sidebar-nav-list">
+              ${employeePortalSecondaryNavButton("loans", "Loan requests")}
+              ${employeePortalSecondaryNavButton("account", "Profile and password")}
             </div>
           </aside>
           <main class="content-stage">
             <section class="workspace-hero-card">
               <div class="workspace-hero-copy">
-                <p class="section-kicker">Self Service</p>
-                <h1 class="workspace-title">Everything employees need in one place</h1>
-                <p class="muted">Request leave, submit timesheets, ask for loans, download payslips, and keep account details current.</p>
+                <p class="section-kicker">Self service</p>
+                <h1 class="workspace-title">Pay, leave, time, and updates without the clutter</h1>
+                <p class="muted">A simpler employee portal focused on the latest payslip, leave balance, next shift, time status, and inbox updates.</p>
               </div>
               <div class="portal-quick-actions">
-                ${employeePortalQuickAction("leave", "Request Leave", pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days available`)}
-                ${employeePortalQuickAction("shifts", "Shifts", openShifts ? `${openShifts} active or upcoming` : "Attendance and clocking")}
-                ${employeePortalQuickAction("chat", "Chat", "Talk to coworkers")}
-                ${employeePortalQuickAction("timesheets", "Submit Time", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "Weekly timesheets")}
-                ${employeePortalQuickAction("loans", "Request Loan", pendingLoans ? `${pendingLoans} pending` : "Track balances")}
-                ${employeePortalQuickAction("payslips", "Payslips", payslipCount ? `${payslipCount} ready to view` : "No payslips yet")}
-                ${employeePortalQuickAction("account", "Update Account", "Profile and password")}
+                ${employeePortalQuickAction("payslips", "Latest payslip", payslipCount ? `${payslipCount} ready to view` : "No payslips yet")}
+                ${employeePortalQuickAction("leave", "Leave balance", pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days available`)}
+                ${employeePortalQuickAction("time", "Time", openShifts ? `${openShifts} active or upcoming` : "Attendance and timesheets")}
+                ${employeePortalQuickAction("inbox", "Inbox", "Notifications and chat")}
+                ${employeePortalQuickAction("account", "Profile", "Account details and password")}
               </div>
             </section>
           ${state.employeePortalView === "overview" ? employeeOverviewView() : ""}
           ${state.employeePortalView === "leave" ? employeeLeaveView() : ""}
-          ${state.employeePortalView === "shifts" ? employeeShiftsView() : ""}
-          ${state.employeePortalView === "chat" ? employeeChatView() : ""}
+          ${state.employeePortalView === "time" ? employeeTimeView() : ""}
+          ${state.employeePortalView === "inbox" ? employeeInboxView() : ""}
           ${state.employeePortalView === "loans" ? employeeLoansView() : ""}
-          ${state.employeePortalView === "timesheets" ? employeeTimesheetsView() : ""}
           ${state.employeePortalView === "payslips" ? employeePayslipsView() : ""}
           ${state.employeePortalView === "account" ? employeeAccountView() : ""}
           </main>
@@ -1113,10 +1440,10 @@ function renderEmployeePortal() {
       </div>
       <nav class="portal-bottom-nav">
         ${employeePortalBottomNavButton("overview", "Home")}
+        ${employeePortalBottomNavButton("payslips", "Payslips")}
         ${employeePortalBottomNavButton("leave", "Leave")}
-        ${employeePortalBottomNavButton("shifts", "Calendar")}
-        ${employeePortalBottomNavButton("payslips", "Pay")}
-        ${employeePortalBottomNavButton("account", "Profile")}
+        ${employeePortalBottomNavButton("time", "Time")}
+        ${employeePortalBottomNavButton("inbox", "Inbox")}
       </nav>
     </section>
   `);
@@ -1146,16 +1473,16 @@ function dashboardView() {
       ${state.dashboard?.user && state.dashboard.bootstrapPasswordWarning ? `<div class="banner">Change the seeded admin password before production use.</div>` : ""}
       <section class="mobile-overview-stack">
         ${mobileSummaryCard("employees", "Employees", `${state.dashboard?.employees || 0} active`, "◉")}
-        ${mobileSummaryCard("leave", "Leave Status", `${state.dashboard?.pendingLeaveRequests || 0} pending request${state.dashboard?.pendingLeaveRequests === 1 ? "" : "s"}`, "◌")}
-        ${mobileSummaryCard("shifts", "Shifts", attendance.clockedIn ? `Today: ${attendance.clockedIn} clocked in` : "Today: no one clocked in", "◷")}
-        ${mobileSummaryCard("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "This week: all submitted", "☰")}
+        ${mobileSummaryCard("requests", "Requests", `${state.dashboard?.pendingLeaveRequests || 0} leave pending · ${pendingTimesheets} time waiting`, "◌")}
+        ${mobileSummaryCard("requests", "Attendance", attendance.clockedIn ? `Today: ${attendance.clockedIn} clocked in` : "Today: no one clocked in", "◷")}
+        ${mobileSummaryCard("requests", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "This week: all submitted", "☰")}
         ${mobileSummaryCard("payroll", "Payroll", payrollSummary, "▣")}
       </section>
       <section class="panel">
         <div class="record-head">
           <div>
-            <p class="section-kicker">Overview</p>
-            <h2>${state.company?.name || "Company"} payroll dashboard</h2>
+            <p class="section-kicker">Home</p>
+            <h2>What needs attention today</h2>
           </div>
           <div class="section-switcher">
             ${sectionToggle("overview", state.dashboardSection, "Overview", "set-dashboard-section")}
@@ -1176,6 +1503,12 @@ function dashboardView() {
                 <article class="stat"><span class="stat-label">Current month gross</span><span class="stat-value">${money(current.gross || 0)}</span></article>
                 <article class="stat"><span class="stat-label">Current month net</span><span class="stat-value">${money(current.net || 0)}</span></article>
                 <article class="stat"><span class="stat-label">Missed shifts</span><span class="stat-value">${attendance.missed || 0}</span></article>
+              </div>
+              <div class="list compact-list">
+                ${(state.dashboard?.pendingLeaveRequests || 0) > 0 ? `<article class="notice warn"><h3>Leave requests waiting</h3><p class="muted">${state.dashboard.pendingLeaveRequests} leave request${state.dashboard.pendingLeaveRequests === 1 ? "" : "s"} need review in Requests.</p></article>` : ""}
+                ${pendingTimesheets > 0 ? `<article class="notice warn"><h3>Timesheets awaiting review</h3><p class="muted">${pendingTimesheets} submitted timesheet${pendingTimesheets === 1 ? "" : "s"} need approval before payroll closes.</p></article>` : ""}
+                ${attendance.missed > 0 ? `<article class="notice warn"><h3>Attendance exceptions</h3><p class="muted">${attendance.missed} missed shift${attendance.missed === 1 ? "" : "s"} need follow-up in Requests.</p></article>` : ""}
+                ${!(state.dashboard?.pendingLeaveRequests || 0) && !pendingTimesheets && !attendance.missed ? `<div class="empty">Nothing urgent right now. Payroll, requests, and attendance are clear.</div>` : ""}
               </div>`
             : ""
         }
@@ -1512,7 +1845,7 @@ function leaveRequestsView() {
   `;
 }
 
-function companyView() {
+function companyProfileSettingsView() {
   const previewCompany = {
     ...(state.company || {}),
     logoPath: state.removeLogo ? "" : state.company?.logoPath || "",
@@ -1572,6 +1905,42 @@ function companyView() {
           <label class="span-2">Physical address
             <textarea name="physicalAddress" placeholder="Street, suburb, town, region">${state.company?.physicalAddress || ""}</textarea>
           </label>
+          <label class="span-2">Company logo
+            <input type="file" id="company-logo" name="logoFile" accept="image/png,image/jpeg,image/jpg,image/webp" />
+          </label>
+          <div class="span-2 actions">
+            <button class="primary" type="submit">Save company profile</button>
+            ${
+              state.company?.logoPath && !state.removeLogo
+                ? `<button class="secondary" type="button" data-action="remove-logo">Remove logo</button>`
+                : ""
+            }
+          </div>
+        </form>
+      </section>
+      <section class="panel">
+        <p class="section-kicker">Preview</p>
+        <h2>Payslip company header</h2>
+        ${companyPreviewCard(previewCompany)}
+      </section>
+    </section>
+  `;
+}
+
+function notificationsSettingsView() {
+  return `
+    <section class="panel-grid">
+      <section class="panel">
+        <div class="record-head">
+          <div>
+            <p class="section-kicker">Notifications</p>
+            <h2>Admin alerts and employee delivery</h2>
+            <p class="muted">Control who gets email and SMS updates, and which workflows trigger them.</p>
+          </div>
+        </div>
+        ${state.companyError ? `<div class="banner danger-banner">${state.companyError}</div>` : ""}
+        ${state.companyNotice ? `<div class="banner success-banner">${state.companyNotice}</div>` : ""}
+        <form id="company-form" class="grid-2">
           <section class="span-2 settings-card">
             <div class="settings-card-head">
               <div>
@@ -1604,23 +1973,10 @@ function companyView() {
               <label class="settings-check"><input type="checkbox" name="notifyEmployeeOnChatMessage" ${state.company?.notifyEmployeeOnChatMessage !== false ? "checked" : ""} /> Send chat message alerts</label>
             </div>
           </section>
-          <label class="span-2">Company logo
-            <input type="file" id="company-logo" name="logoFile" accept="image/png,image/jpeg,image/jpg,image/webp" />
-          </label>
           <div class="span-2 actions">
-            <button class="primary" type="submit">Save company profile</button>
-            ${
-              state.company?.logoPath && !state.removeLogo
-                ? `<button class="secondary" type="button" data-action="remove-logo">Remove logo</button>`
-                : ""
-            }
+            <button class="primary" type="submit">Save notification settings</button>
           </div>
         </form>
-      </section>
-      <section class="panel">
-        <p class="section-kicker">Preview</p>
-        <h2>Payslip company header</h2>
-        ${companyPreviewCard(previewCompany)}
       </section>
     </section>
   `;
@@ -1857,31 +2213,52 @@ function employeesView() {
                   <h3>${selectedEmployee.fullName}</h3>
                   <p class="muted">${selectedEmployee.department || "General"}${selectedEmployee.title ? ` · ${selectedEmployee.title}` : ""}</p>
                 </div>
-                <section class="employee-profile-section">
-                  <h4>Contact</h4>
-                  <div class="employee-profile-fact-list">
-                    <div><span>Phone</span><strong>${selectedEmployee.profile?.cellphone || "Not saved"}</strong></div>
-                    <div><span>Email</span><strong>${selectedEmployee.profile?.personalEmail || "Not saved"}</strong></div>
-                    <div><span>ID</span><strong>${selectedEmployee.idNumber || "Not saved"}</strong></div>
-                  </div>
-                </section>
-                <section class="employee-profile-section">
-                  <h4>Salary Breakdown</h4>
-                  <div class="employee-profile-fact-list">
-                    <div><span>Salary</span><strong>${money(selectedEmployee.basicWage)}</strong></div>
-                    <div><span>Allowances</span><strong>${money(selectedEmployee.taxableAllowances || 0)}</strong></div>
-                    <div><span>Bonus</span><strong>${money(selectedEmployee.standardBonus || 0)}</strong></div>
-                    <div><span>Total</span><strong>${money(selectedTotal)}</strong></div>
-                  </div>
-                </section>
-                <section class="employee-profile-section">
-                  <h4>Next Payroll</h4>
-                  <div class="employee-profile-fact-list">
-                    <div><span>Leave Balance</span><strong>${number(selectedLeave, 0)} days</strong></div>
-                    <div><span>Status</span><strong>${selectedEmployee.status || "Active"}</strong></div>
-                    <div><span>Payroll Month</span><strong>${state.reportMonth}</strong></div>
-                  </div>
-                </section>
+                <div class="section-switcher">
+                  ${sectionToggle("profile", state.peopleProfileTab, "Profile", "set-people-tab", "tab")}
+                  ${sectionToggle("pay", state.peopleProfileTab, "Pay setup", "set-people-tab", "tab")}
+                  ${sectionToggle("readiness", state.peopleProfileTab, "Payroll readiness", "set-people-tab", "tab")}
+                </div>
+                ${
+                  state.peopleProfileTab === "profile"
+                    ? `<section class="employee-profile-section">
+                        <h4>Contact and identity</h4>
+                        <div class="employee-profile-fact-list">
+                          <div><span>Phone</span><strong>${selectedEmployee.profile?.cellphone || "Not saved"}</strong></div>
+                          <div><span>Email</span><strong>${selectedEmployee.profile?.personalEmail || "Not saved"}</strong></div>
+                          <div><span>ID</span><strong>${selectedEmployee.idNumber || "Not saved"}</strong></div>
+                          <div><span>Department</span><strong>${selectedEmployee.department || "Not saved"}</strong></div>
+                        </div>
+                      </section>`
+                    : ""
+                }
+                ${
+                  state.peopleProfileTab === "pay"
+                    ? `<section class="employee-profile-section">
+                        <h4>Pay setup</h4>
+                        <div class="employee-profile-fact-list">
+                          <div><span>Basic wage</span><strong>${money(selectedEmployee.basicWage)}</strong></div>
+                          <div><span>Allowances</span><strong>${money(selectedEmployee.taxableAllowances || 0)}</strong></div>
+                          <div><span>Bonus</span><strong>${money(selectedEmployee.standardBonus || 0)}</strong></div>
+                          <div><span>Total</span><strong>${money(selectedTotal)}</strong></div>
+                          <div><span>Bank name</span><strong>${selectedEmployee.bankName || "Not saved"}</strong></div>
+                          <div><span>Account number</span><strong>${selectedEmployee.accountNumber || "Not saved"}</strong></div>
+                        </div>
+                      </section>`
+                    : ""
+                }
+                ${
+                  state.peopleProfileTab === "readiness"
+                    ? `<section class="employee-profile-section">
+                        <h4>Payroll readiness</h4>
+                        ${payrollReadiness(selectedEmployee).ready ? `<div class="notice good"><h3>Ready for payroll</h3><p class="muted">No blocking payroll issues detected for this employee.</p></div>` : `<div class="notice warn"><h3>Action required</h3><p class="muted">${payrollReadiness(selectedEmployee).issues.join(" ")}</p></div>`}
+                        <div class="employee-profile-fact-list">
+                          <div><span>Leave balance</span><strong>${number(selectedLeave, 0)} days</strong></div>
+                          <div><span>Status</span><strong>${selectedEmployee.status || "Active"}</strong></div>
+                          <div><span>Payroll month</span><strong>${state.reportMonth}</strong></div>
+                        </div>
+                      </section>`
+                    : ""
+                }
               `
               : `<div class="empty">Select an employee to see more detail.</div>`
           }
@@ -1893,11 +2270,8 @@ function employeesView() {
 
 function payrollView() {
   const activeEmployees = state.employees.filter((employee) => (employee.status || "active") === "active");
-  const selectedEmployee =
-    state.employees.find((employee) => employee.id === state.selectedEmployeeId) ||
-    activeEmployees[0] ||
-    state.employees[0] ||
-    null;
+  const scopedEmployee = state.employees.find((employee) => employee.id === state.selectedEmployeeId) || null;
+  const previewEmployee = scopedEmployee || activeEmployees[0] || state.employees[0] || null;
   const runMetrics = state.activeRun?.result?.metrics || {};
   const totalGross = state.activeRun
     ? Number(runMetrics.taxableGross || 0)
@@ -1906,84 +2280,197 @@ function payrollView() {
     ? Number(runMetrics.employeeSsc || 0) + Number(runMetrics.paye || 0) + Number(state.activeRun.input?.otherDeductions || 0)
     : Number((state.report?.summary || {}).paye || 0) + Number((state.report?.summary || {}).employeeSsc || 0);
   const totalNet = state.activeRun ? Number(runMetrics.netPay || 0) : Math.max(totalGross - totalDeductions, 0);
+  const readiness = scopedEmployee
+    ? payrollReadiness(scopedEmployee)
+    : (() => {
+        const issues = activeEmployees
+          .flatMap((employee) => payrollReadiness(employee).issues.map((issue) => `${employee.fullName}: ${issue}`))
+          .slice(0, 3);
+        return {
+          ready: issues.length === 0,
+          issues: issues.length ? issues : ["All active employees have the minimum payroll data required."],
+        };
+      })();
   const employeeOptions = state.employees
     .filter((employee) => matchesSearch(state.globalSearch, employee.fullName, employee.employeeNumber, employee.department, employee.title))
     .map(
       (employee) =>
-        `<option value="${employee.id}" ${selectedEmployee?.id === employee.id ? "selected" : ""}>${employee.employeeNumber} · ${employee.fullName}</option>`,
+        `<option value="${employee.id}" ${scopedEmployee?.id === employee.id ? "selected" : ""}>${employee.employeeNumber} · ${employee.fullName}</option>`,
     )
     .join("");
 
   return `
     <section class="panel-grid payroll-mock-page">
-      <section class="payroll-modal-shell">
-        <div class="payroll-modal-card">
-          <div class="payroll-modal-head">
-            <div>
-              <h2>Run Payroll</h2>
-              <p class="muted">Review and confirm payroll for the selected period.</p>
-            </div>
+      <section class="panel">
+        <div class="record-head">
+          <div>
+            <p class="section-kicker">Payroll</p>
+            <h2>Approve and publish payroll</h2>
+            <p class="muted">A guided workflow that keeps period selection, review, outputs, and publishing in the same place.</p>
           </div>
-          <form id="payroll-form" class="payroll-modal-form">
-            <label>Payroll Period
-              <input type="month" name="payrollMonth" value="${state.reportMonth}" required />
-            </label>
-            <label>Employee Filter
-              <select name="employeeId" required>
-                <option value="">All Employees</option>
-                ${employeeOptions}
-              </select>
-            </label>
-            <input type="hidden" name="allowances" value="0" />
-            <input type="hidden" name="bonus" value="0" />
-            <input type="hidden" name="otherDeductions" value="0" />
-            <input type="hidden" name="overtimeHours" value="0" />
-            <input type="hidden" name="maxDailyOvertime" value="0" />
-            <input type="hidden" name="maxWeeklyOvertime" value="0" />
-            <input type="hidden" name="sundayHours" value="0" />
-            <input type="hidden" name="publicHolidayHours" value="0" />
-            <input type="hidden" name="nightHours" value="0" />
-            <input type="hidden" name="annualLeaveUsed" value="0" />
-            <input type="hidden" name="sickLeaveUsed" value="0" />
-            <input type="hidden" name="ordinarilyWorksSunday" value="false" />
-            <input type="hidden" name="publicHolidayOrdinaryDay" value="false" />
-            <div class="payroll-review-grid">
-              <article class="payroll-review-card">
-                <span class="payroll-review-icon">◉</span>
-                <div>
-                  <span>Total Employees</span>
-                  <strong>${selectedEmployee ? 1 : activeEmployees.length}</strong>
-                  <small>${selectedEmployee ? selectedEmployee.fullName : `${activeEmployees.length} active employees`}</small>
-                </div>
-              </article>
-              <article class="payroll-review-card">
-                <span class="payroll-review-icon">◌</span>
-                <div>
-                  <span>Total Amount</span>
-                  <strong>${money(totalGross)}</strong>
-                  <small>Net pay: ${money(totalNet)}</small>
-                </div>
-              </article>
-              <article class="payroll-review-card">
-                <span class="payroll-review-icon">%</span>
-                <div>
-                  <span>Total Deductions</span>
-                  <strong>${money(totalDeductions)}</strong>
-                  <small>PAYE and employee SSC</small>
-                </div>
-              </article>
-            </div>
-            <div class="payroll-modal-actions">
-              <button class="secondary" type="button" data-action="bulk-payroll-run">Bulk Create</button>
-              <button class="primary" type="submit">Confirm & Run</button>
-            </div>
-          </form>
         </div>
+        ${payrollStepper()}
+        ${!readiness.ready && state.payrollStep !== "period" ? `<div class="banner">Action required: ${readiness.issues.join(" ")}</div>` : ""}
+        <form id="payroll-form" class="payroll-modal-form">
+          <input type="hidden" name="allowances" value="0" />
+          <input type="hidden" name="bonus" value="0" />
+          <input type="hidden" name="otherDeductions" value="0" />
+          <input type="hidden" name="overtimeHours" value="0" />
+          <input type="hidden" name="maxDailyOvertime" value="0" />
+          <input type="hidden" name="maxWeeklyOvertime" value="0" />
+          <input type="hidden" name="sundayHours" value="0" />
+          <input type="hidden" name="publicHolidayHours" value="0" />
+          <input type="hidden" name="nightHours" value="0" />
+          <input type="hidden" name="annualLeaveUsed" value="0" />
+          <input type="hidden" name="sickLeaveUsed" value="0" />
+          <input type="hidden" name="ordinarilyWorksSunday" value="false" />
+          <input type="hidden" name="publicHolidayOrdinaryDay" value="false" />
+          ${
+            state.payrollStep === "period"
+              ? `
+                <div class="payroll-step-shell">
+                <div class="payroll-stage-head">
+                  <div>
+                    <p class="section-kicker">Step 1</p>
+                    <h3>Select payroll period</h3>
+                  </div>
+                  <span class="tag">Choose scope and month</span>
+                </div>
+                <div class="grid-2">
+                  <label>Payroll period
+                    <input type="month" name="payrollMonth" value="${state.reportMonth}" required />
+                  </label>
+                  <label>Run scope
+                    <select name="employeeId">
+                      <option value="">All active employees</option>
+                      ${employeeOptions}
+                    </select>
+                  </label>
+                </div>
+                <div class="stats compact-stats">
+                  <article class="stat"><span class="stat-label">Payroll period</span><span class="stat-value">${state.reportMonth}</span></article>
+                  <article class="stat"><span class="stat-label">Run scope</span><span class="stat-value">${scopedEmployee ? scopedEmployee.fullName : `${activeEmployees.length} employees`}</span></article>
+                </div>
+                </div>
+              `
+              : ""
+          }
+          ${
+            state.payrollStep === "inputs"
+              ? `
+                <div class="payroll-step-shell">
+                <div class="payroll-stage-head">
+                  <div>
+                    <p class="section-kicker">Step 2</p>
+                    <h3>Review payroll inputs</h3>
+                  </div>
+                  <span class="tag">Readiness and source checks</span>
+                </div>
+                <div class="payroll-review-grid">
+                  <article class="payroll-review-card">
+                    <span class="payroll-review-icon">◉</span>
+                    <div>
+                      <span>People in run</span>
+                      <strong>${scopedEmployee ? 1 : activeEmployees.length}</strong>
+                      <small>${scopedEmployee ? scopedEmployee.fullName : `${activeEmployees.length} active employees selected`}</small>
+                    </div>
+                  </article>
+                  <article class="payroll-review-card">
+                    <span class="payroll-review-icon">!</span>
+                    <div>
+                      <span>Payroll readiness</span>
+                      <strong>${readiness.ready ? "Ready" : "Action required"}</strong>
+                      <small>${readiness.ready ? "No blocking payroll issues detected." : readiness.issues[0]}</small>
+                    </div>
+                  </article>
+                  <article class="payroll-review-card">
+                    <span class="payroll-review-icon">%</span>
+                    <div>
+                      <span>Compliance inputs</span>
+                      <strong>${previewEmployee?.idNumber ? "ID captured" : "Missing statutory info"}</strong>
+                      <small>PAYE and SSC checks depend on employee statutory data.</small>
+                    </div>
+                  </article>
+                </div>
+                ${
+                  !readiness.ready
+                    ? `<div class="notice warn"><h3>Missing payroll-critical information</h3><p class="muted">${readiness.issues.join(" ")}</p></div>`
+                    : ""
+                }
+                </div>
+              `
+              : ""
+          }
+          ${
+            state.payrollStep === "outputs"
+              ? `
+                <div class="payroll-step-shell">
+                <div class="payroll-stage-head">
+                  <div>
+                    <p class="section-kicker">Step 3</p>
+                    <h3>Review payroll outputs</h3>
+                  </div>
+                  <span class="tag">High-confidence payroll summary</span>
+                </div>
+                <div class="payroll-review-grid">
+                  <article class="payroll-review-card">
+                    <span class="payroll-review-icon">◌</span>
+                    <div>
+                      <span>Gross remuneration</span>
+                      <strong>${money(totalGross)}</strong>
+                      <small>Estimated taxable payroll for this run</small>
+                    </div>
+                  </article>
+                  <article class="payroll-review-card">
+                    <span class="payroll-review-icon">%</span>
+                    <div>
+                      <span>Total deductions</span>
+                      <strong>${money(totalDeductions)}</strong>
+                      <small>PAYE and employee SSC</small>
+                    </div>
+                  </article>
+                  <article class="payroll-review-card">
+                    <span class="payroll-review-icon">$</span>
+                    <div>
+                      <span>Estimated net pay</span>
+                      <strong>${money(totalNet)}</strong>
+                      <small>Strong NAD summary before approval</small>
+                    </div>
+                  </article>
+                </div>
+                </div>
+              `
+              : ""
+          }
+          ${
+            state.payrollStep === "publish"
+              ? `
+                <div class="payroll-step-shell">
+                <div class="payroll-stage-head">
+                  <div>
+                    <p class="section-kicker">Step 4</p>
+                    <h3>Approve and publish</h3>
+                  </div>
+                  <span class="tag">Create payroll history and payslips</span>
+                </div>
+                <div class="notice good">
+                  <h3>Approve and publish payroll</h3>
+                  <p class="muted">When you confirm, this payroll run is created, saved to history, and can be published as a payslip.</p>
+                </div>
+                <div class="payroll-modal-actions">
+                  <button class="secondary" type="button" data-action="bulk-payroll-run">Approve all selected employees</button>
+                  <button class="primary" type="submit">Approve and publish</button>
+                </div>
+                </div>
+              `
+              : `<div class="payroll-modal-actions"><button class="primary" type="button" data-action="advance-payroll-step">Continue</button></div>`
+          }
+        </form>
       </section>
       <section class="panel printable payroll-result-panel">
         <div class="record-head">
           <div>
-            <p class="section-kicker">Payslip</p>
+            <p class="section-kicker">Outputs</p>
             <h2>${state.activeRun ? `${state.activeRun.employeeName} · ${state.activeRun.payrollMonth}` : "Latest payroll result"}</h2>
           </div>
           ${
@@ -2000,6 +2487,85 @@ function payrollView() {
         </div>
         ${state.activeRun ? payslipView(state.activeRun) : `<div class="empty">Create or open a payroll run to view its payslip.</div>`}
       </section>
+    </section>
+  `;
+}
+
+function requestsHubView() {
+  const { items, selected } = syncRequestsSelection();
+  const pendingCount = items.filter((entry) => ["pending", "submitted", "scheduled", "late", "clocked_in"].includes(entry.status)).length;
+  const completedCount = items.filter((entry) => ["approved", "completed"].includes(entry.status)).length;
+  const blockedCount = items.filter((entry) => ["declined", "rejected", "missed", "cancelled"].includes(entry.status)).length;
+  const requestLabels = {
+    leave: "Leave",
+    loans: "Loans",
+    timesheets: "Timesheets",
+    attendance: "Attendance",
+  };
+
+  return `
+    <section class="panel-grid">
+      <section class="panel">
+        <div class="record-head">
+          <div>
+            <p class="section-kicker">Requests</p>
+            <h2>Unified employee request hub</h2>
+            <p class="muted">Review leave, loans, timesheets, and attendance in one queue.</p>
+          </div>
+          <div class="section-switcher">
+            ${sectionToggle("leave", state.requestsTab, "Leave", "set-requests-tab", "tab")}
+            ${sectionToggle("loans", state.requestsTab, "Loans", "set-requests-tab", "tab")}
+            ${sectionToggle("timesheets", state.requestsTab, "Timesheets", "set-requests-tab", "tab")}
+            ${sectionToggle("attendance", state.requestsTab, "Attendance", "set-requests-tab", "tab")}
+          </div>
+        </div>
+        ${state.reviewError ? `<div class="banner danger-banner">${state.reviewError}</div>` : ""}
+        ${state.leaveError && state.requestsTab === "leave" ? `<div class="banner danger-banner">${state.leaveError}</div>` : ""}
+        <div class="requests-summary-grid">
+          ${requestSummaryCard(`${requestLabels[state.requestsTab]} queue`, items.length)}
+          ${requestSummaryCard("Action required", pendingCount, pendingCount ? "warning" : "default")}
+          ${requestSummaryCard("Completed", completedCount, "success")}
+          ${requestSummaryCard("Exceptions", blockedCount, blockedCount ? "danger" : "default")}
+        </div>
+      </section>
+      <section class="panel request-workspace-shell">
+        <div class="request-queue-pane">
+          <div class="compact-section-head">
+            <div>
+              <p class="section-kicker">Queue</p>
+              <h3>${requestLabels[state.requestsTab]} to review</h3>
+            </div>
+            <span class="tag">${items.length} item${items.length === 1 ? "" : "s"}</span>
+          </div>
+          <div class="request-review-list">
+            ${
+              items.length
+                ? items.map((entry) => requestReviewCard(entry)).join("")
+                : `<div class="empty">No ${requestLabels[state.requestsTab].toLowerCase()} items match the current filters. Use search or wait for a new request.</div>`
+            }
+          </div>
+        </div>
+      </section>
+      ${
+        state.requestDrawerOpen
+          ? `
+            <button class="request-drawer-backdrop" data-action="close-request-drawer" type="button" aria-label="Close request review"></button>
+            <aside class="request-drawer" aria-label="Request review drawer">
+              <div class="request-drawer-head">
+                <div>
+                  <p class="section-kicker">Review drawer</p>
+                  <h3>${selected ? "Selected request" : "No request selected"}</h3>
+                </div>
+                <div class="employee-row-actions">
+                  ${selected ? `<span class="status-badge status-${selected.status}">${selected.status.replace("_", " ")}</span>` : ""}
+                  <button class="secondary table-action" data-action="close-request-drawer" type="button">Close</button>
+                </div>
+              </div>
+              ${requestReviewDetail(selected)}
+            </aside>
+          `
+          : ""
+      }
     </section>
   `;
 }
@@ -2023,12 +2589,6 @@ function reportsView() {
     matchesSearch(state.globalSearch, item.employeeName, item.employeeNumber, item.department),
   );
   const loanExposure = analytics.loanExposure || {};
-  const emp201 = compliance.emp201 || {};
-  const sscRemittance = compliance.sscRemittance || {};
-  const leaveAccrualRules = (compliance.leaveAccrualRules || []).filter((item) =>
-    matchesSearch(state.globalSearch, item.employeeName, item.employeeNumber),
-  );
-  const holidayCalendar = compliance.holidayCalendar || [];
   const financeTrend = (departmentCosts.length
     ? departmentCosts.slice(0, 5).map((item) => ({
         label: item.department,
@@ -2040,114 +2600,329 @@ function reportsView() {
         primary: Number(item.result?.metrics?.taxableGross || 0),
         secondary: Number(item.result?.metrics?.netPay || 0),
       })));
-  const complianceRows = [
-    { label: "PAYE filing", status: (emp201.payeDue || 0) > 0 ? "Pending" : "Ready" },
-    { label: "SSC remittance", status: (sscRemittance.employeeContribution || 0) > 0 ? "Pending" : "Ready" },
-    { label: "Holiday calendar", status: holidayCalendar.length ? "Loaded" : "Pending" },
-    { label: "Leave accrual review", status: leaveAccrualRules.length ? "Ready" : "Pending" },
-  ];
   const deductionSeries = [
     { label: "PAYE", value: Number(summary?.paye || 0), color: "#ff8a1f" },
     { label: "Employee SSC", value: Number(summary?.employeeSsc || 0), color: "#1396a3" },
     { label: "Loans", value: Number(loanExposure.totalOutstandingEstimate || 0), color: "#6d5df6" },
   ];
-  const taxTable = [
-    { label: "Taxable remuneration", amount: money(emp201.taxableRemuneration || 0), due: sscRemittance.dueDateHint || "-" },
-    { label: "PAYE due", amount: money(emp201.payeDue || 0), due: sscRemittance.dueDateHint || "-" },
-    { label: "Employee SSC", amount: money(emp201.employeeSscWithheld || 0), due: sscRemittance.dueDateHint || "-" },
-    { label: "Employer SSC", amount: money(emp201.employerSscContribution || 0), due: sscRemittance.dueDateHint || "-" },
-  ];
+  const departmentChartRows =
+    departmentCosts.length
+      ? buildBarChart(departmentCosts.slice(0, 6), "employerCost", "department", money)
+      : `<div class="empty">No department payroll cost data is available for this month.</div>`;
+  const overtimeRows =
+    overtimeTrends.length
+      ? buildBarChart(
+          overtimeTrends.map((item) => ({ month: item.month, overtimePay: item.overtimePay || 0 })),
+          "overtimePay",
+          "month",
+          money,
+        )
+      : `<div class="empty">No overtime trend is available yet.</div>`;
+  const topLeaveLiability = leaveLiability.slice(0, 6);
   return `
     <section class="panel-grid reports-mock-page">
       <section class="reports-header-bar">
         <div>
-          <h2>Reports</h2>
+          <p class="section-kicker">Reports</p>
+          <h2>Payroll reporting and exports</h2>
+          <p class="muted">Separate reporting from compliance and keep cost, people, and exports easier to scan.</p>
         </div>
         <form id="report-form" class="reports-toolbar">
-          <label class="reports-month-input">Date Range
+          <label class="reports-month-input">Month
             <input type="month" name="month" value="${state.reportMonth}" required />
           </label>
           <button class="primary" type="submit">Load</button>
-          <button class="secondary" type="button" data-action="export-finance" data-type="payroll-journal" data-month="${state.reportMonth}">Export (PDF, CSV)</button>
+          <button class="secondary" type="button" data-action="export-finance" data-type="payroll-journal" data-month="${state.reportMonth}">Export payroll journal</button>
         </form>
       </section>
       ${
         !summary
           ? `<section class="panel"><div class="empty">Load a month to see the redesigned reports dashboard.</div></section>`
           : `
-            <section class="reports-card-grid">
-              <article class="panel reports-analytics-card">
-                <div class="reports-card-head">
-                  <div>
-                    <h3>Finance Summary</h3>
-                    <p class="muted">Payroll costs</p>
-                  </div>
-                  <span class="pill">Total Cost: ${money(summary.employerCost || 0)}</span>
-                </div>
-                ${buildLineComparisonChart(financeTrend, "primary", "secondary", "label")}
-              </article>
-              <article class="panel reports-analytics-card">
-                <div class="reports-card-head">
-                  <div>
-                    <h3>Compliance Report</h3>
-                    <p class="muted">Current filing readiness</p>
-                  </div>
-                  <span class="pill">Due: ${sscRemittance.dueDateHint || "-"}</span>
-                </div>
-                <div class="compliance-status-list">
-                  ${complianceRows.map((item) => `
-                    <div class="compliance-status-row">
-                      <div class="compliance-status-title">
-                        <span class="compliance-status-dot ${item.status === "Pending" ? "warning" : ""}"></span>
-                        <strong>${item.label}</strong>
-                      </div>
-                      <span class="status-badge ${item.status === "Pending" ? "status-pending" : ""}">${item.status}</span>
-                    </div>
-                  `).join("")}
-                </div>
-              </article>
-              <article class="panel reports-analytics-card">
-                <div class="reports-card-head">
-                  <div>
-                    <h3>Employee Deductions</h3>
-                    <p class="muted">Monthly deduction mix</p>
-                  </div>
-                  <span class="pill">${summary.runCount} runs</span>
-                </div>
-                ${buildDonutLegend(deductionSeries)}
-              </article>
-              <article class="panel reports-analytics-card">
-                <div class="reports-card-head">
-                  <div>
-                    <h3>Tax Summary</h3>
-                    <p class="muted">Monthly remittance snapshot</p>
-                  </div>
-                  <span class="pill">Employees filed: ${emp201.employeesFiled || headcount.active || 0}</span>
-                </div>
-                <div class="employee-table-wrap">
-                  <table class="employee-table report-summary-table">
-                    <thead>
-                      <tr>
-                        <th>Category</th>
-                        <th>Amount</th>
-                        <th>Due</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${taxTable.map((row) => `
-                        <tr>
-                          <td>${row.label}</td>
-                          <td>${row.amount}</td>
-                          <td>${row.due}</td>
-                        </tr>
-                      `).join("")}
-                    </tbody>
-                  </table>
-                </div>
-              </article>
+            <section class="panel">
+              <div class="section-switcher">
+                ${sectionToggle("summary", state.reportSection, "Summary", "set-report-section", "section")}
+                ${sectionToggle("people", state.reportSection, "People", "set-report-section", "section")}
+                ${sectionToggle("finance", state.reportSection, "Finance", "set-report-section", "section")}
+                ${sectionToggle("runs", state.reportSection, "Runs", "set-report-section", "section")}
+              </div>
             </section>
+            ${
+              state.reportSection === "summary"
+                ? `
+                  <section class="reports-card-grid">
+                    <article class="panel reports-analytics-card">
+                      <div class="reports-card-head">
+                        <div>
+                          <h3>Payroll summary</h3>
+                          <p class="muted">Employer cost, net pay, and gross trend</p>
+                        </div>
+                        <span class="pill">Employer cost ${money(summary.employerCost || 0)}</span>
+                      </div>
+                      ${buildLineComparisonChart(financeTrend, "primary", "secondary", "label")}
+                    </article>
+                    <article class="panel reports-analytics-card">
+                      <div class="reports-card-head">
+                        <div>
+                          <h3>Monthly deduction mix</h3>
+                          <p class="muted">PAYE, SSC, and outstanding loans</p>
+                        </div>
+                        <span class="pill">${summary.runCount} payroll runs</span>
+                      </div>
+                      ${buildDonutLegend(deductionSeries)}
+                    </article>
+                    <article class="panel reports-analytics-card">
+                      <div class="reports-card-head">
+                        <div>
+                          <h3>Monthly totals</h3>
+                          <p class="muted">Strong NAD figures for this payroll month</p>
+                        </div>
+                      </div>
+                      <div class="stats compact-stats">
+                        <article class="stat"><span class="stat-label">Gross remuneration</span><span class="stat-value">${money(summary.taxableGross || 0)}</span></article>
+                        <article class="stat"><span class="stat-label">Net pay</span><span class="stat-value">${money(summary.netPay || 0)}</span></article>
+                        <article class="stat"><span class="stat-label">PAYE withheld</span><span class="stat-value">${money(summary.paye || 0)}</span></article>
+                        <article class="stat"><span class="stat-label">Employee SSC</span><span class="stat-value">${money(summary.employeeSsc || 0)}</span></article>
+                      </div>
+                    </article>
+                  </section>
+                `
+                : ""
+            }
+            ${
+              state.reportSection === "people"
+                ? `
+                  <section class="reports-card-grid">
+                    <article class="panel reports-analytics-card">
+                      <div class="reports-card-head">
+                        <div>
+                          <h3>Workforce snapshot</h3>
+                          <p class="muted">Headcount and department payroll cost</p>
+                        </div>
+                        <span class="pill">${headcount.active || 0} active employees</span>
+                      </div>
+                      <div class="stats compact-stats">
+                        <article class="stat"><span class="stat-label">Total employees</span><span class="stat-value">${headcount.total || state.employees.length}</span></article>
+                        <article class="stat"><span class="stat-label">Active employees</span><span class="stat-value">${headcount.active || 0}</span></article>
+                        <article class="stat"><span class="stat-label">Departments</span><span class="stat-value">${departmentCosts.length}</span></article>
+                        <article class="stat"><span class="stat-label">Average salary</span><span class="stat-value">${money(headcount.averageBasicSalary || 0)}</span></article>
+                      </div>
+                      ${departmentChartRows}
+                    </article>
+                    <article class="panel reports-analytics-card">
+                      <div class="reports-card-head">
+                        <div>
+                          <h3>Leave liability</h3>
+                          <p class="muted">Employees with the highest leave exposure</p>
+                        </div>
+                        <span class="pill">${money(analytics.leaveLiabilityTotal || 0)}</span>
+                      </div>
+                      ${
+                        topLeaveLiability.length
+                          ? `<div class="employee-table-wrap">
+                              <table class="employee-table report-summary-table">
+                                <thead>
+                                  <tr>
+                                    <th>Employee</th>
+                                    <th>Department</th>
+                                    <th>Outstanding days</th>
+                                    <th>Liability</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  ${topLeaveLiability.map((item) => `
+                                    <tr>
+                                      <td>${item.employeeName}</td>
+                                      <td>${item.department || "-"}</td>
+                                      <td>${number(item.outstandingAnnualLeaveDays || 0, 0)}</td>
+                                      <td>${money(item.liabilityAmount || 0)}</td>
+                                    </tr>
+                                  `).join("")}
+                                </tbody>
+                              </table>
+                            </div>`
+                          : `<div class="empty">No leave liability data is available yet.</div>`
+                      }
+                    </article>
+                  </section>
+                `
+                : ""
+            }
+            ${
+              state.reportSection === "finance"
+                ? `
+                  <section class="reports-card-grid">
+                    <article class="panel reports-analytics-card">
+                      <div class="reports-card-head">
+                        <div>
+                          <h3>Exports</h3>
+                          <p class="muted">Finance-ready outputs for this payroll month</p>
+                        </div>
+                      </div>
+                      <div class="employee-row-actions">
+                        <button class="secondary" type="button" data-action="export-finance" data-type="payroll-journal" data-month="${state.reportMonth}">Payroll journal</button>
+                        <button class="secondary" type="button" data-action="export-finance" data-type="bank-file" data-month="${state.reportMonth}">Bank payment file</button>
+                        <button class="secondary" type="button" data-action="export-finance" data-type="deduction-schedule" data-month="${state.reportMonth}">Deduction schedule</button>
+                      </div>
+                      <div class="notice"><p class="muted">Use Compliance for PAYE and SSC filing readiness. This screen stays focused on payroll cost and export outputs.</p></div>
+                    </article>
+                    <article class="panel reports-analytics-card">
+                      <div class="reports-card-head">
+                        <div>
+                          <h3>Overtime trend</h3>
+                          <p class="muted">Recent overtime pay trend by month</p>
+                        </div>
+                      </div>
+                      ${overtimeRows}
+                    </article>
+                    <article class="panel reports-analytics-card">
+                      <div class="reports-card-head">
+                        <div>
+                          <h3>Loan exposure</h3>
+                          <p class="muted">Current approved employee loan position</p>
+                        </div>
+                      </div>
+                      <div class="stats compact-stats">
+                        <article class="stat"><span class="stat-label">Approved loans</span><span class="stat-value">${loanExposure.approvedCount || 0}</span></article>
+                        <article class="stat"><span class="stat-label">Original principal</span><span class="stat-value">${money(loanExposure.totalPrincipal || 0)}</span></article>
+                        <article class="stat"><span class="stat-label">Outstanding</span><span class="stat-value">${money(loanExposure.totalOutstandingEstimate || 0)}</span></article>
+                        <article class="stat"><span class="stat-label">Monthly installments</span><span class="stat-value">${money(loanExposure.totalInstallmentEstimate || 0)}</span></article>
+                      </div>
+                    </article>
+                  </section>
+                `
+                : ""
+            }
+            ${
+              state.reportSection === "runs"
+                ? `
+                  <section class="panel reports-analytics-card">
+                    <div class="reports-card-head">
+                      <div>
+                        <h3>Payroll history</h3>
+                        <p class="muted">Published payroll runs for ${state.reportMonth}</p>
+                      </div>
+                      <span class="pill">${rows.length} run${rows.length === 1 ? "" : "s"}</span>
+                    </div>
+                    ${
+                      rows.length
+                        ? `<div class="employee-table-wrap">
+                            <table class="employee-table report-summary-table">
+                              <thead>
+                                <tr>
+                                  <th>Employee</th>
+                                  <th>Month</th>
+                                  <th>Gross</th>
+                                  <th>Net</th>
+                                  <th>Created by</th>
+                                  <th>Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                ${rows.map((item) => `
+                                  <tr>
+                                    <td>${item.employeeName}</td>
+                                    <td>${item.payrollMonth}</td>
+                                    <td>${money(item.result?.metrics?.taxableGross || 0)}</td>
+                                    <td>${money(item.result?.metrics?.netPay || 0)}</td>
+                                    <td>${item.createdBy || "-"}</td>
+                                    <td><button class="secondary table-action" data-action="open-run" data-id="${item.id}">Open</button></td>
+                                  </tr>
+                                `).join("")}
+                              </tbody>
+                            </table>
+                          </div>`
+                        : `<div class="empty">No payroll runs are available for this month yet.</div>`
+                    }
+                  </section>
+                `
+                : ""
+            }
           `
       }
+    </section>
+  `;
+}
+
+function complianceView() {
+  const compliance = state.report?.compliance || {};
+  const emp201 = compliance.emp201 || {};
+  const sscRemittance = compliance.sscRemittance || {};
+  const leaveAccrualRules = compliance.leaveAccrualRules || [];
+  const holidayCalendar = compliance.holidayCalendar || [];
+  const missingStatutory = state.employees.filter((employee) =>
+    !employee.idNumber || !employee.bankName || !employee.accountNumber || !employee.startDate,
+  );
+
+  return `
+    <section class="panel-grid">
+      <section class="panel">
+        <div class="record-head">
+          <div>
+            <p class="section-kicker">Compliance</p>
+            <h2>PAYE, SSC, and filing readiness</h2>
+            <p class="muted">Separate compliance from reporting so statutory issues are easier to spot and act on.</p>
+          </div>
+          <form id="report-form" class="reports-toolbar">
+            <label class="reports-month-input">Month
+              <input type="month" name="month" value="${state.reportMonth}" required />
+            </label>
+            <button class="primary" type="submit">Refresh</button>
+          </form>
+        </div>
+        <div class="stats compact-stats">
+          <article class="stat"><span class="stat-label">PAYE due</span><span class="stat-value">${money(emp201.payeDue || 0)}</span></article>
+          <article class="stat"><span class="stat-label">Employee SSC</span><span class="stat-value">${money(sscRemittance.employeeContribution || 0)}</span></article>
+          <article class="stat"><span class="stat-label">Employer SSC</span><span class="stat-value">${money(sscRemittance.employerContribution || 0)}</span></article>
+          <article class="stat"><span class="stat-label">Action required</span><span class="stat-value">${missingStatutory.length}</span></article>
+        </div>
+      </section>
+      <section class="reports-card-grid">
+        <article class="panel reports-analytics-card">
+          <div class="reports-card-head">
+            <div>
+              <h3>Filing readiness</h3>
+              <p class="muted">Current month checklist</p>
+            </div>
+            <span class="pill">${sscRemittance.dueDateHint || "Due date not set"}</span>
+          </div>
+          <div class="compliance-status-list">
+            <div class="compliance-status-row"><div class="compliance-status-title"><span class="compliance-status-dot ${emp201.payeDue ? "warning" : ""}"></span><strong>PAYE filing</strong></div><span class="status-badge ${emp201.payeDue ? "status-pending" : ""}">${emp201.payeDue ? "Pending" : "Ready"}</span></div>
+            <div class="compliance-status-row"><div class="compliance-status-title"><span class="compliance-status-dot ${sscRemittance.employeeContribution ? "warning" : ""}"></span><strong>SSC remittance</strong></div><span class="status-badge ${sscRemittance.employeeContribution ? "status-pending" : ""}">${sscRemittance.employeeContribution ? "Pending" : "Ready"}</span></div>
+            <div class="compliance-status-row"><div class="compliance-status-title"><span class="compliance-status-dot ${holidayCalendar.length ? "" : "warning"}"></span><strong>Holiday calendar</strong></div><span class="status-badge ${holidayCalendar.length ? "" : "status-pending"}">${holidayCalendar.length ? "Loaded" : "Pending"}</span></div>
+            <div class="compliance-status-row"><div class="compliance-status-title"><span class="compliance-status-dot ${leaveAccrualRules.length ? "" : "warning"}"></span><strong>Leave accrual rules</strong></div><span class="status-badge ${leaveAccrualRules.length ? "" : "status-pending"}">${leaveAccrualRules.length ? "Ready" : "Pending"}</span></div>
+          </div>
+        </article>
+        <article class="panel reports-analytics-card">
+          <div class="reports-card-head">
+            <div>
+              <h3>Missing statutory data</h3>
+              <p class="muted">Employees blocking clean payroll or filings</p>
+            </div>
+            <span class="pill">${missingStatutory.length} employees</span>
+          </div>
+          <div class="list compact-list">
+            ${missingStatutory.length
+              ? missingStatutory.slice(0, 8).map((employee) => `
+                  <article class="notice warn">
+                    <div class="record-head">
+                      <div>
+                        <h3>${employee.fullName}</h3>
+                        <p class="muted">${employee.employeeNumber} · ${employee.department || "No department"}</p>
+                      </div>
+                      <button class="secondary table-action" data-action="edit-employee" data-id="${employee.id}">Review</button>
+                    </div>
+                    <p class="muted">${[
+                      !employee.idNumber ? "Missing ID" : "",
+                      !employee.bankName || !employee.accountNumber ? "Missing bank details" : "",
+                      !employee.startDate ? "Missing start date" : "",
+                    ].filter(Boolean).join(" · ")}</p>
+                  </article>
+                `).join("")
+              : `<div class="empty">No missing statutory records right now.</div>`}
+          </div>
+        </article>
+      </section>
     </section>
   `;
 }
@@ -2234,6 +3009,44 @@ function dataView() {
           </div>
         </form>
       </section>
+    </section>
+  `;
+}
+
+function settingsView() {
+  return `
+    <section class="panel-grid">
+      <section class="panel">
+        <div class="record-head">
+          <div>
+            <p class="section-kicker">Settings</p>
+            <h2>Company setup, rules, notifications, and backups</h2>
+            <p class="muted">Group company controls into one place without changing the payroll engine underneath.</p>
+          </div>
+          <div class="section-switcher">
+            ${sectionToggle("company", state.settingsSection, "Company", "set-settings-section", "section")}
+            ${sectionToggle("notifications", state.settingsSection, "Notifications", "set-settings-section", "section")}
+            ${sectionToggle("rules", state.settingsSection, "Payroll rules", "set-settings-section", "section")}
+            ${sectionToggle("data", state.settingsSection, "Data and backups", "set-settings-section", "section")}
+          </div>
+        </div>
+      </section>
+      ${state.settingsSection === "company" ? companyProfileSettingsView() : ""}
+      ${state.settingsSection === "notifications" ? notificationsSettingsView() : ""}
+      ${state.settingsSection === "data" ? dataView() : ""}
+      ${state.settingsSection === "rules"
+        ? `<section class="panel">
+            <p class="section-kicker">Payroll rules</p>
+            <h2>Current payroll defaults</h2>
+            <div class="stats compact-stats">
+              <article class="stat"><span class="stat-label">Minimum wage checks</span><span class="stat-value">Enabled</span></article>
+              <article class="stat"><span class="stat-label">PAYE logic</span><span class="stat-value">Namibia</span></article>
+              <article class="stat"><span class="stat-label">SSC logic</span><span class="stat-value">Enabled</span></article>
+              <article class="stat"><span class="stat-label">Overtime checks</span><span class="stat-value">Enabled</span></article>
+            </div>
+            <div class="notice"><p class="muted">Payroll calculations stay unchanged in this MVP redesign. This section is a clearer home for rules, thresholds, and future locked-period controls.</p></div>
+          </section>`
+        : ""}
     </section>
   `;
 }
@@ -2817,6 +3630,7 @@ function renderApp() {
   const pendingLoans = (state.loanRequests || []).filter((item) => item.status === "pending").length;
   const pendingTimesheets = (state.timesheets || []).filter((item) => item.status === "submitted").length;
   const activeShifts = (state.shifts || []).filter((item) => item.attendanceStatus === "clocked_in").length;
+  const attentionCount = pendingLeave + pendingLoans + pendingTimesheets;
   return appShell(`
     <section class="workspace-shell admin-workspace-shell">
       <aside class="app-rail">
@@ -2825,13 +3639,13 @@ function renderApp() {
         </div>
         <div class="app-rail-group">
           ${adminRailButton("dashboard", "⌂", "Home")}
-          ${adminRailButton("employees", "◉", "Employees")}
-          ${adminRailButton("leave", "◌", "Leave")}
-          ${adminRailButton("shifts", "◷", "Shifts")}
-          ${adminRailButton("timesheets", "☰", "Timesheets")}
           ${adminRailButton("payroll", "$", "Payroll")}
+          ${adminRailButton("employees", "◉", "People")}
+          ${adminRailButton("requests", "◌", "Requests")}
           ${adminRailButton("reports", "▤", "Reports")}
-          ${adminRailButton("company", "⚙", "Settings")}
+          ${adminRailButton("compliance", "!", "Compliance")}
+          ${adminRailButton("documents", "▣", "Documents")}
+          ${adminRailButton("settings", "⚙", "Settings")}
         </div>
       </aside>
       <div class="workspace-surface">
@@ -2869,62 +3683,81 @@ function renderApp() {
           ${state.mobileNavOpen ? `<button class="mobile-nav-backdrop" data-action="close-mobile-nav" type="button" aria-label="Close menu"></button>` : ""}
           <aside class="sidebar-pane admin-mobile-pane ${state.mobileNavOpen ? "mobile-open" : ""}">
             <div class="sidebar-pane-head">
-              <p class="section-kicker">Admin Menu</p>
+              <p class="section-kicker">Admin</p>
               <h2>${companyName}</h2>
               <p class="muted">${state.session.name} · ${state.session.role}</p>
             </div>
             <div class="sidebar-nav-list">
-              ${adminNavButton("dashboard", "Dashboard")}
-              ${adminNavButton("employees", "Employees")}
-              ${adminNavButton("leave", "Leave Requests")}
-              ${adminNavButton("loans", "Loans")}
-              ${adminNavButton("shifts", "Shifts")}
-              ${adminNavButton("timesheets", "Timesheets")}
+              ${adminNavItem("dashboard", "Home", "⌂")}
+              ${adminNavItem("payroll", "Payroll", "$")}
+              ${adminNavItem("employees", "People", "◉")}
+              ${adminNavItem("requests", "Requests", "◌")}
+              ${adminNavItem("reports", "Reports", "▤")}
+              ${adminNavItem("compliance", "Compliance", "!")}
+              ${adminNavItem("documents", "Documents", "▣")}
+              ${adminNavItem("settings", "Settings", "⚙")}
+            </div>
+            <div class="sidebar-stat-stack">
+              <article class="sidebar-stat-card"><span>Needs attention today</span><strong>${attentionCount}</strong></article>
+              <article class="sidebar-stat-card"><span>Clocked in now</span><strong>${activeShifts}</strong></article>
+            </div>
+          </aside>
+          <aside class="sidebar-pane workspace-sidebar-desktop">
+            <div class="sidebar-pane-head">
+              <p class="section-kicker">Today</p>
+              <h2>What needs attention</h2>
+              <p class="muted">Keep payroll first and bring exceptions forward.</p>
+            </div>
+            <div class="sidebar-nav-list">
+              ${adminNavItem("dashboard", "Home", "⌂")}
               ${adminNavButton("payroll", "Payroll")}
+              ${adminNavButton("employees", "People")}
+              ${adminNavButton("requests", "Requests")}
               ${adminNavButton("reports", "Reports")}
-              ${adminNavButton("company", "Company")}
+              ${adminNavButton("compliance", "Compliance")}
               ${adminNavButton("documents", "Documents")}
-              ${adminNavButton("data", "Data")}
+              ${adminNavButton("settings", "Settings")}
+            </div>
+            <div class="sidebar-stat-stack">
+              <article class="sidebar-stat-card"><span>Payroll period</span><strong>${state.reportMonth}</strong></article>
+              <article class="sidebar-stat-card"><span>Action required</span><strong>${attentionCount}</strong></article>
+              <article class="sidebar-stat-card"><span>Clocked in now</span><strong>${activeShifts}</strong></article>
             </div>
           </aside>
           <main class="content-stage">
             ${state.view === "dashboard" ? `
               <section class="workspace-hero-card workspace-hero-card-modern">
                 <div class="workspace-hero-copy">
-                  <p class="section-kicker">Payroll workspace</p>
+                  <p class="section-kicker">Home</p>
                   <h1 class="workspace-title">${companyName}</h1>
-                  <p class="muted">A focused control surface for employees, approvals, payroll runs, and reports.</p>
+                  <p class="muted">A clearer payroll workspace focused on what needs attention today, what is ready to run, and what blocks compliance.</p>
                 </div>
                 <div class="portal-quick-actions admin-quick-actions admin-quick-actions-mobile">
-                  ${adminQuickAction("employees", "Employees", `${activeEmployees} Active`)}
-                  ${adminQuickAction("leave", "Leave Status", pendingLeave ? `${pendingLeave} Pending Request` : "No pending requests")}
-                  ${adminQuickAction("shifts", "Shifts", activeShifts ? `Today: ${activeShifts} clocked in` : "Today: no activity")}
-                  ${adminQuickAction("timesheets", "Timesheets", pendingTimesheets ? `${pendingTimesheets} awaiting review` : "This week: all submitted")}
-                  ${adminQuickAction("payroll", "Payroll", pendingLoans ? `${pendingLoans} loan reviews pending` : "Next run ready")}
-                  ${adminQuickAction("reports", "Reports", "Finance and compliance")}
+                  ${adminQuickAction("payroll", "Payroll", "Approve and publish")}
+                  ${adminQuickAction("requests", "Requests", attentionCount ? `${attentionCount} action required` : "All clear")}
+                  ${adminQuickAction("employees", "People", `${activeEmployees} payroll records`)}
+                  ${adminQuickAction("compliance", "Compliance", "PAYE, SSC, filing")}
+                  ${adminQuickAction("reports", "Reports", "Costs and exports")}
                 </div>
               </section>
             ` : ""}
           ${state.view === "dashboard" ? dashboardView() : ""}
-          ${state.view === "company" ? companyView() : ""}
           ${state.view === "employees" ? employeesView() : ""}
-          ${state.view === "leave" ? leaveRequestsView() : ""}
-          ${state.view === "loans" ? loansView() : ""}
-          ${state.view === "shifts" ? shiftsView() : ""}
-          ${state.view === "timesheets" ? timesheetsView() : ""}
+          ${state.view === "requests" ? requestsHubView() : ""}
           ${state.view === "payroll" ? payrollView() : ""}
           ${state.view === "documents" ? documentsView() : ""}
-          ${state.view === "data" ? dataView() : ""}
           ${state.view === "reports" ? reportsView() : ""}
+          ${state.view === "compliance" ? complianceView() : ""}
+          ${state.view === "settings" ? settingsView() : ""}
           </main>
         </div>
       </div>
       <nav class="portal-bottom-nav admin-bottom-nav">
         ${adminBottomNavButton("dashboard", "Home")}
-        ${adminBottomNavButton("employees", "Team")}
-        ${adminBottomNavButton("shifts", "Calendar")}
-        ${adminBottomNavButton("payroll", "Pay")}
-        ${adminBottomNavButton("company", "Profile")}
+        ${adminBottomNavButton("payroll", "Payroll")}
+        ${adminBottomNavButton("requests", "Requests")}
+        ${adminBottomNavButton("reports", "Reports")}
+        ${adminBottomNavButton("settings", "Settings")}
       </nav>
     </section>
   `);
@@ -3044,6 +3877,9 @@ function bindApp() {
       if (state.view === "reports") {
         await loadReport(state.reportMonth);
       }
+      if (state.view === "compliance") {
+        await loadReport(state.reportMonth);
+      }
       if (state.view === "leave") {
         await loadLeaveRequests();
       }
@@ -3059,6 +3895,88 @@ function bindApp() {
       if (state.view === "data") {
         await loadDataStatus();
       }
+      if (state.view === "requests") {
+        await loadLeaveRequests();
+        await loadLoanRequests();
+        await loadShifts();
+        await loadTimesheets();
+      }
+      if (state.view === "settings" && state.settingsSection === "data") {
+        await loadDataStatus();
+      }
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='set-requests-tab']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      state.requestsTab = button.dataset.tab;
+      state.requestDrawerOpen = false;
+      if (state.requestsTab === "leave") await loadLeaveRequests();
+      if (state.requestsTab === "loans") await loadLoanRequests();
+      if (state.requestsTab === "attendance") await loadShifts();
+      if (state.requestsTab === "timesheets") await loadTimesheets();
+      syncRequestsSelection();
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='set-settings-section']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      state.settingsSection = button.dataset.section;
+      if (state.settingsSection === "data") {
+        await loadDataStatus();
+      }
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='set-people-tab']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.peopleProfileTab = button.dataset.tab;
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='set-payroll-step']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.payrollStep = button.dataset.step;
+      render();
+    });
+  });
+
+  document.querySelectorAll("#payroll-form select[name='employeeId'], #payroll-form input[name='payrollMonth']").forEach((field) => {
+    field.addEventListener("change", (event) => {
+      if (event.target.name === "employeeId") {
+        state.selectedEmployeeId = event.target.value;
+      }
+      if (event.target.name === "payrollMonth") {
+        state.reportMonth = event.target.value;
+      }
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='advance-payroll-step']").forEach((button) => {
+    button.addEventListener("click", () => {
+      const steps = ["period", "inputs", "outputs", "publish"];
+      const index = steps.indexOf(state.payrollStep);
+      state.payrollStep = steps[Math.min(index + 1, steps.length - 1)];
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='select-request-item']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.requestsSelectedId = button.dataset.id;
+      state.requestDrawerOpen = true;
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='close-request-drawer']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.requestDrawerOpen = false;
       render();
     });
   });
@@ -3110,7 +4028,10 @@ function bindApp() {
 
   document.querySelectorAll("[data-action='edit-employee']").forEach((button) => {
     button.addEventListener("click", () => {
+      state.view = "employees";
       state.editingEmployeeId = button.dataset.id;
+      state.selectedEmployeeId = button.dataset.id;
+      state.peopleProfileTab = "profile";
       state.showEmployeeForm = true;
       render();
       const employee = state.employees.find((item) => item.id === state.editingEmployeeId);
@@ -3155,6 +4076,7 @@ function bindApp() {
     button.addEventListener("click", () => {
       state.selectedEmployeeId = button.dataset.id;
       state.view = "payroll";
+      state.payrollStep = "period";
       render();
       const payrollSelect = document.querySelector("#payroll-form select[name='employeeId']");
       if (payrollSelect) {
@@ -3477,27 +4399,35 @@ function bindApp() {
       event.preventDefault();
       state.companyError = "";
       state.companyNotice = "";
+      const payload = {
+        ...(state.company || {}),
+        removeLogo: state.removeLogo,
+      };
       const data = Object.fromEntries(new FormData(companyForm).entries());
       const fileInput = document.querySelector("#company-logo");
       const file = fileInput?.files?.[0];
-      const notifyLeave = companyForm.elements.namedItem("notifyAdminOnLeaveRequest")?.checked ?? false;
-      const notifyLoan = companyForm.elements.namedItem("notifyAdminOnLoanRequest")?.checked ?? false;
-      const notifyTimesheet = companyForm.elements.namedItem("notifyAdminOnTimesheet")?.checked ?? false;
-      const alertEmail = String(companyForm.elements.namedItem("adminNotificationEmail")?.value || "").trim();
-      const alertSms = String(companyForm.elements.namedItem("adminNotificationCellphone")?.value || "").trim();
+      Object.entries(data).forEach(([key, value]) => {
+        payload[key] = value;
+      });
+
+      const checkboxValue = (name, currentValue = false) =>
+        companyForm.elements.namedItem(name) ? companyForm.elements.namedItem(name).checked : currentValue;
+
+      const notifyLeave = checkboxValue("notifyAdminOnLeaveRequest", state.company?.notifyAdminOnLeaveRequest !== false);
+      const notifyLoan = checkboxValue("notifyAdminOnLoanRequest", state.company?.notifyAdminOnLoanRequest !== false);
+      const notifyTimesheet = checkboxValue("notifyAdminOnTimesheet", state.company?.notifyAdminOnTimesheet !== false);
+      const alertEmail = String(payload.adminNotificationEmail || "").trim();
+      const alertSms = String(payload.adminNotificationCellphone || "").trim();
       if ((notifyLeave || notifyLoan || notifyTimesheet) && !alertEmail && !alertSms) {
         state.companyError = "Add an admin alert email or SMS number before enabling request notifications.";
         render();
         return;
       }
-      const payload = {
-        ...data,
-        removeLogo: state.removeLogo,
-      };
 
       if (file) {
         payload.logoDataUrl = await fileToDataUrl(file);
       }
+      delete payload.logoFile;
 
       try {
         const response = await api("/api/company", {
@@ -3507,17 +4437,20 @@ function bindApp() {
             notifyAdminOnLeaveRequest: notifyLeave,
             notifyAdminOnLoanRequest: notifyLoan,
             notifyAdminOnTimesheet: notifyTimesheet,
-            notifyEmployeeOnLeaveUpdate: companyForm.elements.namedItem("notifyEmployeeOnLeaveUpdate")?.checked ?? false,
-            notifyEmployeeOnLoanUpdate: companyForm.elements.namedItem("notifyEmployeeOnLoanUpdate")?.checked ?? false,
-            notifyEmployeeOnTimesheetUpdate: companyForm.elements.namedItem("notifyEmployeeOnTimesheetUpdate")?.checked ?? false,
-            notifyEmployeeOnPayslipReady: companyForm.elements.namedItem("notifyEmployeeOnPayslipReady")?.checked ?? false,
-            notifyEmployeeOnChatMessage: companyForm.elements.namedItem("notifyEmployeeOnChatMessage")?.checked ?? false,
+            notifyEmployeeOnLeaveUpdate: checkboxValue("notifyEmployeeOnLeaveUpdate", state.company?.notifyEmployeeOnLeaveUpdate !== false),
+            notifyEmployeeOnLoanUpdate: checkboxValue("notifyEmployeeOnLoanUpdate", state.company?.notifyEmployeeOnLoanUpdate !== false),
+            notifyEmployeeOnTimesheetUpdate: checkboxValue("notifyEmployeeOnTimesheetUpdate", state.company?.notifyEmployeeOnTimesheetUpdate !== false),
+            notifyEmployeeOnPayslipReady: checkboxValue("notifyEmployeeOnPayslipReady", state.company?.notifyEmployeeOnPayslipReady !== false),
+            notifyEmployeeOnChatMessage: checkboxValue("notifyEmployeeOnChatMessage", state.company?.notifyEmployeeOnChatMessage !== false),
           }),
         });
 
         state.company = response.item;
         state.removeLogo = false;
-        state.companyNotice = "Company alert settings saved.";
+        state.companyNotice =
+          state.settingsSection === "notifications"
+            ? "Notification settings saved."
+            : "Company profile saved.";
         await loadDashboard();
         render();
       } catch (error) {
