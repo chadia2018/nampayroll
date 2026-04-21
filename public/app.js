@@ -1361,6 +1361,9 @@ function renderEmployeePortal() {
   const pendingTimesheets = (state.portalData?.timesheets || []).filter((item) => item.status === "submitted").length;
   const openShifts = (state.portalData?.shifts || []).filter((item) => ["scheduled", "late", "clocked_in"].includes(item.attendanceStatus)).length;
   const payslipCount = (state.portalData?.payslips || []).length;
+  const empInitials = initials(employee?.fullName || "E");
+  const firstName = (employee?.fullName || "Employee").split(" ")[0];
+  const today = new Date().toLocaleDateString("en-NA", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   return appShell(`
     <section class="workspace-shell employee-workspace-shell">
       <aside class="app-rail">
@@ -1368,29 +1371,29 @@ function renderEmployeePortal() {
           <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
         </div>
         <div class="app-rail-group">
-          ${employeeRailButton("overview", "◫", "Home")}
-          ${employeeRailButton("payslips", "▣", "Payslips")}
-          ${employeeRailButton("leave", "◌", "Leave")}
-          ${employeeRailButton("time", "◷", "Time")}
-          ${employeeRailButton("inbox", "✉", "Inbox")}
+          ${employeeRailButton("overview", "&#9651;", "Home")}
+          ${employeeRailButton("payslips", "&#9635;", "Payslips")}
+          ${employeeRailButton("leave", "&#9675;", "Leave")}
+          ${employeeRailButton("time", "&#9719;", "Time")}
+          ${employeeRailButton("inbox", "&#9993;", "Inbox")}
         </div>
       </aside>
       <div class="workspace-surface">
         <header class="workspace-topbar">
           <div class="mobile-topbar-brand">
-            <button class="mobile-topbar-icon-button" data-action="toggle-mobile-nav" type="button" aria-label="Open menu" aria-expanded="${state.mobileNavOpen ? "true" : "false"}">☰</button>
+            <button class="mobile-topbar-icon-button" data-action="toggle-mobile-nav" type="button" aria-label="Open menu" aria-expanded="${state.mobileNavOpen ? "true" : "false"}">&#9776;</button>
             <div class="mobile-topbar-brand-lockup">
               <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
               <strong>NamPayroll</strong>
             </div>
-            <span class="mobile-topbar-icon">◉</span>
+            <span class="mobile-topbar-icon">&#9711;</span>
           </div>
           <div class="workspace-topbar-search">
-            <input class="workspace-search workspace-search-wide" id="employee-portal-search-global" placeholder="Search messages, payslips, leave, shifts" value="${state.employeePortalSearch}" />
+            <input class="workspace-search workspace-search-wide" id="employee-portal-search-global" placeholder="&#128269; Search payslips, leave, shifts..." value="${state.employeePortalSearch}" />
           </div>
           <div class="workspace-topbar-actions">
             <span class="pill">${state.company?.name || "Company"}</span>
-            <span class="topbar-avatar" title="${employee?.fullName || "Employee"} &middot; ${employee?.employeeNumber || ""}">  ${initials(employee?.fullName || "E")}</span>
+            <span class="topbar-avatar" title="${employee?.fullName || "Employee"} &middot; ${employee?.employeeNumber || ""}">${empInitials}</span>
             <button class="ghost" data-action="logout">Sign out</button>
           </div>
         </header>
@@ -1402,7 +1405,7 @@ function renderEmployeePortal() {
               <h2>${employee?.fullName || "Portal"}</h2>
               <p class="muted">${employee?.employeeNumber || ""} &middot; ${employee?.department || state.company?.name || ""}</p>
             </div>
-            <div class="sidebar-nav-list employee-portal-menu">
+            <div class="sidebar-nav-list">
               ${employeePortalMainNavButton("overview", "&#8962; Home")}
               ${employeePortalMainNavButton("payslips", "&#9635; Payslips")}
               ${employeePortalMainNavButton("leave", "&#9675; Leave")}
@@ -1414,19 +1417,19 @@ function renderEmployeePortal() {
               ${employeePortalSecondaryNavButton("account", "Profile &amp; password")}
             </div>
             <div class="sidebar-stat-stack">
-              <article class="sidebar-stat-card"><span>Leave remaining</span><strong>${number(annualRemaining, 0)} days</strong></article>
-              <article class="sidebar-stat-card"><span>Payslips available</span><strong>${payslipCount}</strong></article>
-              ${pendingLeave > 0 ? `<article class="sidebar-stat-card"><span>Pending leave</span><strong>${pendingLeave}<span class="stat-attention"></span></strong></article>` : ""}
+              <article class="sidebar-stat-card accent-teal"><span>Leave remaining</span><strong>${number(annualRemaining, 0)} days</strong></article>
+              <article class="sidebar-stat-card accent-blue"><span>Payslips available</span><strong>${payslipCount}</strong></article>
+              ${pendingLeave > 0 ? `<article class="sidebar-stat-card accent-gold"><span>Pending leave</span><strong>${pendingLeave}<span class="stat-attention"></span></strong></article>` : ""}
             </div>
           </aside>
           <main class="content-stage">
             <div class="employee-greeting-banner">
               <div class="employee-greeting-copy">
                 <p class="section-kicker">Employee Self-Service</p>
-                <h1 class="employee-greeting-name">Hello, ${(employee?.fullName || "Employee").split(" ")[0]}!</h1>
-                <p class="employee-greeting-sub">${employee?.title || "Employee"} &middot; ${employee?.department || state.company?.name || "NamPayroll"} &middot; ${new Date().toLocaleDateString("en-NA", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
+                <h1 class="employee-greeting-name">Hello, ${firstName}!</h1>
+                <p class="employee-greeting-sub">${employee?.title || "Employee"} &middot; ${employee?.department || state.company?.name || "NamPayroll"} &middot; ${today}</p>
               </div>
-              <span class="employee-greeting-avatar">${initials(employee?.fullName)}</span>
+              <span class="employee-greeting-avatar">${empInitials}</span>
             </div>
             <div class="employee-portal-stats">
               <article class="employee-portal-stat-card accent-teal">
@@ -3668,6 +3671,7 @@ function renderApp() {
   const pendingTimesheets = (state.timesheets || []).filter((item) => item.status === "submitted").length;
   const activeShifts = (state.shifts || []).filter((item) => item.attendanceStatus === "clocked_in").length;
   const attentionCount = pendingLeave + pendingLoans + pendingTimesheets;
+  const adminInitials = initials(state.session?.name || "Admin");
   return appShell(`
     <section class="workspace-shell admin-workspace-shell">
       <aside class="app-rail">
@@ -3680,39 +3684,35 @@ function renderApp() {
           ${adminRailButton("employees", "◉", "People")}
           ${adminRailButton("requests", "◌", "Requests")}
           ${adminRailButton("reports", "▤", "Reports")}
-          ${adminRailButton("compliance", "!", "Compliance")}
-          ${adminRailButton("documents", "▣", "Documents")}
+          ${adminRailButton("compliance", "!", "Comply")}
+          ${adminRailButton("documents", "▣", "Docs")}
           ${adminRailButton("settings", "⚙", "Settings")}
         </div>
       </aside>
       <div class="workspace-surface">
         <header class="workspace-topbar">
           <div class="mobile-topbar-brand">
-            <button class="mobile-topbar-icon-button" data-action="toggle-mobile-nav" type="button" aria-label="Open menu" aria-expanded="${state.mobileNavOpen ? "true" : "false"}">☰</button>
+            <button class="mobile-topbar-icon-button" data-action="toggle-mobile-nav" type="button" aria-label="Open menu" aria-expanded="${state.mobileNavOpen ? "true" : "false"}">&#9776;</button>
             <div class="mobile-topbar-brand-lockup">
               <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
               <strong>NamPayroll</strong>
             </div>
-            <span class="mobile-topbar-icon">◉</span>
+            <span class="mobile-topbar-icon">&#9711;</span>
           </div>
           <div class="workspace-topbar-search">
-            <input class="workspace-search workspace-search-wide" id="global-search-topbar" placeholder="Search employees, payroll, requests, reports" value="${state.globalSearch}" />
+            <input class="workspace-search workspace-search-wide" id="global-search-topbar" placeholder="&#128269; Search employees, payroll, requests..." value="${state.globalSearch}" />
           </div>
           <div class="workspace-topbar-actions">
             ${
               state.session?.role === "super_admin"
-                ? `
-                  <select id="super-admin-workspace-switch" class="workspace-search compact-search">
-                    ${(state.superAdminWorkspaces || []).map((workspace) => `
-                      <option value="${workspace.id}" ${workspace.id === state.company?.workspaceId ? "selected" : ""}>${workspace.name}</option>
-                    `).join("")}
-                  </select>
-                `
+                ? `<select id="super-admin-workspace-switch" class="workspace-search compact-search">
+                    ${(state.superAdminWorkspaces || []).map((workspace) => `<option value="${workspace.id}" ${workspace.id === state.company?.workspaceId ? "selected" : ""}>${workspace.name}</option>`).join("")}
+                  </select>`
                 : ""
             }
             <span class="pill">${companyName}</span>
-            ${attentionCount > 0 ? `<span class="pill" style="background:rgba(240,168,62,0.14);border-color:rgba(240,168,62,0.28);color:#8b6200;">&#9679; ${attentionCount} pending</span>` : ""}
-            <span class="topbar-avatar" title="${state.session?.name || "Admin"} · ${state.session?.role || "admin"}">  ${initials(state.session?.name || "Admin")}</span>
+            ${attentionCount > 0 ? `<span class="pill" style="background:rgba(245,158,11,0.12);border-color:rgba(245,158,11,0.28);color:#92400e;">&#9679; ${attentionCount} pending</span>` : ""}
+            <span class="topbar-avatar" title="${state.session?.name || "Admin"} &middot; ${state.session?.role || "admin"}">${adminInitials}</span>
             <button class="ghost" data-action="logout">Sign out</button>
           </div>
         </header>
@@ -3720,7 +3720,7 @@ function renderApp() {
           ${state.mobileNavOpen ? `<button class="mobile-nav-backdrop" data-action="close-mobile-nav" type="button" aria-label="Close menu"></button>` : ""}
           <aside class="sidebar-pane admin-sidebar ${state.mobileNavOpen ? "mobile-open" : ""}">
             <div class="sidebar-pane-head">
-              <p class="section-kicker">Admin</p>
+              <p class="section-kicker">Admin Portal</p>
               <h2>${companyName}</h2>
               <p class="muted">${state.session.name} &middot; ${state.session.role}</p>
             </div>
@@ -3750,23 +3750,23 @@ function renderApp() {
                   <p class="muted">Your payroll command centre &mdash; run payroll, review requests, manage people, and stay compliant.</p>
                 </div>
                 <div class="admin-quick-actions-mobile">
-                  <button class="portal-quick-action ${state.view === "payroll" ? "portal-quick-action-active" : ""}" data-view="payroll" type="button" style="border-left:4px solid #1a6fa0;">
+                  <button class="portal-quick-action ${state.view === "payroll" ? "portal-quick-action-active" : ""}" data-view="payroll" type="button">
                     <strong>&#36; Payroll</strong>
                     <span>Approve &amp; publish</span>
                   </button>
-                  <button class="portal-quick-action ${state.view === "requests" ? "portal-quick-action-active" : ""}" data-view="requests" type="button" style="border-left:4px solid ${attentionCount ? "#f0a83e" : "#1f8963"}">
+                  <button class="portal-quick-action ${state.view === "requests" ? "portal-quick-action-active" : ""}" data-view="requests" type="button">
                     <strong>&#9675; Requests</strong>
                     <span>${attentionCount ? `${attentionCount} need action` : "All clear"}</span>
                   </button>
-                  <button class="portal-quick-action ${state.view === "employees" ? "portal-quick-action-active" : ""}" data-view="employees" type="button" style="border-left:4px solid #19c1b4;">
+                  <button class="portal-quick-action ${state.view === "employees" ? "portal-quick-action-active" : ""}" data-view="employees" type="button">
                     <strong>&#9711; People</strong>
-                    <span>${activeEmployees} active records</span>
+                    <span>${activeEmployees} active</span>
                   </button>
-                  <button class="portal-quick-action ${state.view === "compliance" ? "portal-quick-action-active" : ""}" data-view="compliance" type="button" style="border-left:4px solid #c34c35;">
+                  <button class="portal-quick-action ${state.view === "compliance" ? "portal-quick-action-active" : ""}" data-view="compliance" type="button">
                     <strong>! Compliance</strong>
-                    <span>PAYE, SSC, filing</span>
+                    <span>PAYE &amp; SSC</span>
                   </button>
-                  <button class="portal-quick-action ${state.view === "reports" ? "portal-quick-action-active" : ""}" data-view="reports" type="button" style="border-left:4px solid #3268f0;">
+                  <button class="portal-quick-action ${state.view === "reports" ? "portal-quick-action-active" : ""}" data-view="reports" type="button">
                     <strong>&#9636; Reports</strong>
                     <span>Costs &amp; exports</span>
                   </button>
@@ -3786,7 +3786,7 @@ function renderApp() {
       </div>
       <nav class="portal-bottom-nav admin-bottom-nav">
         ${adminBottomNavButton("dashboard", "&#8962; Home")}
-        ${adminBottomNavButton("payroll", "&#36; Payroll")}
+        ${adminBottomNavButton("payroll", "&#36; Pay")}
         ${adminBottomNavButton("requests", "&#9675; Requests")}
         ${adminBottomNavButton("reports", "&#9636; Reports")}
         ${adminBottomNavButton("settings", "&#9881; Settings")}
