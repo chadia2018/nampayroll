@@ -1390,44 +1390,84 @@ function renderEmployeePortal() {
           </div>
           <div class="workspace-topbar-actions">
             <span class="pill">${state.company?.name || "Company"}</span>
-            <button class="ghost" data-action="logout">Log out</button>
+            <span class="topbar-avatar" title="${employee?.fullName || "Employee"} &middot; ${employee?.employeeNumber || ""}">  ${initials(employee?.fullName || "E")}</span>
+            <button class="ghost" data-action="logout">Sign out</button>
           </div>
         </header>
         <div class="workspace-body">
           ${state.mobileNavOpen ? `<button class="mobile-nav-backdrop" data-action="close-mobile-nav" type="button" aria-label="Close menu"></button>` : ""}
           <aside class="sidebar-pane ${state.mobileNavOpen ? "mobile-open" : ""}">
             <div class="sidebar-pane-head">
-              <p class="section-kicker">Employee</p>
+              <p class="section-kicker">Employee Portal</p>
               <h2>${employee?.fullName || "Portal"}</h2>
-              <p class="muted">${employee?.employeeNumber || ""}</p>
+              <p class="muted">${employee?.employeeNumber || ""} &middot; ${employee?.department || state.company?.name || ""}</p>
             </div>
             <div class="sidebar-nav-list employee-portal-menu">
-              ${employeePortalMainNavButton("overview", "Home")}
-              ${employeePortalMainNavButton("payslips", "Payslips")}
-              ${employeePortalMainNavButton("leave", "Leave")}
-              ${employeePortalMainNavButton("time", "Time")}
-              ${employeePortalMainNavButton("inbox", "Inbox")}
+              ${employeePortalMainNavButton("overview", "&#8962; Home")}
+              ${employeePortalMainNavButton("payslips", "&#9635; Payslips")}
+              ${employeePortalMainNavButton("leave", "&#9675; Leave")}
+              ${employeePortalMainNavButton("time", "&#9719; Time")}
+              ${employeePortalMainNavButton("inbox", "&#9993; Inbox")}
             </div>
             <div class="sidebar-nav-list">
               ${employeePortalSecondaryNavButton("loans", "Loan requests")}
-              ${employeePortalSecondaryNavButton("account", "Profile and password")}
+              ${employeePortalSecondaryNavButton("account", "Profile &amp; password")}
+            </div>
+            <div class="sidebar-stat-stack">
+              <article class="sidebar-stat-card"><span>Leave remaining</span><strong>${number(annualRemaining, 0)} days</strong></article>
+              <article class="sidebar-stat-card"><span>Payslips available</span><strong>${payslipCount}</strong></article>
+              ${pendingLeave > 0 ? `<article class="sidebar-stat-card"><span>Pending leave</span><strong>${pendingLeave}<span class="stat-attention"></span></strong></article>` : ""}
             </div>
           </aside>
           <main class="content-stage">
-            <section class="workspace-hero-card">
-              <div class="workspace-hero-copy">
-                <p class="section-kicker">Self service</p>
-                <h1 class="workspace-title">Pay, leave, time, and updates without the clutter</h1>
-                <p class="muted">A simpler employee portal focused on the latest payslip, leave balance, next shift, time status, and inbox updates.</p>
+            <div class="employee-greeting-banner">
+              <div class="employee-greeting-copy">
+                <p class="section-kicker">Employee Self-Service</p>
+                <h1 class="employee-greeting-name">Hello, ${(employee?.fullName || "Employee").split(" ")[0]}!</h1>
+                <p class="employee-greeting-sub">${employee?.title || "Employee"} &middot; ${employee?.department || state.company?.name || "NamPayroll"} &middot; ${new Date().toLocaleDateString("en-NA", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</p>
               </div>
-              <div class="portal-quick-actions">
-                ${employeePortalQuickAction("payslips", "Latest payslip", payslipCount ? `${payslipCount} ready to view` : "No payslips yet")}
-                ${employeePortalQuickAction("leave", "Leave balance", pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days available`)}
-                ${employeePortalQuickAction("time", "Time", openShifts ? `${openShifts} active or upcoming` : "Attendance and timesheets")}
-                ${employeePortalQuickAction("inbox", "Inbox", "Notifications and chat")}
-                ${employeePortalQuickAction("account", "Profile", "Account details and password")}
-              </div>
-            </section>
+              <span class="employee-greeting-avatar">${initials(employee?.fullName)}</span>
+            </div>
+            <div class="employee-portal-stats">
+              <article class="employee-portal-stat-card accent-teal">
+                <span class="employee-portal-stat-label">Leave balance</span>
+                <span class="employee-portal-stat-value">${number(annualRemaining, 0)} days</span>
+              </article>
+              <article class="employee-portal-stat-card accent-blue">
+                <span class="employee-portal-stat-label">Payslips</span>
+                <span class="employee-portal-stat-value">${payslipCount}</span>
+              </article>
+              <article class="employee-portal-stat-card accent-gold">
+                <span class="employee-portal-stat-label">Pending requests</span>
+                <span class="employee-portal-stat-value">${pendingLeave + pendingLoans + pendingTimesheets}</span>
+              </article>
+              <article class="employee-portal-stat-card accent-green">
+                <span class="employee-portal-stat-label">Active shifts</span>
+                <span class="employee-portal-stat-value">${openShifts}</span>
+              </article>
+            </div>
+            <div class="employee-quick-actions-grid">
+              <button class="employee-quick-tile ${state.employeePortalView === "payslips" ? "active" : ""}" data-employee-view="payslips" type="button">
+                <span class="employee-quick-tile-icon">&#9635;</span>
+                <strong>Payslips</strong>
+                <span>${payslipCount ? `${payslipCount} ready to view` : "No payslips yet"}</span>
+              </button>
+              <button class="employee-quick-tile ${state.employeePortalView === "leave" ? "active" : ""}" data-employee-view="leave" type="button">
+                <span class="employee-quick-tile-icon">&#9675;</span>
+                <strong>Leave</strong>
+                <span>${pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days available`}</span>
+              </button>
+              <button class="employee-quick-tile ${state.employeePortalView === "time" ? "active" : ""}" data-employee-view="time" type="button">
+                <span class="employee-quick-tile-icon">&#9719;</span>
+                <strong>Time &amp; Shifts</strong>
+                <span>${openShifts ? `${openShifts} active or upcoming` : "Attendance &amp; timesheets"}</span>
+              </button>
+              <button class="employee-quick-tile ${state.employeePortalView === "inbox" ? "active" : ""}" data-employee-view="inbox" type="button">
+                <span class="employee-quick-tile-icon">&#9993;</span>
+                <strong>Inbox</strong>
+                <span>Notifications &amp; chat</span>
+              </button>
+            </div>
           ${state.employeePortalView === "overview" ? employeeOverviewView() : ""}
           ${state.employeePortalView === "leave" ? employeeLeaveView() : ""}
           ${state.employeePortalView === "time" ? employeeTimeView() : ""}
@@ -1439,11 +1479,11 @@ function renderEmployeePortal() {
         </div>
       </div>
       <nav class="portal-bottom-nav">
-        ${employeePortalBottomNavButton("overview", "Home")}
-        ${employeePortalBottomNavButton("payslips", "Payslips")}
-        ${employeePortalBottomNavButton("leave", "Leave")}
-        ${employeePortalBottomNavButton("time", "Time")}
-        ${employeePortalBottomNavButton("inbox", "Inbox")}
+        ${employeePortalBottomNavButton("overview", "&#8962; Home")}
+        ${employeePortalBottomNavButton("payslips", "&#9635; Pay")}
+        ${employeePortalBottomNavButton("leave", "&#9675; Leave")}
+        ${employeePortalBottomNavButton("time", "&#9719; Time")}
+        ${employeePortalBottomNavButton("inbox", "&#9993; Inbox")}
       </nav>
     </section>
   `);
@@ -1497,11 +1537,11 @@ function dashboardView() {
         ${
           state.dashboardSection === "overview"
             ? `<div class="stats compact-stats">
-                <article class="stat"><span class="stat-label">Active employees</span><span class="stat-value">${state.dashboard?.employees || 0}</span></article>
-                <article class="stat"><span class="stat-label">Pending leave requests</span><span class="stat-value">${state.dashboard?.pendingLeaveRequests || 0}</span></article>
-                <article class="stat"><span class="stat-label">Clocked in now</span><span class="stat-value">${attendance.clockedIn || 0}</span></article>
-                <article class="stat"><span class="stat-label">Current month gross</span><span class="stat-value">${money(current.gross || 0)}</span></article>
-                <article class="stat"><span class="stat-label">Current month net</span><span class="stat-value">${money(current.net || 0)}</span></article>
+                <article class="stat" style="border-top:3px solid #19c1b4;"><span class="stat-label">Active employees</span><span class="stat-value">${state.dashboard?.employees || 0}</span></article>
+                <article class="stat" style="border-top:3px solid #f0a83e;"><span class="stat-label">Pending leave requests</span><span class="stat-value">${state.dashboard?.pendingLeaveRequests || 0}</span></article>
+                <article class="stat" style="border-top:3px solid #1f8963;"><span class="stat-label">Clocked in now</span><span class="stat-value">${attendance.clockedIn || 0}</span></article>
+                <article class="stat" style="border-top:3px solid #1a6fa0;"><span class="stat-label">Current month gross</span><span class="stat-value">${money(current.gross || 0)}</span></article>
+                <article class="stat" style="border-top:3px solid #3268f0;"><span class="stat-label">Current month net</span><span class="stat-value">${money(current.net || 0)}</span></article>
                 <article class="stat"><span class="stat-label">Missed shifts</span><span class="stat-value">${attendance.missed || 0}</span></article>
               </div>
               <div class="list compact-list">
@@ -3674,9 +3714,9 @@ function renderApp() {
                 : ""
             }
             <span class="pill">${companyName}</span>
-            <span class="pill">Billing: ${state.company?.billingStatus || "trial"}</span>
-            <span class="topbar-avatar">${initials(state.session?.name || "Admin")}</span>
-            <button class="ghost" data-action="logout">Log out</button>
+            ${attentionCount > 0 ? `<span class="pill" style="background:rgba(240,168,62,0.14);border-color:rgba(240,168,62,0.28);color:#8b6200;">&#9679; ${attentionCount} pending</span>` : ""}
+            <span class="topbar-avatar" title="${state.session?.name || "Admin"} · ${state.session?.role || "admin"}">  ${initials(state.session?.name || "Admin")}</span>
+            <button class="ghost" data-action="logout">Sign out</button>
           </div>
         </header>
         <div class="workspace-body">
@@ -3704,40 +3744,56 @@ function renderApp() {
           </aside>
           <aside class="sidebar-pane workspace-sidebar-desktop">
             <div class="sidebar-pane-head">
-              <p class="section-kicker">Today</p>
-              <h2>What needs attention</h2>
-              <p class="muted">Keep payroll first and bring exceptions forward.</p>
+              <p class="section-kicker">Workspace</p>
+              <h2>${companyName}</h2>
+              <p class="muted">${state.session.name} &middot; ${state.session.role}</p>
             </div>
             <div class="sidebar-nav-list">
-              ${adminNavItem("dashboard", "Home", "⌂")}
-              ${adminNavButton("payroll", "Payroll")}
-              ${adminNavButton("employees", "People")}
-              ${adminNavButton("requests", "Requests")}
-              ${adminNavButton("reports", "Reports")}
-              ${adminNavButton("compliance", "Compliance")}
-              ${adminNavButton("documents", "Documents")}
-              ${adminNavButton("settings", "Settings")}
+              ${adminNavItem("dashboard", "Home", "&#8962;")}
+              ${adminNavItem("payroll", "Payroll", "&#36;")}
+              ${adminNavItem("employees", "People", "&#9711;")}
+              ${adminNavItem("requests", "Requests", "&#9675;")}
+              ${adminNavItem("reports", "Reports", "&#9636;")}
+              ${adminNavItem("compliance", "Compliance", "!")}
+              ${adminNavItem("documents", "Documents", "&#9635;")}
+              ${adminNavItem("settings", "Settings", "&#9881;")}
             </div>
             <div class="sidebar-stat-stack">
               <article class="sidebar-stat-card"><span>Payroll period</span><strong>${state.reportMonth}</strong></article>
-              <article class="sidebar-stat-card"><span>Action required</span><strong>${attentionCount}</strong></article>
+              <article class="sidebar-stat-card"><span>Action required</span><strong>${attentionCount}${attentionCount > 0 ? "<span class=\"stat-attention\"></span>" : ""}</strong></article>
               <article class="sidebar-stat-card"><span>Clocked in now</span><strong>${activeShifts}</strong></article>
+              <article class="sidebar-stat-card"><span>Active employees</span><strong>${activeEmployees}</strong></article>
             </div>
           </aside>
           <main class="content-stage">
             ${state.view === "dashboard" ? `
               <section class="workspace-hero-card workspace-hero-card-modern">
                 <div class="workspace-hero-copy">
-                  <p class="section-kicker">Home</p>
+                  <p class="section-kicker">Admin Dashboard</p>
                   <h1 class="workspace-title">${companyName}</h1>
-                  <p class="muted">A clearer payroll workspace focused on what needs attention today, what is ready to run, and what blocks compliance.</p>
+                  <p class="muted">Your payroll command centre &mdash; run payroll, review requests, manage people, and stay compliant.</p>
                 </div>
-                <div class="portal-quick-actions admin-quick-actions admin-quick-actions-mobile">
-                  ${adminQuickAction("payroll", "Payroll", "Approve and publish")}
-                  ${adminQuickAction("requests", "Requests", attentionCount ? `${attentionCount} action required` : "All clear")}
-                  ${adminQuickAction("employees", "People", `${activeEmployees} payroll records`)}
-                  ${adminQuickAction("compliance", "Compliance", "PAYE, SSC, filing")}
-                  ${adminQuickAction("reports", "Reports", "Costs and exports")}
+                <div class="admin-quick-actions-mobile">
+                  <button class="portal-quick-action ${state.view === "payroll" ? "portal-quick-action-active" : ""}" data-view="payroll" type="button" style="border-left:4px solid #1a6fa0;">
+                    <strong>&#36; Payroll</strong>
+                    <span>Approve &amp; publish</span>
+                  </button>
+                  <button class="portal-quick-action ${state.view === "requests" ? "portal-quick-action-active" : ""}" data-view="requests" type="button" style="border-left:4px solid ${attentionCount ? "#f0a83e" : "#1f8963"}">
+                    <strong>&#9675; Requests</strong>
+                    <span>${attentionCount ? `${attentionCount} need action` : "All clear"}</span>
+                  </button>
+                  <button class="portal-quick-action ${state.view === "employees" ? "portal-quick-action-active" : ""}" data-view="employees" type="button" style="border-left:4px solid #19c1b4;">
+                    <strong>&#9711; People</strong>
+                    <span>${activeEmployees} active records</span>
+                  </button>
+                  <button class="portal-quick-action ${state.view === "compliance" ? "portal-quick-action-active" : ""}" data-view="compliance" type="button" style="border-left:4px solid #c34c35;">
+                    <strong>! Compliance</strong>
+                    <span>PAYE, SSC, filing</span>
+                  </button>
+                  <button class="portal-quick-action ${state.view === "reports" ? "portal-quick-action-active" : ""}" data-view="reports" type="button" style="border-left:4px solid #3268f0;">
+                    <strong>&#9636; Reports</strong>
+                    <span>Costs &amp; exports</span>
+                  </button>
                 </div>
               </section>
             ` : ""}
@@ -3753,11 +3809,11 @@ function renderApp() {
         </div>
       </div>
       <nav class="portal-bottom-nav admin-bottom-nav">
-        ${adminBottomNavButton("dashboard", "Home")}
-        ${adminBottomNavButton("payroll", "Payroll")}
-        ${adminBottomNavButton("requests", "Requests")}
-        ${adminBottomNavButton("reports", "Reports")}
-        ${adminBottomNavButton("settings", "Settings")}
+        ${adminBottomNavButton("dashboard", "&#8962; Home")}
+        ${adminBottomNavButton("payroll", "&#36; Payroll")}
+        ${adminBottomNavButton("requests", "&#9675; Requests")}
+        ${adminBottomNavButton("reports", "&#9636; Reports")}
+        ${adminBottomNavButton("settings", "&#9881; Settings")}
       </nav>
     </section>
   `);

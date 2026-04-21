@@ -3153,3 +3153,1107 @@ button:hover {
     display: grid;
   }
 }
+
+/* ============================================================
+   UX ENHANCEMENT LAYER — Admin & Employee Dashboard Redesign
+   ============================================================ */
+
+/* ---------- Design tokens (overrides / additions) ---------- */
+:root {
+  --brand-gradient: linear-gradient(135deg, #1a6fa0, #0d3c57);
+  --teal: #19c1b4;
+  --teal-soft: rgba(25, 193, 180, 0.12);
+  --gold: #f0a83e;
+  --gold-soft: rgba(240, 168, 62, 0.12);
+  --surface-1: rgba(255, 255, 255, 0.96);
+  --surface-2: rgba(246, 250, 255, 0.94);
+  --card-shadow: 0 4px 16px rgba(15, 34, 52, 0.07), 0 1px 4px rgba(15, 34, 52, 0.04);
+  --card-shadow-hover: 0 10px 32px rgba(15, 34, 52, 0.12), 0 2px 8px rgba(15, 34, 52, 0.06);
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---------- Shared card / panel improvements ---------- */
+.panel,
+.notice,
+.run-card,
+.employee-card,
+.profile-card {
+  transition: var(--transition);
+}
+
+/* ---------- Admin Rail — refined dark sidebar ---------- */
+.app-rail {
+  background:
+    radial-gradient(ellipse at top, rgba(25, 193, 180, 0.22), transparent 40%),
+    linear-gradient(180deg, #0f1535 0%, #131a42 60%, #0d1230 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 6px 0 32px rgba(10, 16, 40, 0.36);
+  border-radius: 28px;
+}
+
+.app-rail .brand-mark-image {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.rail-button {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 16px;
+  color: rgba(200, 215, 255, 0.65);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: var(--transition);
+  width: 100%;
+}
+
+.rail-button:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(220, 235, 255, 0.9);
+  transform: none;
+}
+
+.rail-button.active {
+  background: linear-gradient(135deg, rgba(25, 193, 180, 0.9), rgba(30, 130, 220, 0.75));
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(25, 193, 180, 0.28);
+}
+
+.rail-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+  min-width: 18px;
+  text-align: center;
+}
+
+.rail-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-align: left;
+}
+
+/* ---------- Admin Workspace Surface ---------- */
+.workspace-surface {
+  background: rgba(247, 250, 255, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 30px;
+  box-shadow: 0 24px 60px rgba(18, 30, 52, 0.1);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+/* ---------- Admin Topbar ---------- */
+.workspace-topbar {
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(23, 36, 50, 0.07);
+  backdrop-filter: blur(16px);
+  padding: 12px 20px;
+  border-radius: 0;
+  position: sticky;
+  top: 0;
+  z-index: 14;
+}
+
+.topbar-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #19c1b4, #2a6fdb);
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 0.92rem;
+  display: inline-grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(25, 193, 180, 0.28);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+}
+
+/* ---------- Admin Sidebar Pane ---------- */
+.sidebar-pane {
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  border-radius: 26px;
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+}
+
+.sidebar-pane-head h2 {
+  font-size: 1.4rem;
+  line-height: 1.1;
+}
+
+.sidebar-stat-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 249, 255, 0.92));
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  border-radius: 16px;
+  padding: 13px 16px;
+  transition: var(--transition);
+}
+
+.sidebar-stat-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-1px);
+}
+
+.sidebar-stat-card span {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sidebar-stat-card strong {
+  font-size: 1.5rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  color: var(--ink);
+  display: block;
+  margin-top: 4px;
+}
+
+/* ---------- Admin Nav Items ---------- */
+.workspace-nav-item {
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--muted);
+  transition: var(--transition);
+  border: 1px solid transparent;
+}
+
+.workspace-nav-item:hover {
+  background: rgba(22, 93, 131, 0.06);
+  color: var(--brand-deep);
+  transform: none;
+}
+
+.workspace-nav-item.active {
+  background: linear-gradient(135deg, rgba(22, 93, 131, 0.12), rgba(22, 93, 131, 0.04));
+  border-color: rgba(22, 93, 131, 0.16);
+  color: var(--brand-deep);
+  font-weight: 700;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.workspace-nav-icon {
+  color: inherit;
+  font-size: 1rem;
+}
+
+/* ---------- Admin Hero Card (Dashboard home) ---------- */
+.workspace-hero-card-modern {
+  border-radius: 28px;
+  padding: 28px 32px;
+  margin-bottom: 20px;
+  background:
+    radial-gradient(circle at 80% 20%, rgba(25, 193, 180, 0.18), transparent 36%),
+    radial-gradient(circle at 10% 80%, rgba(22, 93, 131, 0.14), transparent 30%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.98) 0%, rgba(240, 247, 255, 0.96) 100%);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  box-shadow: 0 16px 40px rgba(15, 34, 52, 0.08);
+}
+
+.workspace-hero-copy {
+  margin-bottom: 20px;
+}
+
+.workspace-title {
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  line-height: 1.05;
+  background: linear-gradient(135deg, #0d3c57, #19c1b4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ---------- Admin Quick Action Tiles ---------- */
+.admin-quick-actions-mobile {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.admin-quick-actions-mobile .portal-quick-action {
+  min-height: 110px;
+  border-radius: 22px;
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.08);
+  box-shadow: var(--card-shadow);
+  padding: 18px 16px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.admin-quick-actions-mobile .portal-quick-action:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+  border-color: rgba(22, 93, 131, 0.18);
+}
+
+.admin-quick-actions-mobile .portal-quick-action.portal-quick-action-active {
+  background: linear-gradient(145deg, rgba(22, 93, 131, 0.12), rgba(22, 93, 131, 0.04));
+  border-color: rgba(22, 93, 131, 0.22);
+}
+
+.portal-quick-action strong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.portal-quick-action span {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 6px;
+  display: block;
+}
+
+/* ---------- Dashboard Stat Cards ---------- */
+.stats .stat {
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+}
+
+.stats .stat:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+.stat-value {
+  font-size: 1.7rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  color: var(--ink);
+  margin-top: 8px;
+  display: block;
+  line-height: 1.1;
+}
+
+/* ---------- Dashboard Section Toggle Buttons ---------- */
+.section-switcher {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: rgba(23, 36, 50, 0.05);
+  padding: 4px;
+  border-radius: 14px;
+}
+
+.section-switcher .primary,
+.section-switcher .secondary {
+  border-radius: 10px;
+  padding: 7px 14px;
+  font-size: 0.86rem;
+}
+
+/* ---------- Notice / Alert Cards ---------- */
+.notice {
+  border-radius: 18px;
+  padding: 16px 18px;
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  background: var(--surface-1);
+  box-shadow: var(--card-shadow);
+}
+
+.notice.warn {
+  background: linear-gradient(180deg, rgba(255, 245, 220, 0.98), rgba(255, 250, 238, 0.92));
+  border-color: rgba(240, 168, 62, 0.24);
+}
+
+.notice.good {
+  background: linear-gradient(180deg, rgba(230, 248, 238, 0.98), rgba(242, 252, 246, 0.92));
+  border-color: rgba(31, 137, 99, 0.2);
+}
+
+/* ---------- Employee Summary Cards (Admin view) ---------- */
+.employee-summary-card {
+  background: var(--surface-1);
+  border-radius: 20px;
+  padding: 20px 22px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid rgba(33, 46, 69, 0.07);
+  border-top-width: 4px;
+  transition: var(--transition);
+}
+
+.employee-summary-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.employee-summary-card strong {
+  font-size: 2rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  display: block;
+  margin-top: 10px;
+  line-height: 1.1;
+}
+
+.summary-title {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #73819a;
+  font-weight: 700;
+}
+
+/* ---------- Employee Directory Row ---------- */
+.employee-directory-row {
+  background: var(--surface-1);
+  border-radius: 20px;
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  box-shadow: var(--card-shadow);
+  padding: 14px 16px;
+  transition: var(--transition);
+}
+
+.employee-directory-row:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-1px);
+}
+
+.employee-directory-row.selected {
+  border-color: rgba(25, 193, 180, 0.4);
+  box-shadow: 0 10px 28px rgba(25, 193, 180, 0.14);
+  background: linear-gradient(180deg, rgba(240, 252, 250, 0.98), rgba(232, 250, 247, 0.94));
+}
+
+/* ---------- Employee Avatar ---------- */
+.employee-avatar {
+  background: linear-gradient(135deg, #1a4f7a, #19c1b4);
+  box-shadow: 0 6px 18px rgba(25, 193, 180, 0.22);
+}
+
+/* ---------- Request Review Cards ---------- */
+.request-review-card {
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  border-radius: 18px;
+  padding: 16px;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+}
+
+.request-review-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-1px);
+  border-color: rgba(22, 93, 131, 0.18);
+}
+
+.request-review-card.selected {
+  border-color: rgba(22, 93, 131, 0.3);
+  background: linear-gradient(145deg, rgba(22, 93, 131, 0.09), rgba(22, 93, 131, 0.02));
+  box-shadow: 0 12px 30px rgba(15, 34, 52, 0.1);
+}
+
+/* ---------- Request Summary Cards ---------- */
+.request-summary-card {
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+}
+
+.request-summary-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-1px);
+}
+
+.request-summary-card strong {
+  font-size: 1.7rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+}
+
+/* ---------- Payroll Review Cards ---------- */
+.payroll-review-card {
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+}
+
+.payroll-review-card:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.payroll-review-icon {
+  background: linear-gradient(135deg, rgba(22, 93, 131, 0.14), rgba(25, 193, 180, 0.18));
+  border-radius: 14px;
+  width: 44px;
+  height: 44px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--brand-deep);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.payroll-review-card strong {
+  font-size: 1.9rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  display: block;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+/* ---------- Payroll Stepper ---------- */
+.payroll-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.payroll-step-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--surface-2);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+  text-align: left;
+}
+
+.payroll-step-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-1px);
+}
+
+.payroll-step-card.active {
+  background: linear-gradient(145deg, rgba(22, 93, 131, 0.12), rgba(22, 93, 131, 0.04));
+  border-color: rgba(22, 93, 131, 0.22);
+  box-shadow: 0 8px 24px rgba(22, 93, 131, 0.12);
+}
+
+.payroll-step-card.complete {
+  background: linear-gradient(145deg, rgba(31, 137, 99, 0.1), rgba(31, 137, 99, 0.03));
+  border-color: rgba(31, 137, 99, 0.18);
+}
+
+.payroll-step-number {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(22, 93, 131, 0.1);
+  color: var(--brand-deep);
+  font-weight: 700;
+  font-family: "Space Grotesk", sans-serif;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 0.95rem;
+}
+
+.payroll-step-card.active .payroll-step-number {
+  background: linear-gradient(135deg, var(--brand), var(--brand-deep));
+  color: white;
+  box-shadow: 0 4px 12px rgba(22, 93, 131, 0.3);
+}
+
+.payroll-step-card.complete .payroll-step-number {
+  background: rgba(31, 137, 99, 0.14);
+  color: var(--success);
+}
+
+/* ---------- Status Badges ---------- */
+.status-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Buttons — global polish ---------- */
+.primary {
+  background: linear-gradient(135deg, #1a6fa0, #0d3c57);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(22, 93, 131, 0.22);
+  transition: var(--transition);
+}
+
+.primary:hover {
+  box-shadow: 0 10px 28px rgba(22, 93, 131, 0.32);
+  transform: translateY(-1px);
+}
+
+.secondary {
+  background: rgba(22, 93, 131, 0.08);
+  color: var(--ink);
+  font-weight: 600;
+  border: 1px solid rgba(22, 93, 131, 0.12);
+  transition: var(--transition);
+}
+
+.secondary:hover {
+  background: rgba(22, 93, 131, 0.13);
+  transform: translateY(-1px);
+}
+
+.ghost {
+  background: transparent;
+  border: 1px solid rgba(23, 36, 50, 0.14);
+  color: var(--ink);
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.ghost:hover {
+  background: rgba(23, 36, 50, 0.04);
+  transform: translateY(-1px);
+}
+
+.danger-button {
+  background: linear-gradient(135deg, #c5533d, #9e3a28);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(197, 83, 61, 0.22);
+  transition: var(--transition);
+}
+
+.danger-button:hover {
+  box-shadow: 0 8px 22px rgba(197, 83, 61, 0.32);
+  transform: translateY(-1px);
+}
+
+/* ---------- Form Inputs ---------- */
+input,
+select,
+textarea {
+  border-radius: 14px;
+  border: 1.5px solid rgba(23, 36, 50, 0.12);
+  padding: 12px 14px;
+  background: var(--surface-1);
+  transition: var(--transition);
+  font-size: 0.94rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(22, 93, 131, 0.38);
+  box-shadow: 0 0 0 4px rgba(22, 93, 131, 0.1);
+  outline: none;
+}
+
+/* ---------- Mobile Bottom Nav ---------- */
+.portal-bottom-nav,
+.admin-bottom-nav {
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(23, 36, 50, 0.08);
+  border-radius: 22px;
+  box-shadow: 0 -4px 24px rgba(15, 34, 52, 0.1), 0 18px 28px rgba(26, 36, 52, 0.14);
+  backdrop-filter: blur(16px);
+}
+
+.portal-bottom-nav-button {
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.76rem;
+  transition: var(--transition);
+}
+
+.portal-bottom-nav-button.active {
+  background: linear-gradient(135deg, #1a6fa0, #0d3c57);
+  color: white;
+  box-shadow: 0 6px 16px rgba(22, 93, 131, 0.28);
+}
+
+/* ============================================================
+   EMPLOYEE PORTAL — UX Enhancements
+   ============================================================ */
+
+/* Employee portal greeting banner */
+.employee-greeting-banner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding: 24px 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(25, 193, 180, 0.22), transparent 36%),
+    radial-gradient(circle at 5% 90%, rgba(240, 168, 62, 0.16), transparent 30%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(238, 247, 255, 0.96));
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  box-shadow: 0 14px 36px rgba(15, 34, 52, 0.08);
+  margin-bottom: 4px;
+}
+
+.employee-greeting-copy {
+  display: grid;
+  gap: 6px;
+}
+
+.employee-greeting-name {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #0d3c57, #19c1b4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.employee-greeting-sub {
+  color: var(--muted);
+  font-size: 0.94rem;
+  margin: 0;
+}
+
+.employee-greeting-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a4f7a, #19c1b4);
+  color: #fff;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 1.5rem;
+  display: inline-grid;
+  place-items: center;
+  box-shadow: 0 8px 24px rgba(25, 193, 180, 0.28);
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  flex-shrink: 0;
+}
+
+/* Employee portal stat cards */
+.employee-portal-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.employee-portal-stat-card {
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+  border-left: 4px solid transparent;
+}
+
+.employee-portal-stat-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.employee-portal-stat-card.accent-teal {
+  border-left-color: #19c1b4;
+}
+
+.employee-portal-stat-card.accent-blue {
+  border-left-color: #3268f0;
+}
+
+.employee-portal-stat-card.accent-gold {
+  border-left-color: #f0a83e;
+}
+
+.employee-portal-stat-card.accent-green {
+  border-left-color: #1f8963;
+}
+
+.employee-portal-stat-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+.employee-portal-stat-value {
+  font-size: 1.6rem;
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  color: var(--ink);
+  display: block;
+  margin-top: 8px;
+  line-height: 1.1;
+}
+
+/* Employee quick action tiles */
+.employee-quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.employee-quick-tile {
+  display: grid;
+  gap: 10px;
+  padding: 20px 18px;
+  border-radius: 22px;
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  box-shadow: var(--card-shadow);
+  text-align: left;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.employee-quick-tile:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-2px);
+  border-color: rgba(22, 93, 131, 0.18);
+}
+
+.employee-quick-tile.active {
+  background: linear-gradient(145deg, rgba(22, 93, 131, 0.1), rgba(22, 93, 131, 0.03));
+  border-color: rgba(22, 93, 131, 0.22);
+  box-shadow: 0 8px 24px rgba(22, 93, 131, 0.12);
+}
+
+.employee-quick-tile-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 1.2rem;
+  background: rgba(22, 93, 131, 0.1);
+  color: var(--brand-deep);
+}
+
+.employee-quick-tile strong {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.employee-quick-tile span {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+/* Employee portal topbar */
+.employee-portal-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 20px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(16px);
+  position: sticky;
+  top: 10px;
+  z-index: 14;
+}
+
+.employee-portal-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.employee-portal-brand-logo {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  object-fit: contain;
+}
+
+.employee-portal-brand-name {
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.employee-portal-brand-sub {
+  font-size: 0.78rem;
+  color: var(--muted);
+  display: block;
+}
+
+/* Employee portal nav menu */
+.employee-portal-nav-menu {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: rgba(23, 36, 50, 0.04);
+  padding: 4px;
+  border-radius: 16px;
+}
+
+.employee-portal-nav-btn {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.employee-portal-nav-btn:hover {
+  background: rgba(22, 93, 131, 0.07);
+  color: var(--brand-deep);
+  transform: none;
+}
+
+.employee-portal-nav-btn.active {
+  background: var(--surface-1);
+  color: var(--brand-deep);
+  font-weight: 700;
+  border-color: rgba(22, 93, 131, 0.14);
+  box-shadow: var(--card-shadow);
+}
+
+/* Employee portal content panel */
+.employee-portal-content-panel {
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  border-radius: 26px;
+  padding: 24px;
+  box-shadow: var(--card-shadow);
+}
+
+/* Employee payslip card */
+.employee-payslip-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+}
+
+.employee-payslip-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-1px);
+}
+
+/* Leave progress bar */
+.leave-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(23, 36, 50, 0.08);
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.leave-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1f8963, #19c1b4);
+}
+
+/* Leave balance card */
+.leave-balance-card {
+  background: var(--surface-1);
+  border: 1px solid rgba(23, 36, 50, 0.07);
+  border-radius: 18px;
+  padding: 16px 18px;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+}
+
+.leave-balance-card:hover {
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   SHARED PANEL / SECTION IMPROVEMENTS
+   ============================================================ */
+
+/* Panel header section-kicker */
+.section-kicker {
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--brand);
+  margin: 0 0 6px;
+}
+
+/* Panel h2 */
+.panel h2,
+.workspace-hero-card h2 {
+  font-size: 1.5rem;
+  line-height: 1.15;
+}
+
+/* Empty state */
+.empty {
+  padding: 28px;
+  text-align: center;
+  color: var(--muted);
+  border: 1.5px dashed rgba(23, 36, 50, 0.12);
+  border-radius: 18px;
+  font-size: 0.94rem;
+  background: rgba(23, 36, 50, 0.02);
+}
+
+/* Banner improvements */
+.banner {
+  border-radius: 14px;
+  padding: 13px 16px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.success-banner {
+  background: linear-gradient(180deg, rgba(225, 248, 236, 0.98), rgba(240, 252, 246, 0.92));
+  border: 1px solid rgba(31, 137, 99, 0.2);
+  color: #1b6a4d;
+}
+
+.danger-banner {
+  background: linear-gradient(180deg, rgba(255, 237, 232, 0.98), rgba(255, 248, 245, 0.92));
+  border: 1px solid rgba(186, 77, 50, 0.2);
+  color: #8b3628;
+}
+
+/* Tag / pill improvements */
+.tag {
+  background: rgba(22, 93, 131, 0.08);
+  color: var(--brand-deep);
+  font-size: 0.82rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 5px 12px;
+  border: 1px solid rgba(22, 93, 131, 0.12);
+}
+
+.pill {
+  background: rgba(22, 93, 131, 0.07);
+  color: var(--brand-deep);
+  font-size: 0.86rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 6px 14px;
+  border: 1px solid rgba(22, 93, 131, 0.1);
+}
+
+/* Sidebar mini stat card with attention dot */
+.stat-attention {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f0a83e;
+  box-shadow: 0 0 0 3px rgba(240, 168, 62, 0.22);
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Compliance status dot */
+.compliance-status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #16967d;
+  box-shadow: 0 0 0 5px rgba(22, 150, 125, 0.14);
+}
+
+.compliance-status-dot.warning {
+  background: #f0a83e;
+  box-shadow: 0 0 0 5px rgba(240, 168, 62, 0.16);
+}
+
+/* ============================================================
+   RESPONSIVE ADJUSTMENTS FOR NEW COMPONENTS
+   ============================================================ */
+
+@media (max-width: 1120px) {
+  .employee-portal-stats,
+  .employee-quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-quick-actions-mobile {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .employee-greeting-banner {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-greeting-avatar {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .employee-portal-stats,
+  .employee-quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-quick-actions-mobile {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .workspace-hero-card-modern {
+    padding: 20px 18px;
+  }
+
+  .employee-greeting-banner {
+    padding: 18px 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .employee-portal-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .employee-quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-quick-actions-mobile {
+    grid-template-columns: 1fr;
+  }
+}
