@@ -2207,11 +2207,9 @@ function employeesView() {
           </div>
           <div class="employee-list-head">
             <span>Name</span>
-            <span>Company</span>
+            <span>Department</span>
             <span>Status</span>
             <span>Salary</span>
-            <span>Date</span>
-            <span></span>
           </div>
 
           ${
@@ -2230,7 +2228,6 @@ function employeesView() {
                         <span>${employee.department || "General"}</span>
                         <span><span class="status-badge">${employee.status || "Active"}</span></span>
                         <span>${money(employee.basicWage)}</span>
-                        <span>${employee.startDate || "-"}</span>
                       </button>
                       <div class="employee-directory-actions">
                         <button class="secondary table-action" data-action="edit-employee" data-id="${employee.id}">Edit</button>
@@ -3721,30 +3718,9 @@ function renderApp() {
         </header>
         <div class="workspace-body">
           ${state.mobileNavOpen ? `<button class="mobile-nav-backdrop" data-action="close-mobile-nav" type="button" aria-label="Close menu"></button>` : ""}
-          <aside class="sidebar-pane admin-mobile-pane ${state.mobileNavOpen ? "mobile-open" : ""}">
+          <aside class="sidebar-pane admin-sidebar ${state.mobileNavOpen ? "mobile-open" : ""}">
             <div class="sidebar-pane-head">
               <p class="section-kicker">Admin</p>
-              <h2>${companyName}</h2>
-              <p class="muted">${state.session.name} · ${state.session.role}</p>
-            </div>
-            <div class="sidebar-nav-list">
-              ${adminNavItem("dashboard", "Home", "⌂")}
-              ${adminNavItem("payroll", "Payroll", "$")}
-              ${adminNavItem("employees", "People", "◉")}
-              ${adminNavItem("requests", "Requests", "◌")}
-              ${adminNavItem("reports", "Reports", "▤")}
-              ${adminNavItem("compliance", "Compliance", "!")}
-              ${adminNavItem("documents", "Documents", "▣")}
-              ${adminNavItem("settings", "Settings", "⚙")}
-            </div>
-            <div class="sidebar-stat-stack">
-              <article class="sidebar-stat-card"><span>Needs attention today</span><strong>${attentionCount}</strong></article>
-              <article class="sidebar-stat-card"><span>Clocked in now</span><strong>${activeShifts}</strong></article>
-            </div>
-          </aside>
-          <aside class="sidebar-pane workspace-sidebar-desktop">
-            <div class="sidebar-pane-head">
-              <p class="section-kicker">Workspace</p>
               <h2>${companyName}</h2>
               <p class="muted">${state.session.name} &middot; ${state.session.role}</p>
             </div>

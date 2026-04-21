@@ -1430,8 +1430,10 @@ button:hover {
 }
 
 .table-action {
-  padding: 7px 11px;
-  font-size: 0.84rem;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  min-width: fit-content;
 }
 
 .shift-card {
@@ -2117,6 +2119,10 @@ button:hover {
     grid-template-columns: 1fr;
   }
 
+  .admin-sidebar {
+    display: none;
+  }
+
   .hero,
   .layout,
   .grid-2,
@@ -2358,8 +2364,28 @@ button:hover {
   display: none;
 }
 
-.admin-mobile-pane {
-  display: none;
+.admin-sidebar {
+  display: grid;
+  align-content: start;
+}
+
+@media (max-width: 720px) {
+  .admin-sidebar {
+    display: none;
+  }
+  .admin-sidebar.mobile-open {
+    display: grid;
+    position: fixed;
+    top: 84px;
+    left: 10px;
+    right: 72px;
+    z-index: 30;
+    max-height: calc(100vh - 170px);
+    overflow: auto;
+    border-radius: 24px;
+    background: rgba(250, 252, 255, 0.98);
+    box-shadow: 0 24px 40px rgba(26, 36, 52, 0.18);
+  }
 }
 
   .workspace-topbar-search {
@@ -2381,7 +2407,7 @@ button:hover {
   }
 
   .sidebar-pane.mobile-open,
-  .admin-mobile-pane.mobile-open {
+  .admin-sidebar.mobile-open {
     display: grid;
     position: fixed;
     top: 84px;
@@ -2637,8 +2663,11 @@ button:hover {
 }
 
 .workspace-body {
-  display: block;
-  padding: 24px;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 16px;
+  padding: 20px;
+  align-items: start;
 }
 
 .topbar-avatar {
@@ -2725,12 +2754,19 @@ button:hover {
   align-items: center;
 }
 
-.employee-list-head,
+.employee-list-head {
+  display: grid;
+  grid-template-columns: minmax(140px, 2fr) minmax(80px, 1fr) 70px 90px;
+  gap: 10px;
+  align-items: center;
+}
+
 .employee-directory-primary {
   display: grid;
-  grid-template-columns: minmax(220px, 1.6fr) minmax(110px, 0.9fr) 110px 110px 110px;
-  gap: 16px;
+  grid-template-columns: minmax(140px, 2fr) minmax(80px, 1fr) 70px 90px;
+  gap: 10px;
   align-items: center;
+  overflow: hidden;
 }
 
 .employee-list-head {
@@ -2747,14 +2783,15 @@ button:hover {
 }
 
 .employee-directory-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
+  display: flex;
+  flex-direction: row;
   align-items: center;
+  gap: 0;
   padding: 12px;
   border-radius: 22px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 255, 0.96));
   border: 1px solid rgba(23, 36, 50, 0.08);
+  overflow: hidden;
 }
 
 .employee-directory-row.selected {
@@ -2764,7 +2801,8 @@ button:hover {
 
 .employee-directory-primary {
   background: transparent;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   text-align: left;
 }
 
@@ -2781,8 +2819,11 @@ button:hover {
 
 .employee-directory-actions {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
+  align-items: center;
+  flex-shrink: 0;
+  padding-left: 10px;
 }
 
 .employee-avatar {
