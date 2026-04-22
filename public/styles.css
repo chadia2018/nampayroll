@@ -4343,8 +4343,25 @@ textarea:focus {
    ============================================================ */
 
 /* Employee portal shell */
-.employee-workspace-shell .sidebar-pane {
+.employee-workspace-shell {
+  display: block;
+  min-height: 100vh;
+}
+
+/* Employee portal uses 4-column stat grid */
+.employee-workspace-shell .stats.compact-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.employee-workspace-shell .workspace-surface {
+  display: block;
+  min-height: 100vh;
   background: var(--np-surface-2);
+}
+
+.employee-workspace-shell .sidebar-pane {
+  background: var(--np-surface);
+  border-right: 1px solid var(--np-border-2);
 }
 
 /* Employee greeting banner */

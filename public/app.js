@@ -230,8 +230,12 @@ function adminNavItem(view, label, icon) {
   `;
 }
 
-function employeePortalMainNavButton(view, label) {
-  return `<button class="pane-nav-button ${state.employeePortalView === view ? "active" : "secondary"}" data-employee-view="${view}"><span>${label}</span></button>`;
+function employeePortalMainNavButton(view, icon, label) {
+  const isActive = state.employeePortalView === view;
+  return `<button class="workspace-nav-item ${isActive ? "active" : ""}" data-employee-view="${view}">
+    <span class="workspace-nav-icon">${icon}</span>
+    <span>${label}</span>
+  </button>`;
 }
 
 function employeePortalSecondaryNavButton(view, label) {
@@ -1366,18 +1370,6 @@ function renderEmployeePortal() {
   const today = new Date().toLocaleDateString("en-NA", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   return appShell(`
     <section class="workspace-shell employee-workspace-shell">
-      <aside class="app-rail">
-        <div class="app-rail-brand">
-          <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
-        </div>
-        <div class="app-rail-group">
-          ${employeeRailButton("overview", "&#9651;", "Home")}
-          ${employeeRailButton("payslips", "&#9635;", "Payslips")}
-          ${employeeRailButton("leave", "&#9675;", "Leave")}
-          ${employeeRailButton("time", "&#9719;", "Time")}
-          ${employeeRailButton("inbox", "&#9993;", "Inbox")}
-        </div>
-      </aside>
       <div class="workspace-surface">
         <header class="workspace-topbar">
           <div class="mobile-topbar-brand">
@@ -1386,7 +1378,6 @@ function renderEmployeePortal() {
               <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
               <strong>NamPayroll</strong>
             </div>
-            <span class="mobile-topbar-icon">&#9711;</span>
           </div>
           <div class="workspace-topbar-search">
             <input class="workspace-search workspace-search-wide" id="employee-portal-search-global" placeholder="&#128269; Search payslips, leave, shifts..." value="${state.employeePortalSearch}" />
@@ -1406,70 +1397,58 @@ function renderEmployeePortal() {
               <p class="muted">${employee?.employeeNumber || ""} &middot; ${employee?.department || state.company?.name || ""}</p>
             </div>
             <div class="sidebar-nav-list">
-              ${employeePortalMainNavButton("overview", "&#8962; Home")}
-              ${employeePortalMainNavButton("payslips", "&#9635; Payslips")}
-              ${employeePortalMainNavButton("leave", "&#9675; Leave")}
-              ${employeePortalMainNavButton("time", "&#9719; Time")}
-              ${employeePortalMainNavButton("inbox", "&#9993; Inbox")}
+              ${employeePortalMainNavButton("overview", "&#8962;", "Home")}
+              ${employeePortalMainNavButton("payslips", "&#9635;", "Payslips")}
+              ${employeePortalMainNavButton("leave", "&#9675;", "Leave")}
+              ${employeePortalMainNavButton("time", "&#9719;", "Time")}
+              ${employeePortalMainNavButton("inbox", "&#9993;", "Inbox")}
             </div>
             <div class="sidebar-nav-list">
               ${employeePortalSecondaryNavButton("loans", "Loan requests")}
               ${employeePortalSecondaryNavButton("account", "Profile &amp; password")}
             </div>
             <div class="sidebar-stat-stack">
-              <article class="sidebar-stat-card accent-teal"><span>Leave remaining</span><strong>${number(annualRemaining, 0)} days</strong></article>
-              <article class="sidebar-stat-card accent-blue"><span>Payslips available</span><strong>${payslipCount}</strong></article>
-              ${pendingLeave > 0 ? `<article class="sidebar-stat-card accent-gold"><span>Pending leave</span><strong>${pendingLeave}<span class="stat-attention"></span></strong></article>` : ""}
+              <article class="sidebar-stat-card"><span>Leave remaining</span><strong>${number(annualRemaining, 0)} days</strong></article>
+              <article class="sidebar-stat-card"><span>Payslips available</span><strong>${payslipCount}</strong></article>
+              ${pendingLeave > 0 ? `<article class="sidebar-stat-card"><span>Pending leave</span><strong>${pendingLeave}</strong></article>` : ""}
+              <article class="sidebar-stat-card"><span>Active shifts</span><strong>${openShifts}</strong></article>
             </div>
           </aside>
           <main class="content-stage">
-            <div class="employee-greeting-banner">
-              <div class="employee-greeting-copy">
+            <div class="workspace-hero-card-modern">
+              <div class="workspace-hero-copy">
                 <p class="section-kicker">Employee Self-Service</p>
-                <h1 class="employee-greeting-name">Hello, ${firstName}!</h1>
-                <p class="employee-greeting-sub">${employee?.title || "Employee"} &middot; ${employee?.department || state.company?.name || "NamPayroll"} &middot; ${today}</p>
+                <h2 class="workspace-title">${employee?.fullName || "Employee Portal"}</h2>
+                <p class="muted">${employee?.title || "Employee"} &middot; ${employee?.department || state.company?.name || "NamPayroll"} &middot; ${today}</p>
               </div>
-              <span class="employee-greeting-avatar">${empInitials}</span>
+              <div class="admin-quick-actions-mobile">
+                <button class="portal-quick-action ${state.employeePortalView === "payslips" ? "portal-quick-action-active" : ""}" data-employee-view="payslips" type="button">
+                  <strong>&#9635; Payslips</strong>
+                  <span>${payslipCount ? `${payslipCount} ready to view` : "No payslips yet"}</span>
+                </button>
+                <button class="portal-quick-action ${state.employeePortalView === "leave" ? "portal-quick-action-active" : ""}" data-employee-view="leave" type="button">
+                  <strong>&#9675; Leave</strong>
+                  <span>${pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days left`}</span>
+                </button>
+                <button class="portal-quick-action ${state.employeePortalView === "time" ? "portal-quick-action-active" : ""}" data-employee-view="time" type="button">
+                  <strong>&#9719; Time</strong>
+                  <span>${openShifts ? `${openShifts} active` : "Attendance"}</span>
+                </button>
+                <button class="portal-quick-action ${state.employeePortalView === "inbox" ? "portal-quick-action-active" : ""}" data-employee-view="inbox" type="button">
+                  <strong>&#9993; Inbox</strong>
+                  <span>Notifications</span>
+                </button>
+                <button class="portal-quick-action ${state.employeePortalView === "loans" ? "portal-quick-action-active" : ""}" data-employee-view="loans" type="button">
+                  <strong>&#9654; Loans</strong>
+                  <span>${pendingLoans ? `${pendingLoans} pending` : "Apply for loan"}</span>
+                </button>
+              </div>
             </div>
-            <div class="employee-portal-stats">
-              <article class="employee-portal-stat-card accent-teal">
-                <span class="employee-portal-stat-label">Leave balance</span>
-                <span class="employee-portal-stat-value">${number(annualRemaining, 0)} days</span>
-              </article>
-              <article class="employee-portal-stat-card accent-blue">
-                <span class="employee-portal-stat-label">Payslips</span>
-                <span class="employee-portal-stat-value">${payslipCount}</span>
-              </article>
-              <article class="employee-portal-stat-card accent-gold">
-                <span class="employee-portal-stat-label">Pending requests</span>
-                <span class="employee-portal-stat-value">${pendingLeave + pendingLoans + pendingTimesheets}</span>
-              </article>
-              <article class="employee-portal-stat-card accent-green">
-                <span class="employee-portal-stat-label">Active shifts</span>
-                <span class="employee-portal-stat-value">${openShifts}</span>
-              </article>
-            </div>
-            <div class="employee-quick-actions-grid">
-              <button class="employee-quick-tile ${state.employeePortalView === "payslips" ? "active" : ""}" data-employee-view="payslips" type="button">
-                <span class="employee-quick-tile-icon">&#9635;</span>
-                <strong>Payslips</strong>
-                <span>${payslipCount ? `${payslipCount} ready to view` : "No payslips yet"}</span>
-              </button>
-              <button class="employee-quick-tile ${state.employeePortalView === "leave" ? "active" : ""}" data-employee-view="leave" type="button">
-                <span class="employee-quick-tile-icon">&#9675;</span>
-                <strong>Leave</strong>
-                <span>${pendingLeave ? `${pendingLeave} pending` : `${number(annualRemaining, 0)} days available`}</span>
-              </button>
-              <button class="employee-quick-tile ${state.employeePortalView === "time" ? "active" : ""}" data-employee-view="time" type="button">
-                <span class="employee-quick-tile-icon">&#9719;</span>
-                <strong>Time &amp; Shifts</strong>
-                <span>${openShifts ? `${openShifts} active or upcoming` : "Attendance &amp; timesheets"}</span>
-              </button>
-              <button class="employee-quick-tile ${state.employeePortalView === "inbox" ? "active" : ""}" data-employee-view="inbox" type="button">
-                <span class="employee-quick-tile-icon">&#9993;</span>
-                <strong>Inbox</strong>
-                <span>Notifications &amp; chat</span>
-              </button>
+            <div class="stats compact-stats">
+              <article class="stat" style="border-top:3px solid #14b8a6;"><span class="stat-label">Leave balance</span><span class="stat-value">${number(annualRemaining, 0)} days</span></article>
+              <article class="stat" style="border-top:3px solid #3b82f6;"><span class="stat-label">Payslips available</span><span class="stat-value">${payslipCount}</span></article>
+              <article class="stat" style="border-top:3px solid #f59e0b;"><span class="stat-label">Pending requests</span><span class="stat-value">${pendingLeave + pendingLoans + pendingTimesheets}</span></article>
+              <article class="stat" style="border-top:3px solid #10b981;"><span class="stat-label">Active shifts</span><span class="stat-value">${openShifts}</span></article>
             </div>
           ${state.employeePortalView === "overview" ? employeeOverviewView() : ""}
           ${state.employeePortalView === "leave" ? employeeLeaveView() : ""}
