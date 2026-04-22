@@ -3674,21 +3674,6 @@ function renderApp() {
   const adminInitials = initials(state.session?.name || "Admin");
   return appShell(`
     <section class="workspace-shell admin-workspace-shell">
-      <aside class="app-rail">
-        <div class="app-rail-brand">
-          <img class="brand-mark-image" src="/assets/nam-payroll-favicon.png" alt="NamPayroll" />
-        </div>
-        <div class="app-rail-group">
-          ${adminRailButton("dashboard", "⌂", "Home")}
-          ${adminRailButton("payroll", "$", "Payroll")}
-          ${adminRailButton("employees", "◉", "People")}
-          ${adminRailButton("requests", "◌", "Requests")}
-          ${adminRailButton("reports", "▤", "Reports")}
-          ${adminRailButton("compliance", "!", "Comply")}
-          ${adminRailButton("documents", "▣", "Docs")}
-          ${adminRailButton("settings", "⚙", "Settings")}
-        </div>
-      </aside>
       <div class="workspace-surface">
         <header class="workspace-topbar">
           <div class="mobile-topbar-brand">

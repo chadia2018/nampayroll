@@ -28,11 +28,7 @@ body {
   min-height: 100vh;
   color: var(--ink);
   font-family: "Source Sans 3", sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(240, 168, 62, 0.22), transparent 28%),
-    radial-gradient(circle at top right, rgba(22, 93, 131, 0.2), transparent 24%),
-    radial-gradient(circle at bottom center, rgba(19, 81, 111, 0.08), transparent 32%),
-    linear-gradient(180deg, #f8fbff 0%, #edf3f8 46%, #e7eef5 100%);
+  background: #f1f4f8;
 }
 
 button,
@@ -47,9 +43,10 @@ a {
 }
 
 .shell {
-  width: min(1400px, calc(100% - 28px));
-  margin: 0 auto;
-  padding: 18px 0 38px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .login-wrap,
@@ -328,16 +325,14 @@ h2 {
 }
 
 .workspace-shell {
-  display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
-  gap: 16px;
-  min-height: calc(100vh - 40px);
+  display: block;
+  min-height: 100vh;
 }
 
 .workspace-surface {
-  display: grid;
-  gap: 14px;
+  display: block;
   min-width: 0;
+  min-height: 100vh;
 }
 
 .workspace-topbar {
@@ -345,14 +340,14 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 10px 12px;
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.76);
-  border: 1px solid rgba(23, 36, 50, 0.08);
-  box-shadow: 0 10px 24px rgba(15, 34, 52, 0.06);
-  backdrop-filter: blur(14px);
+  padding: 12px 24px;
+  border-radius: 0;
+  background: #ffffff;
+  border: none;
+  border-bottom: 1px solid rgba(23, 36, 50, 0.08);
+  box-shadow: 0 1px 4px rgba(15, 34, 52, 0.05);
   position: sticky;
-  top: 10px;
+  top: 0;
   z-index: 14;
 }
 
@@ -2615,9 +2610,7 @@ button:hover {
 }
 
 .admin-workspace-shell {
-  grid-template-columns: 110px minmax(0, 1fr);
-  align-items: start;
-  gap: 20px;
+  display: block;
 }
 
 .app-rail {
@@ -2650,16 +2643,16 @@ button:hover {
 }
 
 .workspace-surface {
-  background: rgba(248, 251, 255, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.76);
-  border-radius: 30px;
-  box-shadow: 0 26px 60px rgba(22, 35, 56, 0.12);
-  backdrop-filter: blur(18px);
+  background: var(--np-surface-2);
+  display: block;
+  min-height: 100vh;
 }
 
 .workspace-topbar {
-  background: rgba(255, 255, 255, 0.82);
+  background: #ffffff;
   border-bottom: 1px solid rgba(23, 36, 50, 0.08);
+  border-radius: 0;
+  box-shadow: 0 1px 4px rgba(15, 34, 52, 0.05);
 }
 
 .workspace-body {
@@ -3223,9 +3216,9 @@ button:hover {
   --np-indigo-soft:rgba(99, 102, 241, 0.12);
 
   /* Surface */
-  --np-bg:         #f0f4f8;
+  --np-bg:         #f1f4f8;
   --np-surface:    #ffffff;
-  --np-surface-2:  #f8fafc;
+  --np-surface-2:  #ffffff;
   --np-border:     rgba(15, 23, 42, 0.09);
   --np-border-2:   rgba(15, 23, 42, 0.05);
 
@@ -3260,6 +3253,10 @@ body {
 
 .shell {
   background: transparent;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin: 0;
 }
 
 /* ── App Rail (Left Icon Bar) ───────────────────────────────── */
@@ -3353,27 +3350,26 @@ body {
 
 /* ── Workspace Surface ──────────────────────────────────────── */
 .workspace-surface {
-  background: var(--np-surface);
-  border: 1px solid var(--np-border);
-  border-radius: var(--np-r-xl);
-  box-shadow: var(--np-shadow-md);
-  overflow: hidden;
+  background: var(--np-surface-2);
   min-width: 0;
+  min-height: 100vh;
+  display: block;
 }
 
-/* ── Workspace Topbar ───────────────────────────────────────── */
+/* ── Workspace Topbar ─────────────────────────────────────── */
 .workspace-topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 14px;
-  padding: 14px 22px;
-  background: rgba(255,255,255,0.95);
+  padding: 12px 24px;
+  background: #ffffff;
   border-bottom: 1px solid var(--np-border-2);
-  backdrop-filter: blur(20px);
   position: sticky;
   top: 0;
   z-index: 14;
   border-radius: 0;
+  box-shadow: 0 1px 4px rgba(15,34,52,0.05);
 }
 
 .workspace-topbar-search {
