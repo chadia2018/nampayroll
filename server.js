@@ -1198,6 +1198,42 @@ function buildPayrollRunRecord(employee, body, createdBy, company) {
   };
 }
 
+function updatePayrollRunRecord(existingRun, employee, body, updatedBy, company) {
+  const input = normalizePayrollInput({
+    payrollMonth: existingRun.payrollMonth,
+    employeeName: employee.fullName,
+    workerCategory: employee.workerCategory,
+    startDate: employee.startDate,
+    daysPerWeek: employee.daysPerWeek,
+    hoursPerDay: employee.hoursPerDay,
+    basicWage: employee.basicWage,
+    allowances: body.allowances ?? existingRun.input?.allowances ?? employee.taxableAllowances,
+    bonus: body.bonus ?? existingRun.input?.bonus ?? employee.standardBonus,
+    otherDeductions: body.otherDeductions ?? existingRun.input?.otherDeductions ?? 0,
+    overtimeHours: body.overtimeHours ?? existingRun.input?.overtimeHours ?? 0,
+    maxDailyOvertime: body.maxDailyOvertime ?? existingRun.input?.maxDailyOvertime ?? 0,
+    maxWeeklyOvertime: body.maxWeeklyOvertime ?? existingRun.input?.maxWeeklyOvertime ?? 0,
+    sundayHours: body.sundayHours ?? existingRun.input?.sundayHours ?? 0,
+    ordinarilyWorksSunday: body.ordinarilyWorksSunday ?? existingRun.input?.ordinarilyWorksSunday ?? false,
+    publicHolidayHours: body.publicHolidayHours ?? existingRun.input?.publicHolidayHours ?? 0,
+    publicHolidayOrdinaryDay: body.publicHolidayOrdinaryDay ?? existingRun.input?.publicHolidayOrdinaryDay ?? false,
+    nightHours: body.nightHours ?? existingRun.input?.nightHours ?? 0,
+    annualLeaveUsed: body.annualLeaveUsed ?? existingRun.input?.annualLeaveUsed ?? employee.leaveBalances?.annualLeaveUsed ?? 0,
+    sickLeaveUsed: body.sickLeaveUsed ?? existingRun.input?.sickLeaveUsed ?? employee.leaveBalances?.sickLeaveUsed ?? 0,
+  });
+
+  existingRun.companySnapshot = sanitizeCompany(company);
+  existingRun.input = input;
+  existingRun.result = calculatePayroll(input);
+  existingRun.updatedAt = new Date().toISOString();
+  existingRun.updatedBy = updatedBy;
+
+  return {
+    run: existingRun,
+    input,
+  };
+}
+
 function csvEscape(value) {
   const text = String(value ?? "");
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
@@ -3714,6 +3750,50 @@ const routes = [
         return;
       }
       sendJson(res, 200, { item: run });
+    }),
+  },
+  {
+    method: "PATCH",
+    path: "/api/payroll-runs/:runId",
+    handler: requireAdmin(async (req, res, params, sessionState) => {
+      const run = sessionState.db.payrollRuns.find((item) => item.id === params.runId);
+      if (!run) {
+        sendJson(res, 404, { error: "Payroll run not found." });
+        return;
+      }
+      if (isCancelledPayrollRun(run)) {
+        sendJson(res, 400, { error: "Cancelled payroll runs cannot be edited." });
+        return;
+      }
+
+      const employee = sessionState.db.employees.find((item) => item.id === run.employeeId);
+      if (!employee) {
+        sendJson(res, 404, { error: "Employee linked to this payroll run no longer exists." });
+        return;
+      }
+
+      const body = await parseBody(req);
+      const { run: updatedRun, input } = updatePayrollRunRecord(
+        run,
+        employee,
+        body,
+        sessionState.user.username,
+        sessionState.db.company,
+      );
+
+      employee.leaveBalances = {
+        annualLeaveUsed: input.annualLeaveUsed,
+        sickLeaveUsed: input.sickLeaveUsed,
+      };
+      sessionState.db.auditLog.push({
+        id: id("audit"),
+        action: "payroll-run-updated",
+        at: updatedRun.updatedAt,
+        actor: sessionState.user.username,
+        detail: `Updated payroll run ${updatedRun.id} for ${updatedRun.employeeName}.`,
+      });
+      await writeDb(sessionState.db);
+      sendJson(res, 200, { item: updatedRun });
     }),
   },
   {

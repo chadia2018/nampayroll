@@ -40,6 +40,7 @@ const state = {
   peopleProfileTab: "profile",
   payrollStep: "period",
   requestsSelectedId: "",
+  editingRunId: "",
   editingEmployeeId: null,
   removeLogo: false,
   showEmployeeForm: false,
@@ -2293,6 +2294,7 @@ function payrollView() {
   const activeEmployees = state.employees.filter((employee) => (employee.status || "active") === "active");
   const scopedEmployee = state.employees.find((employee) => employee.id === state.selectedEmployeeId) || null;
   const previewEmployee = scopedEmployee || activeEmployees[0] || state.employees[0] || null;
+  const editingRun = state.activeRun && state.editingRunId === state.activeRun.id ? state.activeRun : null;
   const allowancePlaceholder = scopedEmployee ? money(scopedEmployee.taxableAllowances || 0) : "Use each employee's saved allowances";
   const bonusPlaceholder = scopedEmployee ? money(scopedEmployee.standardBonus || 0) : "Use each employee's saved bonus";
   const annualLeavePlaceholder = scopedEmployee
@@ -2340,9 +2342,11 @@ function payrollView() {
         </div>
         ${state.payrollError ? `<div class="banner danger-banner">${state.payrollError}</div>` : ""}
         ${state.payrollNotice ? `<div class="banner success-banner">${state.payrollNotice}</div>` : ""}
+        ${editingRun ? `<div class="banner">Editing saved payroll run for ${editingRun.employeeName} (${editingRun.payrollMonth}). Update the inputs below and save to recalculate the payslip.</div>` : ""}
         ${payrollStepper()}
         ${!readiness.ready && state.payrollStep !== "period" ? `<div class="banner">Action required: ${readiness.issues.join(" ")}</div>` : ""}
         <form id="payroll-form" class="payroll-modal-form">
+          ${editingRun ? `<input type="hidden" name="editingRunId" value="${editingRun.id}" />` : ""}
           ${
             state.payrollStep === "period"
               ? `
@@ -2356,7 +2360,7 @@ function payrollView() {
                 </div>
                 <div class="grid-2">
                   <label>Payroll period
-                    <input type="month" name="payrollMonth" value="${state.reportMonth}" required />
+                    <input type="month" name="payrollMonth" value="${editingRun ? editingRun.payrollMonth : state.reportMonth}" required />
                   </label>
                   <label>Run scope
                     <select name="employeeId">
@@ -2420,13 +2424,13 @@ function payrollView() {
                     </div>
                     <div class="grid-2">
                       <label>Allowances (N$)
-                        <input type="number" min="0" step="0.01" name="allowances" placeholder="${allowancePlaceholder}" />
+                        <input type="number" min="0" step="0.01" name="allowances" value="${editingRun ? Number(editingRun.input.allowances || 0) : ""}" placeholder="${allowancePlaceholder}" />
                       </label>
                       <label>Bonus (N$)
-                        <input type="number" min="0" step="0.01" name="bonus" placeholder="${bonusPlaceholder}" />
+                        <input type="number" min="0" step="0.01" name="bonus" value="${editingRun ? Number(editingRun.input.bonus || 0) : ""}" placeholder="${bonusPlaceholder}" />
                       </label>
                       <label class="span-2">Other deductions (N$)
-                        <input type="number" min="0" step="0.01" name="otherDeductions" value="0" />
+                        <input type="number" min="0" step="0.01" name="otherDeductions" value="${editingRun ? Number(editingRun.input.otherDeductions || 0) : "0"}" />
                       </label>
                     </div>
                   </section>
@@ -2439,22 +2443,22 @@ function payrollView() {
                     </div>
                     <div class="grid-2">
                       <label>Overtime hours
-                        <input type="number" min="0" step="0.25" name="overtimeHours" value="0" />
+                        <input type="number" min="0" step="0.25" name="overtimeHours" value="${editingRun ? Number(editingRun.input.overtimeHours || 0) : "0"}" />
                       </label>
                       <label>Daily overtime cap
-                        <input type="number" min="0" step="0.25" name="maxDailyOvertime" value="0" />
+                        <input type="number" min="0" step="0.25" name="maxDailyOvertime" value="${editingRun ? Number(editingRun.input.maxDailyOvertime || 0) : "0"}" />
                       </label>
                       <label>Weekly overtime cap
-                        <input type="number" min="0" step="0.25" name="maxWeeklyOvertime" value="0" />
+                        <input type="number" min="0" step="0.25" name="maxWeeklyOvertime" value="${editingRun ? Number(editingRun.input.maxWeeklyOvertime || 0) : "0"}" />
                       </label>
                       <label>Sunday hours
-                        <input type="number" min="0" step="0.25" name="sundayHours" value="0" />
+                        <input type="number" min="0" step="0.25" name="sundayHours" value="${editingRun ? Number(editingRun.input.sundayHours || 0) : "0"}" />
                       </label>
                       <label>Public holiday hours
-                        <input type="number" min="0" step="0.25" name="publicHolidayHours" value="0" />
+                        <input type="number" min="0" step="0.25" name="publicHolidayHours" value="${editingRun ? Number(editingRun.input.publicHolidayHours || 0) : "0"}" />
                       </label>
                       <label>Night hours
-                        <input type="number" min="0" step="0.25" name="nightHours" value="0" />
+                        <input type="number" min="0" step="0.25" name="nightHours" value="${editingRun ? Number(editingRun.input.nightHours || 0) : "0"}" />
                       </label>
                     </div>
                   </section>
@@ -2467,17 +2471,17 @@ function payrollView() {
                     </div>
                     <div class="grid-2">
                       <label>Annual leave used
-                        <input type="number" min="0" step="0.5" name="annualLeaveUsed" placeholder="${annualLeavePlaceholder}" />
+                        <input type="number" min="0" step="0.5" name="annualLeaveUsed" value="${editingRun ? Number(editingRun.input.annualLeaveUsed || 0) : ""}" placeholder="${annualLeavePlaceholder}" />
                       </label>
                       <label>Sick leave used
-                        <input type="number" min="0" step="0.5" name="sickLeaveUsed" placeholder="${sickLeavePlaceholder}" />
+                        <input type="number" min="0" step="0.5" name="sickLeaveUsed" value="${editingRun ? Number(editingRun.input.sickLeaveUsed || 0) : ""}" placeholder="${sickLeavePlaceholder}" />
                       </label>
                       <label class="settings-check">
-                        <input type="checkbox" name="ordinarilyWorksSunday" value="true" />
+                        <input type="checkbox" name="ordinarilyWorksSunday" value="true" ${editingRun?.input?.ordinarilyWorksSunday ? "checked" : ""} />
                         Employee ordinarily works on Sundays
                       </label>
                       <label class="settings-check">
-                        <input type="checkbox" name="publicHolidayOrdinaryDay" value="true" />
+                        <input type="checkbox" name="publicHolidayOrdinaryDay" value="true" ${editingRun?.input?.publicHolidayOrdinaryDay ? "checked" : ""} />
                         Public holiday falls on an ordinary workday
                       </label>
                     </div>
@@ -2550,7 +2554,8 @@ function payrollView() {
                 </div>
                 <div class="payroll-modal-actions">
                   <button class="secondary" type="button" data-action="bulk-payroll-run">Approve all active employees</button>
-                  <button class="primary" type="submit">${scopedEmployee ? "Approve and publish payslip" : "Approve and publish payroll batch"}</button>
+                  ${editingRun ? `<button class="secondary" type="button" data-action="stop-edit-run">Stop editing</button>` : ""}
+                  <button class="primary" type="submit">${editingRun ? "Save payslip changes" : scopedEmployee ? "Approve and publish payslip" : "Approve and publish payroll batch"}</button>
                 </div>
                 </div>
               `
@@ -2568,6 +2573,7 @@ function payrollView() {
             state.activeRun
               ? `
                 <div class="employee-row-actions">
+                  ${state.activeRun.status !== "cancelled" ? `<button class="secondary" data-action="edit-run-inputs" data-id="${state.activeRun.id}">Edit inputs</button>` : ""}
                   <button class="secondary" data-action="download-run-pdf" data-id="${state.activeRun.id}">Download PDF</button>
                   ${state.activeRun.status === "cancelled" ? `<span class="status-badge status-declined">Cancelled</span>` : `<button class="danger-button" data-action="cancel-run" data-id="${state.activeRun.id}" data-name="${state.activeRun.employeeName}" data-month="${state.activeRun.payrollMonth}">Cancel run</button>`}
                   <button class="secondary" data-action="print">Print</button>
@@ -4036,6 +4042,32 @@ function bindApp() {
     });
   });
 
+  document.querySelectorAll("[data-action='edit-run-inputs']").forEach((button) => {
+    button.addEventListener("click", async () => {
+      if (!state.activeRun || state.activeRun.id !== button.dataset.id) {
+        const response = await api(`/api/payroll-runs/${button.dataset.id}`);
+        state.activeRun = response.item;
+      }
+      state.editingRunId = button.dataset.id;
+      state.selectedEmployeeId = state.activeRun?.employeeId || "";
+      state.reportMonth = state.activeRun?.payrollMonth || state.reportMonth;
+      state.payrollStep = "inputs";
+      state.payrollError = "";
+      state.payrollNotice = "";
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-action='stop-edit-run']").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.editingRunId = "";
+      state.payrollError = "";
+      state.payrollNotice = "";
+      state.payrollStep = "outputs";
+      render();
+    });
+  });
+
   document.querySelectorAll("[data-action='select-request-item']").forEach((button) => {
     button.addEventListener("click", () => {
       state.requestsSelectedId = button.dataset.id;
@@ -4230,6 +4262,7 @@ function bindApp() {
     button.addEventListener("click", async () => {
       const response = await api(`/api/payroll-runs/${button.dataset.id}`);
       state.activeRun = response.item;
+      state.editingRunId = "";
       state.view = "payroll";
       render();
     });
@@ -4245,6 +4278,7 @@ function bindApp() {
           body: JSON.stringify({}),
         });
         state.activeRun = response.item;
+        state.editingRunId = "";
         await loadRuns();
         await loadDashboard();
         await loadReport(state.reportMonth);
@@ -4545,7 +4579,17 @@ function bindApp() {
       data.ordinarilyWorksSunday = data.ordinarilyWorksSunday === "true";
       data.publicHolidayOrdinaryDay = data.publicHolidayOrdinaryDay === "true";
       try {
-        if (String(data.employeeId || "").trim()) {
+        if (state.editingRunId) {
+          const response = await api(`/api/payroll-runs/${state.editingRunId}`, {
+            method: "PATCH",
+            body: JSON.stringify(data),
+          });
+          state.activeRun = response.item;
+          state.reportMonth = response.item.payrollMonth;
+          state.payrollNotice = `Updated payslip inputs for ${response.item.employeeName} (${response.item.payrollMonth}).`;
+          state.editingRunId = "";
+          state.payrollStep = "outputs";
+        } else if (String(data.employeeId || "").trim()) {
           const response = await api("/api/payroll-runs", {
             method: "POST",
             body: JSON.stringify(data),
@@ -4596,6 +4640,7 @@ function bindApp() {
         });
         state.reportMonth = response.month;
         state.payrollNotice = `Created ${response.createdCount} payroll run(s). Skipped ${response.skippedCount}.`;
+        state.editingRunId = "";
         await loadDashboard();
         await loadRuns();
         await loadReport(state.reportMonth);
