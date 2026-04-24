@@ -56,6 +56,8 @@ const state = {
   leaveViewMode: "list",
   showLeaveForm: false,
   reviewError: "",
+  payrollError: "",
+  payrollNotice: "",
   companyError: "",
   companyNotice: "",
   employeePortalView: "overview",
@@ -2328,6 +2330,8 @@ function payrollView() {
             <p class="muted">A guided workflow that keeps period selection, review, outputs, and publishing in the same place.</p>
           </div>
         </div>
+        ${state.payrollError ? `<div class="banner danger-banner">${state.payrollError}</div>` : ""}
+        ${state.payrollNotice ? `<div class="banner success-banner">${state.payrollNotice}</div>` : ""}
         ${payrollStepper()}
         ${!readiness.ready && state.payrollStep !== "period" ? `<div class="banner">Action required: ${readiness.issues.join(" ")}</div>` : ""}
         <form id="payroll-form" class="payroll-modal-form">
@@ -2361,14 +2365,14 @@ function payrollView() {
                   </label>
                   <label>Run scope
                     <select name="employeeId">
-                      <option value="">All active employees</option>
+                      <option value="" ${!scopedEmployee ? "selected" : ""}>All active employees</option>
                       ${employeeOptions}
                     </select>
                   </label>
                 </div>
                 <div class="stats compact-stats">
                   <article class="stat"><span class="stat-label">Payroll period</span><span class="stat-value">${state.reportMonth}</span></article>
-                  <article class="stat"><span class="stat-label">Run scope</span><span class="stat-value">${scopedEmployee ? scopedEmployee.fullName : `${activeEmployees.length} employees`}</span></article>
+                  <article class="stat"><span class="stat-label">Run scope</span><span class="stat-value">${scopedEmployee ? scopedEmployee.fullName : `${activeEmployees.length} active employees`}</span></article>
                 </div>
                 </div>
               `
@@ -2477,8 +2481,8 @@ function payrollView() {
                   <p class="muted">When you confirm, this payroll run is created, saved to history, and can be published as a payslip.</p>
                 </div>
                 <div class="payroll-modal-actions">
-                  <button class="secondary" type="button" data-action="bulk-payroll-run">Approve all selected employees</button>
-                  <button class="primary" type="submit">Approve and publish</button>
+                  <button class="secondary" type="button" data-action="bulk-payroll-run">Approve all active employees</button>
+                  <button class="primary" type="submit">${scopedEmployee ? "Approve and publish payslip" : "Approve and publish payroll batch"}</button>
                 </div>
                 </div>
               `
@@ -3943,6 +3947,8 @@ function bindApp() {
 
   document.querySelectorAll("#payroll-form select[name='employeeId'], #payroll-form input[name='payrollMonth']").forEach((field) => {
     field.addEventListener("change", (event) => {
+      state.payrollError = "";
+      state.payrollNotice = "";
       if (event.target.name === "employeeId") {
         state.selectedEmployeeId = event.target.value;
       }
@@ -4460,24 +4466,43 @@ function bindApp() {
   if (payrollForm) {
     payrollForm.addEventListener("submit", async (event) => {
       event.preventDefault();
+      state.payrollError = "";
+      state.payrollNotice = "";
       const data = Object.fromEntries(new FormData(payrollForm).entries());
       data.ordinarilyWorksSunday = data.ordinarilyWorksSunday === "true";
       data.publicHolidayOrdinaryDay = data.publicHolidayOrdinaryDay === "true";
-      const response = await api("/api/payroll-runs", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      state.activeRun = response.item;
-      state.reportMonth = response.item.payrollMonth;
-      await loadDashboard();
-      await loadRuns();
-      await loadReport(state.reportMonth);
+      try {
+        if (String(data.employeeId || "").trim()) {
+          const response = await api("/api/payroll-runs", {
+            method: "POST",
+            body: JSON.stringify(data),
+          });
+          state.activeRun = response.item;
+          state.reportMonth = response.item.payrollMonth;
+          state.payrollNotice = `Created payslip for ${response.item.employeeName} (${response.item.payrollMonth}).`;
+        } else {
+          const response = await api("/api/payroll-runs/bulk", {
+            method: "POST",
+            body: JSON.stringify(data),
+          });
+          state.reportMonth = response.month;
+          state.payrollNotice = `Created ${response.createdCount} payroll run(s). Skipped ${response.skippedCount}.`;
+          await loadRuns();
+        }
+        await loadDashboard();
+        await loadRuns();
+        await loadReport(state.reportMonth);
+      } catch (error) {
+        state.payrollError = error.message;
+      }
       render();
     });
   }
 
   document.querySelectorAll("[data-action='bulk-payroll-run']").forEach((button) => {
     button.addEventListener("click", async () => {
+      state.payrollError = "";
+      state.payrollNotice = "";
       const form = document.querySelector("#payroll-form");
       if (!form) return;
       const data = Object.fromEntries(new FormData(form).entries());
@@ -4486,15 +4511,19 @@ function bindApp() {
       delete data.employeeId;
       const confirmed = window.confirm(`Create payroll runs for all active employees for ${data.payrollMonth}?`);
       if (!confirmed) return;
-      const response = await api("/api/payroll-runs/bulk", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
-      state.reportMonth = response.month;
-      await loadDashboard();
-      await loadRuns();
-      await loadReport(state.reportMonth);
-      window.alert(`Created ${response.createdCount} payroll run(s). Skipped ${response.skippedCount}.`);
+      try {
+        const response = await api("/api/payroll-runs/bulk", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        state.reportMonth = response.month;
+        state.payrollNotice = `Created ${response.createdCount} payroll run(s). Skipped ${response.skippedCount}.`;
+        await loadDashboard();
+        await loadRuns();
+        await loadReport(state.reportMonth);
+      } catch (error) {
+        state.payrollError = error.message;
+      }
       render();
     });
   });
