@@ -2293,6 +2293,14 @@ function payrollView() {
   const activeEmployees = state.employees.filter((employee) => (employee.status || "active") === "active");
   const scopedEmployee = state.employees.find((employee) => employee.id === state.selectedEmployeeId) || null;
   const previewEmployee = scopedEmployee || activeEmployees[0] || state.employees[0] || null;
+  const allowancePlaceholder = scopedEmployee ? money(scopedEmployee.taxableAllowances || 0) : "Use each employee's saved allowances";
+  const bonusPlaceholder = scopedEmployee ? money(scopedEmployee.standardBonus || 0) : "Use each employee's saved bonus";
+  const annualLeavePlaceholder = scopedEmployee
+    ? String(Number(scopedEmployee.leaveBalances?.annualLeaveUsed || 0))
+    : "Use each employee's current annual leave";
+  const sickLeavePlaceholder = scopedEmployee
+    ? String(Number(scopedEmployee.leaveBalances?.sickLeaveUsed || 0))
+    : "Use each employee's current sick leave";
   const runMetrics = state.activeRun?.result?.metrics || {};
   const totalGross = state.activeRun
     ? Number(runMetrics.taxableGross || 0)
@@ -2335,19 +2343,6 @@ function payrollView() {
         ${payrollStepper()}
         ${!readiness.ready && state.payrollStep !== "period" ? `<div class="banner">Action required: ${readiness.issues.join(" ")}</div>` : ""}
         <form id="payroll-form" class="payroll-modal-form">
-          <input type="hidden" name="allowances" value="0" />
-          <input type="hidden" name="bonus" value="0" />
-          <input type="hidden" name="otherDeductions" value="0" />
-          <input type="hidden" name="overtimeHours" value="0" />
-          <input type="hidden" name="maxDailyOvertime" value="0" />
-          <input type="hidden" name="maxWeeklyOvertime" value="0" />
-          <input type="hidden" name="sundayHours" value="0" />
-          <input type="hidden" name="publicHolidayHours" value="0" />
-          <input type="hidden" name="nightHours" value="0" />
-          <input type="hidden" name="annualLeaveUsed" value="0" />
-          <input type="hidden" name="sickLeaveUsed" value="0" />
-          <input type="hidden" name="ordinarilyWorksSunday" value="false" />
-          <input type="hidden" name="publicHolidayOrdinaryDay" value="false" />
           ${
             state.payrollStep === "period"
               ? `
@@ -2387,7 +2382,7 @@ function payrollView() {
                     <p class="section-kicker">Step 2</p>
                     <h3>Review payroll inputs</h3>
                   </div>
-                  <span class="tag">Readiness and source checks</span>
+                  <span class="tag">Enter earnings, deductions, and time inputs</span>
                 </div>
                 <div class="payroll-review-grid">
                   <article class="payroll-review-card">
@@ -2414,6 +2409,79 @@ function payrollView() {
                       <small>PAYE and SSC checks depend on employee statutory data.</small>
                     </div>
                   </article>
+                </div>
+                <div class="payroll-input-grid">
+                  <section class="payroll-input-card">
+                    <div class="compact-section-head">
+                      <div>
+                        <h3>Earnings and deductions</h3>
+                        <p class="muted">Override saved values only where needed.</p>
+                      </div>
+                    </div>
+                    <div class="grid-2">
+                      <label>Allowances (N$)
+                        <input type="number" min="0" step="0.01" name="allowances" placeholder="${allowancePlaceholder}" />
+                      </label>
+                      <label>Bonus (N$)
+                        <input type="number" min="0" step="0.01" name="bonus" placeholder="${bonusPlaceholder}" />
+                      </label>
+                      <label class="span-2">Other deductions (N$)
+                        <input type="number" min="0" step="0.01" name="otherDeductions" value="0" />
+                      </label>
+                    </div>
+                  </section>
+                  <section class="payroll-input-card">
+                    <div class="compact-section-head">
+                      <div>
+                        <h3>Time and premium hours</h3>
+                        <p class="muted">Capture overtime, Sunday, holiday, and night work.</p>
+                      </div>
+                    </div>
+                    <div class="grid-2">
+                      <label>Overtime hours
+                        <input type="number" min="0" step="0.25" name="overtimeHours" value="0" />
+                      </label>
+                      <label>Daily overtime cap
+                        <input type="number" min="0" step="0.25" name="maxDailyOvertime" value="0" />
+                      </label>
+                      <label>Weekly overtime cap
+                        <input type="number" min="0" step="0.25" name="maxWeeklyOvertime" value="0" />
+                      </label>
+                      <label>Sunday hours
+                        <input type="number" min="0" step="0.25" name="sundayHours" value="0" />
+                      </label>
+                      <label>Public holiday hours
+                        <input type="number" min="0" step="0.25" name="publicHolidayHours" value="0" />
+                      </label>
+                      <label>Night hours
+                        <input type="number" min="0" step="0.25" name="nightHours" value="0" />
+                      </label>
+                    </div>
+                  </section>
+                  <section class="payroll-input-card">
+                    <div class="compact-section-head">
+                      <div>
+                        <h3>Leave and statutory flags</h3>
+                        <p class="muted">Only change these if this payroll should update leave usage or work pattern assumptions.</p>
+                      </div>
+                    </div>
+                    <div class="grid-2">
+                      <label>Annual leave used
+                        <input type="number" min="0" step="0.5" name="annualLeaveUsed" placeholder="${annualLeavePlaceholder}" />
+                      </label>
+                      <label>Sick leave used
+                        <input type="number" min="0" step="0.5" name="sickLeaveUsed" placeholder="${sickLeavePlaceholder}" />
+                      </label>
+                      <label class="settings-check">
+                        <input type="checkbox" name="ordinarilyWorksSunday" value="true" />
+                        Employee ordinarily works on Sundays
+                      </label>
+                      <label class="settings-check">
+                        <input type="checkbox" name="publicHolidayOrdinaryDay" value="true" />
+                        Public holiday falls on an ordinary workday
+                      </label>
+                    </div>
+                  </section>
                 </div>
                 ${
                   !readiness.ready
@@ -4469,6 +4537,11 @@ function bindApp() {
       state.payrollError = "";
       state.payrollNotice = "";
       const data = Object.fromEntries(new FormData(payrollForm).entries());
+      ["allowances", "bonus", "annualLeaveUsed", "sickLeaveUsed"].forEach((key) => {
+        if (String(data[key] || "").trim() === "") {
+          delete data[key];
+        }
+      });
       data.ordinarilyWorksSunday = data.ordinarilyWorksSunday === "true";
       data.publicHolidayOrdinaryDay = data.publicHolidayOrdinaryDay === "true";
       try {
@@ -4506,6 +4579,11 @@ function bindApp() {
       const form = document.querySelector("#payroll-form");
       if (!form) return;
       const data = Object.fromEntries(new FormData(form).entries());
+      ["allowances", "bonus", "annualLeaveUsed", "sickLeaveUsed"].forEach((key) => {
+        if (String(data[key] || "").trim() === "") {
+          delete data[key];
+        }
+      });
       data.ordinarilyWorksSunday = data.ordinarilyWorksSunday === "true";
       data.publicHolidayOrdinaryDay = data.publicHolidayOrdinaryDay === "true";
       delete data.employeeId;
