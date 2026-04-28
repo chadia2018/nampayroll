@@ -4576,8 +4576,8 @@ function bindApp() {
           delete data[key];
         }
       });
-      data.ordinarilyWorksSunday = data.ordinarilyWorksSunday === "true";
-      data.publicHolidayOrdinaryDay = data.publicHolidayOrdinaryDay === "true";
+      data.ordinarilyWorksSunday = payrollForm.elements.namedItem("ordinarilyWorksSunday")?.checked ?? false;
+      data.publicHolidayOrdinaryDay = payrollForm.elements.namedItem("publicHolidayOrdinaryDay")?.checked ?? false;
       try {
         if (state.editingRunId) {
           const response = await api(`/api/payroll-runs/${state.editingRunId}`, {
@@ -4628,8 +4628,8 @@ function bindApp() {
           delete data[key];
         }
       });
-      data.ordinarilyWorksSunday = data.ordinarilyWorksSunday === "true";
-      data.publicHolidayOrdinaryDay = data.publicHolidayOrdinaryDay === "true";
+      data.ordinarilyWorksSunday = form.elements.namedItem("ordinarilyWorksSunday")?.checked ?? false;
+      data.publicHolidayOrdinaryDay = form.elements.namedItem("publicHolidayOrdinaryDay")?.checked ?? false;
       delete data.employeeId;
       const confirmed = window.confirm(`Create payroll runs for all active employees for ${data.payrollMonth}?`);
       if (!confirmed) return;
